@@ -2,7 +2,9 @@ package me.itut.lanitium;
 
 import carpet.CarpetExtension;
 import carpet.CarpetServer;
+import carpet.script.CarpetExpression;
 import carpet.script.annotation.AnnotationParser;
+import carpet.script.annotation.ValueCaster;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 
@@ -17,11 +19,15 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 	@Override
 	public void onInitialize() {
 		CarpetServer.manageExtension(this);
+		ValueCaster.register(Lazy.class, "lazy");
+		ValueCaster.register(ContextValue.class, "context");
+		ValueCaster.register(LanitiumCookieFuture.class, "lanitium_cookie_future");
+        AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
 		LOGGER.info("Yummy cookies! >u<");
 	}
 
 	@Override
-	public void onGameStarted() {
-		AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
+	public void scarpetApi(CarpetExpression expression) {
+        LanitiumFunctions.apply(expression.getExpr());
 	}
 }
