@@ -33,6 +33,8 @@ Defines function `func` as lazy. That is, all arguments are wrapped in `lazy` va
 - `func` - Function signature (i.e. `flat_map(list, expr)`)
 - `expr` - Function body. Lazy values are returned lazily
 
+  **Does not work for function arguments in built-in functions.**
+
 ### `lazy_call(lazy, vars, context?, type?)`
 Evaluates (calls) a `lazy` value with additional variables and, optionally, custom `context` and context type. An additional variable `@` (`var('@')`) by default is set to the `lazy` value itself, enabling recursion and access to the original context even if a different one is used in the arguments.
 - `lazy` - The lazy value to call. Use `lazy()` or call a lazy function to get one
@@ -45,6 +47,13 @@ Evaluates (calls) a `lazy` value with additional variables and, optionally, cust
 ### `strict(value)`
 Changes the strictness of current script host (like `'strict'` key in `__config()`).
 - `value` - Strictness
+
+### `iterator(has_next, next, reset, state)`
+Creates a custom iterator.
+- `has_next(state)` - Called before each iteration. If `false` is returned, the iteration is stopped
+- `hext(state)` - Called each iteration. The returned value is used as the current value (`_`) in a loop
+- `reset(state)` - Called to reset the iterator. Should reset the state of iteration
+- `state` - The state to pass to the iteration functions. Cannot me reassigned, but can be modified. Is copied when copying the iterator
 
 # Types
 

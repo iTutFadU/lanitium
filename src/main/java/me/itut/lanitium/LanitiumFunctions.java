@@ -188,6 +188,45 @@ public class LanitiumFunctions {
         c.host.strict = value;
     }
 
+    public static class CustomIterator extends LazyListValue {
+        private final Context context;
+        private final FunctionValue hasNext, next, reset;
+        public final Value state;
+
+        public CustomIterator(Context context, FunctionValue hasNext, FunctionValue next, FunctionValue reset, Value state) {
+            this.context = context;
+            this.hasNext = hasNext;
+            this.next = next;
+            this.reset = reset;
+            this.state = state;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return hasNext.callInContext(context, Context.BOOLEAN, List.of(state)).evalValue(context).getBoolean();
+        }
+
+        @Override
+        public Value next() {
+            return next.callInContext(context, Context.NONE, List.of(state)).evalValue(context);
+        }
+
+        @Override
+        public void reset() {
+            reset.callInContext(context, Context.VOID, List.of(state));
+        }
+
+        @Override
+        public Value deepcopy() {
+            return new CustomIterator(context, hasNext, next, reset, state.deepcopy());
+        }
+    }
+
+    @ScarpetFunction
+    public Value iterator(Context c, FunctionValue has_next, FunctionValue next, FunctionValue reset, Value state) {
+        return new CustomIterator(c, has_next, next, reset, state);
+    }
+
 //    @ScarpetFunction
 //    public void send_game_packet(Context c, EntityValue p, String type, Value... values) {
 //        CarpetContext context = (CarpetContext)c;
