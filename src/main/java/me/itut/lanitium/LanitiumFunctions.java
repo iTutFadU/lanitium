@@ -7,6 +7,7 @@ import carpet.script.annotation.ScarpetFunction;
 import carpet.script.argument.Argument;
 import carpet.script.argument.FunctionArgument;
 import carpet.script.exception.*;
+import carpet.script.language.Operators;
 import carpet.script.value.*;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,7 +28,8 @@ public class LanitiumFunctions {
 
     public static void apply(Expression expression) {
         // Carpet nasty nasty
-        expression.addCustomFunction("call", new Fluff.AbstractLazyFunction(-1, "call") {
+        final Fluff.ILazyFunction call;
+        expression.addCustomFunction("call", call = new Fluff.AbstractLazyFunction(-1, "call") {
             @Override
             public LazyValue lazyEval(Context c, Context.Type t, Expression expr, Tokenizer.Token tok, List<LazyValue> lv) {
                 if (lv.isEmpty()) {
@@ -86,6 +88,10 @@ public class LanitiumFunctions {
                 return outerType == Context.SIGNATURE ? Context.LOCALIZATION : Context.NONE;
             }
         });
+        expression.addLazyFunction("z", (c, t, lv) -> {
+            ListValue output = ListValue.wrap(lv.stream().map(v -> new Lazy(c, t, v)));
+            return (cc, tt) -> output;
+        });
 
         expression.addLazyFunction("lazy", (c, t, lv) -> {
             if (t == Context.SIGNATURE) {
@@ -97,6 +103,18 @@ public class LanitiumFunctions {
             }
             Lazy lazy = new Lazy(c, t, lv.isEmpty() ? LazyValue.NULL : lv.getFirst());
             return (cc, tt) -> lazy;
+        });
+        expression.addLazyBinaryOperator("\\", 100, true, false, type -> type, (c, t, l, r) -> {
+            Value left = l.evalValue(c, t);
+            if (left instanceof WithValue with)
+                return with.with(r);
+            Value right = r.evalValue(c, t);
+            if (!(right instanceof ListValue args) || !args.getItems().stream().allMatch(v -> v instanceof Lazy))
+                throw new InternalExpressionException("Incorrect list of arguments. To call a function, use func\\z(...args)");
+            LazyValue[] values = args.getItems().stream().map(v -> ((Lazy)v).value).toArray(LazyValue[]::new), callArgs = new LazyValue[values.length + 1];
+            callArgs[0] = (cc, tt) -> left;
+            System.arraycopy(values, 0, callArgs, 1, values.length);
+            return call.lazyEval(c, t, expression, Tokenizer.Token.NONE, List.of(callArgs));
         });
     }
 

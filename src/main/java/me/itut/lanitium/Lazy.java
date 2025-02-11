@@ -13,7 +13,7 @@ import java.util.List;
 import static carpet.script.exception.Throwables.THROWN_EXCEPTION_TYPE;
 import static carpet.script.exception.Throwables.register;
 
-public class Lazy extends Value {
+public class Lazy extends Value implements WithValue {
     public static Throwables
         LAZY_EXCEPTION = register("lazy_exception", THROWN_EXCEPTION_TYPE),
         BREAK_ERROR = register("break_error", LAZY_EXCEPTION),
@@ -87,5 +87,11 @@ public class Lazy extends Value {
     @Override
     public Lazy deepcopy() {
         return new Lazy(context.duplicate(), type, value);
+    }
+
+    @Override
+    public LazyValue with(LazyValue arg) {
+        Value output = arg.evalValue(context, type);
+        return (c, t) -> output;
     }
 }

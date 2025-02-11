@@ -55,6 +55,13 @@ Creates a custom iterator.
 - `reset(state)` - Called to reset the iterator. Should reset the state of iteration
 - `state` - The state to pass to the iteration functions. Cannot me reassigned, but can be modified. Is copied when copying the iterator
 
+### `z(...exprs)`
+Creates a list of lazy values.
+- `...exprs` - The lazy values (expressions)
+
+### `func\z(...args)`
+Calls `func` with `...args`. Equivalent to `call(func, ...args)`.
+
 # Types
 
 ## `lanitium_cookie_future`
@@ -86,26 +93,14 @@ Returns the context type of this `lazy` value. Possible values:
 - `'lvalue'`
 - `'mapdef'`
 
+### `lazy\(expr)`
+Executes `expr` in the context of this lazy.
+
 ## `context`
-Stores local variables.
-
-### `context:var`
-Returns the lazy value stored in the variable.
-
-### `context:var = lazy`
-Assigns variable a lazy value to the variable.
-
-### `has(context:var)`
-Returns `true` if the variable is defined, `false` otherwise.
-
-### `delete(context:var)`
-Deletes the variable, returning `true` if it was defined before, and `false` otherwise.
-
-### `length(context)`
-Returns the amount of variables.
-
-### `copy(context)`
-Creates a duplicate context. **Does not copy over the variables.** Can be useful though.
+Stores local variables and script host.
 
 ### `context~'strict'`
 Returns `true` if the script host is strict (`'strict'` is set to `true` in `__config()`), `false` otherwise.
+
+### `context\(expr)`
+Executes `expr` in this context.
