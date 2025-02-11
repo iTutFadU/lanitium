@@ -88,16 +88,14 @@ public class LanitiumFunctions {
         });
 
         expression.addLazyFunction("lazy", (c, t, lv) -> {
+            if (t == Context.SIGNATURE) {
+                Value v = lv.getFirst().evalValue(c, t);
+                if (v instanceof FunctionSignatureValue signature) {
+                    LazyFunctionSignatureValue lazy = LazyFunctionSignatureValue.of(signature);
+                    return (cc, tt) -> lazy;
+                }
+            }
             Lazy lazy = new Lazy(c, t, lv.isEmpty() ? LazyValue.NULL : lv.getFirst());
-            return (cc, tt) -> lazy;
-        });
-        expression.addLazyFunction("lazy_fn", 1, (c, t, lv) -> {
-            if (t != Context.SIGNATURE)
-                throw new InternalExpressionException("lazy_fn must wrap a function signature");
-            Value v = lv.getFirst().evalValue(c, t);
-            if (!(v instanceof FunctionSignatureValue signature))
-                throw new InternalExpressionException("lazy_fn must wrap a function signature");
-            LazyFunctionSignatureValue lazy = LazyFunctionSignatureValue.of(signature);
             return (cc, tt) -> lazy;
         });
     }
@@ -161,12 +159,13 @@ public class LanitiumFunctions {
         }
 
         LazyValue initialLazy = context.getVariable("@");
-        context.setVariable("@", (cc, tt) -> lazy);
+        context.setVariable("@", (cc, tt) -> lazy.reboundedTo("@"));
         Map<String, LazyValue> originals = new HashMap<>();
         for (Map.Entry<String, Value> entry : vars.entrySet()) {
-            originals.put(entry.getKey(), context.getVariable(entry.getKey()));
+            String key = entry.getKey();
+            originals.put(key, context.getVariable(key));
             Value value = entry.getValue();
-            context.setVariable(entry.getKey(), (cc, tt) -> value);
+            context.setVariable(key, (cc, tt) -> value.reboundedTo(key));
         }
 
         try {
@@ -182,6 +181,11 @@ public class LanitiumFunctions {
                 context.setVariable(entry.getKey(), entry.getValue());
             context.setVariable("@", initialLazy);
         }
+    }
+
+    @ScarpetFunction
+    public void strict(Context c, boolean value) {
+        c.host.strict = value;
     }
 
 //    @ScarpetFunction

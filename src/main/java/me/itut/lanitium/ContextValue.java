@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class ContextValue extends AbstractListValue implements ContainerValueInterface {
     public final Context context;
@@ -46,7 +47,8 @@ public class ContextValue extends AbstractListValue implements ContainerValueInt
     @Override
     public boolean put(Value key, Value value) {
         if (!(value instanceof Lazy lazy)) throw new InternalExpressionException("A variable must be set to a lazy value");
-        return context.variables.put(key.getString(), lazy.value) != null;
+        String keyName = key.getString();
+        return context.variables.put(keyName, (c, t) -> lazy.value.evalValue(c, t).reboundedTo(keyName)) != null;
     }
 
     @Override
@@ -66,11 +68,6 @@ public class ContextValue extends AbstractListValue implements ContainerValueInt
     }
 
     @Override
-    public Value in(Value value) {
-        throw new InternalExpressionException("This might get implemented later");
-    }
-
-    @Override
     public int length() {
         return context.variables.size();
     }
@@ -78,5 +75,23 @@ public class ContextValue extends AbstractListValue implements ContainerValueInt
     @Override
     public Iterator<Value> iterator() {
         return new ArrayList<>(context.variables.keySet().stream().map(StringValue::of).toList()).iterator();
+    }
+
+    @Override
+    public Value in(Value args) {
+        if (args instanceof ListValue lv) {
+            List<Value> values = lv.getItems();
+            String what = values.getFirst().getString();
+            return get(what, values.subList(1, values.size()).toArray(new Value[0]));
+        } else {
+            return get(args.getString());
+        }
+    }
+
+    public Value get(String what, Value... more) {
+        return switch (what) {
+            case "strict" -> BooleanValue.of(context.host.strict);
+            default -> throw new InternalExpressionException("Unknown context feature: " + what);
+        };
     }
 }
