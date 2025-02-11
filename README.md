@@ -99,6 +99,9 @@ Executes `expr` in the context of this lazy.
 ## `context`
 Stores local variables and script host.
 
+### `copy(context)`
+Creates a duplicate context. **Does not copy over the variables.** Can be useful though.
+
 ### `context~'strict'`
 Returns `true` if the script host is strict (`'strict'` is set to `true` in `__config()`), `false` otherwise.
 
