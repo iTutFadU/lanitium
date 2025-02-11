@@ -18,6 +18,10 @@ import static carpet.script.annotation.ScarpetFunction.UNLIMITED_PARAMS;
 import static me.itut.lanitium.Lazy.*;
 
 public class LanitiumFunctions {
+    static {
+        Operators.precedence.put("with\\", 100);
+    }
+
     public static FunctionValue findIn(Context c, Module module, Value functionValue) {
         if (functionValue.isNull()) throw new InternalExpressionException("function argument cannot be null");
         else if (!(functionValue instanceof FunctionValue fun)) {
@@ -93,25 +97,25 @@ public class LanitiumFunctions {
             return (cc, tt) -> output;
         });
 
-        expression.addLazyFunction("lazy", (c, t, lv) -> {
+        expression.addLazyUnaryOperator("\\", Operators.precedence.get("unary+-!..."), false, true, type -> type, (c, t, lv) -> {
             if (t == Context.SIGNATURE) {
-                Value v = lv.getFirst().evalValue(c, t);
+                Value v = lv.evalValue(c, t);
                 if (v instanceof FunctionSignatureValue signature) {
                     LazyFunctionSignatureValue lazy = LazyFunctionSignatureValue.of(signature);
                     return (cc, tt) -> lazy;
                 }
             }
-            Lazy lazy = new Lazy(c, t, lv.isEmpty() ? LazyValue.NULL : lv.getFirst());
+            Lazy lazy = new Lazy(c, t, lv);
             return (cc, tt) -> lazy;
         });
-        expression.addLazyBinaryOperator("\\", 100, true, false, type -> type, (c, t, l, r) -> {
+        expression.addLazyBinaryOperator("\\", Operators.precedence.get("with\\"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
                 return with.with(r);
             Value right = r.evalValue(c, t);
             if (!(right instanceof ListValue args) || !args.getItems().stream().allMatch(v -> v instanceof Lazy))
                 throw new InternalExpressionException("Incorrect list of arguments. To call a function, use func\\z(...args)");
-            LazyValue[] values = args.getItems().stream().map(v -> ((Lazy)v).value).toArray(LazyValue[]::new), callArgs = new LazyValue[values.length + 1];
+            LazyValue[] values = args.getItems().stream().map(v -> (LazyValue)((Lazy)v)::eval).toArray(LazyValue[]::new), callArgs = new LazyValue[values.length + 1];
             callArgs[0] = (cc, tt) -> left;
             System.arraycopy(values, 0, callArgs, 1, values.length);
             return call.lazyEval(c, t, expression, Tokenizer.Token.NONE, List.of(callArgs));

@@ -24,20 +24,20 @@ Resets the player's cookie to an empty map.
 Sets the cookie secret. Used for validation, apparently.
 - `secret` - The secret string
 
-### `lazy(expr?)`
+### `\(expr)`
 Returns a lazy value of an expression in current `context`.
-- `expr?` - The lazy expression. `null` if omitted
+- `expr` - The lazy expression
 
-### `lazy(func) -> expr`
-Defines function `func` as lazy. That is, all arguments are wrapped in `lazy` values.
-- `func` - Function signature (i.e. `flat_map(list, expr)`)
+### `\func(...args) -> expr`
+Defines function `func` as lazy. That is, all arguments are wrapped in lazy values.
+- `func(...args)` - Function signature
 - `expr` - Function body. Lazy values are returned lazily
 
   **Does not work for function arguments in built-in functions.**
 
 ### `lazy_call(lazy, vars, context?, type?)`
-Evaluates (calls) a `lazy` value with additional variables and, optionally, custom `context` and context type. An additional variable `@` (`var('@')`) by default is set to the `lazy` value itself, enabling recursion and access to the original context even if a different one is used in the arguments.
-- `lazy` - The lazy value to call. Use `lazy()` or call a lazy function to get one
+Evaluates (calls) a lazy value with additional variables and, optionally, custom `context` and context type. An additional variable `@` (`var('@')`) by default is set to `lazy` itself, enabling recursion and access to the original context even if a different one is used in the arguments.
+- `lazy` - The lazy value to call. Use `\(expr)` or call a lazy function to get one
 - `vars` - A map of additional variables, from variable's name to its respective value
 - `context?` - `context` to use when calling `lazy`. `lazy~'context'` if omitted
 - `type?` - Context type to use when calling `lazy`. `lazy~'type'` if omitted
