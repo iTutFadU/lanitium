@@ -127,7 +127,7 @@ public class LanitiumFunctions {
             for (int i = 0; i < imax; i++)
                 try {
                     lv.get(i).evalValue(c, Context.VOID);
-                } catch (RuntimeException | Error e) {
+                } catch (Throwable e) {
                     error = e;
                 }
 
@@ -144,6 +144,14 @@ public class LanitiumFunctions {
                 throw new InternalExpressionException("'thread_local' requires at least a function to call");
             FunctionValue initial = FunctionArgument.findIn(c, expression.module, lv, 0, true, false).function;
             return new ThreadLocalValue(c, initial);
+        });
+        expression.addPureLazyFunction("catch_all", 1, type -> type, (c, t, lv) -> {
+            try {
+                Value output = lv.get(0).evalValue(c, t);
+                return (cc, tt) -> output;
+            } catch (Throwable e) {
+                return LazyValue.NULL;
+            }
         });
     }
 

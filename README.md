@@ -66,6 +66,10 @@ Calls `func` with `...args`. Equivalent to `call(func, ...args)`.
 Similar to `then()` or `;`, but it always evaluates all expressions, throwing the last thrown error if there was any, and returning the value of the last expression if there wasn't.
 - `...exprs` - Expressions separated by commas
 
+### `catch_all(expr)`
+Evaluates the expression, returning `null` if any error occurred.
+- `expr` - Expression to evaluate
+
 ### `symbol()`
 Creates a unique symbol, only equal to itself.
 
