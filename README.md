@@ -66,6 +66,9 @@ Calls `func` with `...args`. Equivalent to `call(func, ...args)`.
 Similar to `then()` or `;`, but it always evaluates all expressions, throwing the last thrown error if there was any, and returning the value of the last expression if there wasn't.
 - `...exprs` - Expressions separated by commas
 
+### `symbol()`
+Creates a unique symbol, only equal to itself.
+
 # Types
 
 ## `lanitium_cookie_future`

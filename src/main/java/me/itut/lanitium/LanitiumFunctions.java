@@ -268,6 +268,11 @@ public class LanitiumFunctions {
         return new CustomIterator(c, has_next, next, reset, state);
     }
 
+    @ScarpetFunction
+    public Value symbol() {
+        return new Symbol();
+    }
+
 //    @ScarpetFunction
 //    public void send_game_packet(Context c, EntityValue p, String type, Value... values) {
 //        CarpetContext context = (CarpetContext)c;

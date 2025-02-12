@@ -10,6 +10,7 @@ import net.minecraft.nbt.Tag;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 public class ContextValue extends Value implements WithValue {
     public final Context context;
@@ -20,7 +21,7 @@ public class ContextValue extends Value implements WithValue {
 
     @Override
     public String getString() {
-        return "context";
+        return "context@" + Integer.toHexString(hashCode());
     }
 
     @Override
@@ -65,5 +66,15 @@ public class ContextValue extends Value implements WithValue {
     public LazyValue with(LazyValue arg) {
         Value output = arg.evalValue(context);
         return (c, t) -> output;
+    }
+
+    @Override
+    public int hashCode() {
+        return context.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof ContextValue c && context.equals(c.context);
     }
 }

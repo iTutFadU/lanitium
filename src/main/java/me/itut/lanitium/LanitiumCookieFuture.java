@@ -57,4 +57,14 @@ public class LanitiumCookieFuture extends Value {
     public String getTypeString() {
         return "lanitium_cookie_future";
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof LanitiumCookieFuture f && future.equals(f.future);
+    }
+
+    @Override
+    public int hashCode() {
+        return future.hashCode();
+    }
 }

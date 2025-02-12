@@ -9,6 +9,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.Tag;
 
 import java.util.List;
+import java.util.Objects;
 
 import static carpet.script.exception.Throwables.THROWN_EXCEPTION_TYPE;
 import static carpet.script.exception.Throwables.register;
@@ -61,12 +62,7 @@ public class Lazy extends Value implements WithValue {
 
     @Override
     public String getString() {
-        return "lazy";
-    }
-
-    @Override
-    public String getPrettyString() {
-        return "lazy in context " + type;
+        return "lazy:" + type.name().toLowerCase() + "@" + Integer.toHexString(hashCode());
     }
 
     @Override
@@ -93,5 +89,15 @@ public class Lazy extends Value implements WithValue {
     public LazyValue with(LazyValue arg) {
         Value output = arg.evalValue(context, type);
         return (c, t) -> output;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(context, type, value);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof Lazy c && context.equals(c.context) && type.equals(c.type) && value.equals(c.value);
     }
 }
