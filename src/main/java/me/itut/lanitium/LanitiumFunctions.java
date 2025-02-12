@@ -120,6 +120,25 @@ public class LanitiumFunctions {
             System.arraycopy(values, 0, callArgs, 1, values.length);
             return call.lazyEval(c, t, expression, Tokenizer.Token.NONE, List.of(callArgs));
         });
+        expression.addPureLazyFunction("all_then", -1, t -> Context.VOID, (c, t, lv) -> {
+            int imax = lv.size() - 1;
+            Throwable error = null;
+
+            for (int i = 0; i < imax; i++)
+                try {
+                    lv.get(i).evalValue(c, Context.VOID);
+                } catch (RuntimeException | Error e) {
+                    error = e;
+                }
+
+            Value v = lv.get(imax).evalValue(c, t);
+            if (error != null)
+                if (error instanceof Error err)
+                    throw err;
+                else
+                    throw (RuntimeException)error;
+            return (cc, tt) -> v;
+        });
     }
 
     @ScarpetFunction

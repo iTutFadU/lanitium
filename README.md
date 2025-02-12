@@ -62,6 +62,10 @@ Creates a list of lazy values.
 ### `func\z(...args)`
 Calls `func` with `...args`. Equivalent to `call(func, ...args)`.
 
+### `all_then(...exprs)`
+Similar to `then()` or `;`, but it always evaluates all expressions, throwing the last thrown error if there was any, and returning the value of the last expression if there wasn't.
+- `...exprs` - Expressions separated by commas
+
 # Types
 
 ## `lanitium_cookie_future`
