@@ -69,6 +69,11 @@ Similar to `then()` or `;`, but it always evaluates all expressions, throwing th
 ### `symbol()`
 Creates a unique symbol, only equal to itself.
 
+### `thread_local(initial, ...args)`
+Creates a thread local value, local to each thread.
+- `initial()` - Function to initialize the value
+- `...args` - Additional arguments for `initial()`
+
 # Types
 
 ## `lanitium_cookie_future`
@@ -114,3 +119,18 @@ Returns `true` if the script host is strict (`'strict'` is set to `true` in `__c
 
 ### `context\(expr)`
 Executes `expr` in this context.
+
+## `symbol`
+A unique value, only equal to itself.
+
+## `thread_local`
+A thread local value, local to each thread. Serialization is delegated.
+
+### `thread_local:null`
+Gets the value. If it's _removed_, it is first initialized via the `initial()` function.
+
+### `thread_local:null = value`
+Sets the value.
+
+### `delete(thread_local:null)`
+Removes the value. If the value isn't set before getting it, it is _removed_ by default.

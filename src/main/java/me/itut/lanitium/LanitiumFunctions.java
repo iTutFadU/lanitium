@@ -139,6 +139,12 @@ public class LanitiumFunctions {
                     throw (RuntimeException)error;
             return (cc, tt) -> v;
         });
+        expression.addContextFunction("thread_local", -1, (c, t, lv) -> {
+            if (lv.isEmpty())
+                throw new InternalExpressionException("'thread_local' requires at least a function to call");
+            FunctionValue initial = FunctionArgument.findIn(c, expression.module, lv, 0, true, false).function;
+            return new ThreadLocalValue(c, initial);
+        });
     }
 
     @ScarpetFunction
