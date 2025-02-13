@@ -4,7 +4,6 @@ import carpet.script.Context;
 import carpet.script.Expression;
 import carpet.script.LazyValue;
 import carpet.script.Tokenizer;
-import carpet.script.exception.ThrowStatement;
 import carpet.script.value.FunctionValue;
 import carpet.script.value.ThreadValue;
 import carpet.script.value.Value;
@@ -29,6 +28,10 @@ public class LazyFunctionValue extends FunctionValue {
     @Override
     public LazyValue execute(Context c, Context.Type type, Expression e, Tokenizer.Token t, List<Value> params, ThreadValue freshNewCallingThread) {
         Value output = super.execute(c, type, e, t, params, freshNewCallingThread).evalValue(c, type);
-        return output instanceof Lazy lazy ? lazy::eval : (cc, tt) -> output;
+        return (cc, tt) -> output;
+    }
+
+    public LazyValue originalExecute(Context c, Context.Type type, Expression e, Tokenizer.Token t, List<Value> params, ThreadValue freshNewCallingThread) {
+        return super.execute(c, type, e, t, params, freshNewCallingThread);
     }
 }

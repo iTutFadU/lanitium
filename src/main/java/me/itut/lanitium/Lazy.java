@@ -37,7 +37,10 @@ public class Lazy extends Value implements WithValue {
         try {
             return value.evalValue(c, t);
         } finally {
-            c.setVariable("@", initial);
+            if (initial != null)
+                c.setVariable("@", initial);
+            else
+                c.delVariable("@");
         }
     }
 

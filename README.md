@@ -28,10 +28,10 @@ Sets the cookie secret. Used for validation, apparently.
 Returns a lazy value of an expression in current `context`.
 - `expr` - The lazy expression
 
-### `\func(...args) -> expr`
-Defines function `func` as lazy. That is, all arguments are wrapped in lazy values.
-- `func(...args)` - Function signature
-- `expr` - Function body. Lazy values are returned lazily
+### `\func -> expr`
+Defines a lazy function. That is, all arguments are wrapped in lazy values.
+- `func(...)` - Function signature
+- `expr` - Function body
 
   **Does not work for function arguments in built-in functions.**
 

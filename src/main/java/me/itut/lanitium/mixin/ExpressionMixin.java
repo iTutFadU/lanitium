@@ -2,12 +2,8 @@ package me.itut.lanitium.mixin;
 
 import carpet.script.*;
 import carpet.script.Module;
-import carpet.script.exception.ExpressionException;
-import carpet.script.exception.InternalExpressionException;
+import carpet.script.exception.*;
 import carpet.script.value.FunctionValue;
-import carpet.script.value.ThreadValue;
-import carpet.script.value.Value;
-import me.itut.lanitium.Lazy;
 import me.itut.lanitium.LazyFunctionValue;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

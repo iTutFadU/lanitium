@@ -4,7 +4,6 @@ import carpet.script.*;
 import carpet.script.Module;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
-import carpet.script.argument.Argument;
 import carpet.script.argument.FunctionArgument;
 import carpet.script.exception.*;
 import carpet.script.language.Operators;
@@ -14,7 +13,6 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.util.*;
 
-import static carpet.script.annotation.ScarpetFunction.UNLIMITED_PARAMS;
 import static me.itut.lanitium.Lazy.*;
 
 public class LanitiumFunctions {
@@ -97,7 +95,7 @@ public class LanitiumFunctions {
             return (cc, tt) -> output;
         });
 
-        expression.addLazyUnaryOperator("\\", Operators.precedence.get("unary+-!..."), false, true, type -> type, (c, t, lv) -> {
+        expression.addLazyUnaryOperator("\\", Operators.precedence.get("unary+-!..."), false, false, type -> type, (c, t, lv) -> {
             if (t == Context.SIGNATURE) {
                 Value v = lv.evalValue(c, t);
                 if (v instanceof FunctionSignatureValue signature) {
@@ -132,11 +130,10 @@ public class LanitiumFunctions {
                 }
 
             Value v = lv.get(imax).evalValue(c, t);
-            if (error != null)
-                if (error instanceof Error err)
-                    throw err;
-                else
-                    throw (RuntimeException)error;
+            if (error instanceof Error e)
+                throw e;
+            else if (error instanceof RuntimeException e)
+                throw e;
             return (cc, tt) -> v;
         });
         expression.addContextFunction("thread_local", -1, (c, t, lv) -> {
@@ -147,7 +144,7 @@ public class LanitiumFunctions {
         });
         expression.addPureLazyFunction("catch_all", 1, type -> type, (c, t, lv) -> {
             try {
-                Value output = lv.get(0).evalValue(c, t);
+                Value output = lv.getFirst().evalValue(c, t);
                 return (cc, tt) -> output;
             } catch (Throwable e) {
                 return LazyValue.NULL;
@@ -233,8 +230,14 @@ public class LanitiumFunctions {
             throw new ThrowStatement(e.retval != null ? e.retval : NULL, RETURN_ERROR);
         } finally {
             for (Map.Entry<String, LazyValue> entry : originals.entrySet())
-                context.setVariable(entry.getKey(), entry.getValue());
-            context.setVariable("@", initialLazy);
+                if (entry.getValue() != null)
+                    context.setVariable(entry.getKey(), entry.getValue());
+                else
+                    context.delVariable(entry.getKey());
+            if (initialLazy != null)
+                context.setVariable("@", initialLazy);
+            else
+                context.delVariable("@");
         }
     }
 
