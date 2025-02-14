@@ -60,7 +60,7 @@ public class LanitiumCookieFuture extends Value {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof LanitiumCookieFuture f && future.equals(f.future);
+        return this == o || o instanceof LanitiumCookieFuture f && future.equals(f.future);
     }
 
     @Override

@@ -58,7 +58,7 @@ public class ThreadLocalValue extends Value implements ContainerValueInterface {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof ThreadLocalValue t && local.equals(t.local);
+        return this == o || o instanceof ThreadLocalValue t && local.equals(t.local);
     }
 
     @Override

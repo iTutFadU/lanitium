@@ -1,4 +1,4 @@
-package me.itut.lanitium.mixin;
+package me.itut.lanitium.mixin.carpet;
 
 import carpet.script.*;
 import carpet.script.Module;

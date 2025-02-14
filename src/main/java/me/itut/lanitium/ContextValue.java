@@ -75,6 +75,6 @@ public class ContextValue extends Value implements WithValue {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof ContextValue c && context.equals(c.context);
+        return this == o || o instanceof ContextValue c && context.equals(c.context);
     }
 }

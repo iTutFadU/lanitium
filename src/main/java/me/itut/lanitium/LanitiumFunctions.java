@@ -7,17 +7,27 @@ import carpet.script.annotation.ScarpetFunction;
 import carpet.script.argument.FunctionArgument;
 import carpet.script.exception.*;
 import carpet.script.language.Operators;
+import carpet.script.utils.SystemInfo;
 import carpet.script.value.*;
+import com.mojang.authlib.GameProfile;
+import me.itut.lanitium.mixin.carpet.SystemInfoOptionsGetter;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static me.itut.lanitium.Lazy.*;
 
 public class LanitiumFunctions {
     static {
         Operators.precedence.put("with\\", 100);
+
+        final Map<String, Function<CarpetContext, Value>> options = ((SystemInfoOptionsGetter)new SystemInfo()).lanitium$getOptions();
+        options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
+        options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
+        options.put("server_sprinting", c -> BooleanValue.of(c.server().tickRateManager().isSprinting()));
     }
 
     public static FunctionValue findIn(Context c, Module module, Value functionValue) {
@@ -288,6 +298,47 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public Value symbol() {
         return new Symbol();
+    }
+
+    @ScarpetFunction
+    public void display_server_motd(Optional<Value> motd) {
+        Lanitium.MOTD = motd.map(FormattedTextValue::getTextByValue).orElse(null);
+    }
+
+    @ScarpetFunction
+    public void display_server_players_online(Optional<Integer> current) {
+        Lanitium.PLAYERS_ONLINE = current.orElse(null);
+    }
+
+    @ScarpetFunction
+    public void display_server_players_max(Optional<Integer> max) {
+        Lanitium.PLAYERS_MAX = max.orElse(null);
+    }
+
+    @ScarpetFunction
+    public void display_server_players_sample(Value... players) {
+        if (players.length == 0)
+            Lanitium.PLAYERS_SAMPLE = null;
+        Lanitium.PLAYERS_SAMPLE = Stream.of(players).map(v -> {
+            if (v instanceof EntityValue ev && ev.getEntity() instanceof ServerPlayer player) return player.getGameProfile();
+            String name = v.getString();
+            return new GameProfile(UUID.fromString(name), name);
+        }).toList();
+    }
+
+    @ScarpetFunction
+    public void set_server_tps(Context c, float tps) {
+        ((CarpetContext)c).server().tickRateManager().setTickRate(tps);
+    }
+
+    @ScarpetFunction
+    public void set_server_frozen(Context c, boolean frozen) {
+        ((CarpetContext)c).server().tickRateManager().setFrozen(frozen);
+    }
+
+    @ScarpetFunction
+    public void server_sprint(Context c, int ticks) {
+        ((CarpetContext)c).server().tickRateManager().requestGameToSprint(ticks);
     }
 
 //    @ScarpetFunction
