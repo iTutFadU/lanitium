@@ -10,7 +10,7 @@ import carpet.script.language.Operators;
 import carpet.script.utils.SystemInfo;
 import carpet.script.value.*;
 import com.mojang.authlib.GameProfile;
-import me.itut.lanitium.mixin.carpet.SystemInfoOptionsGetter;
+import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -300,22 +300,22 @@ public class LanitiumFunctions {
         return new Symbol();
     }
 
-    @ScarpetFunction
+    @ScarpetFunction(maxParams = 1)
     public void display_server_motd(Optional<Value> motd) {
         Lanitium.MOTD = motd.map(FormattedTextValue::getTextByValue).orElse(null);
     }
 
-    @ScarpetFunction
+    @ScarpetFunction(maxParams = 1)
     public void display_server_players_online(Optional<Integer> current) {
         Lanitium.PLAYERS_ONLINE = current.orElse(null);
     }
 
-    @ScarpetFunction
+    @ScarpetFunction(maxParams = 1)
     public void display_server_players_max(Optional<Integer> max) {
         Lanitium.PLAYERS_MAX = max.orElse(null);
     }
 
-    @ScarpetFunction
+    @ScarpetFunction(maxParams = -1)
     public void display_server_players_sample(Value... players) {
         if (players.length == 0)
             Lanitium.PLAYERS_SAMPLE = null;
@@ -327,8 +327,8 @@ public class LanitiumFunctions {
     }
 
     @ScarpetFunction
-    public void set_server_tps(Context c, float tps) {
-        ((CarpetContext)c).server().tickRateManager().setTickRate(tps);
+    public void set_server_tps(Context c, double tps) {
+        ((CarpetContext)c).server().tickRateManager().setTickRate((float)tps);
     }
 
     @ScarpetFunction

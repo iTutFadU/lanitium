@@ -3,6 +3,7 @@ package me.itut.lanitium.mixin.carpet;
 import carpet.script.CarpetContext;
 import carpet.script.utils.SystemInfo;
 import carpet.script.value.Value;
+import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

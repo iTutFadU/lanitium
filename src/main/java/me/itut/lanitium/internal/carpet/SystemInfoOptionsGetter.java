@@ -1,4 +1,4 @@
-package me.itut.lanitium.mixin.carpet;
+package me.itut.lanitium.internal.carpet;
 
 import carpet.script.CarpetContext;
 import carpet.script.value.Value;

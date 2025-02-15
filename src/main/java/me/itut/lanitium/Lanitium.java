@@ -6,9 +6,11 @@ import carpet.script.CarpetExpression;
 import carpet.script.annotation.AnnotationParser;
 import carpet.script.annotation.ValueCaster;
 import com.mojang.authlib.GameProfile;
+import me.itut.lanitium.config.ConfigManager;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
@@ -18,6 +20,7 @@ import java.util.List;
 
 public class Lanitium implements ModInitializer, CarpetExtension {
 	public static final Logger LOGGER = LoggerFactory.getLogger("Lanitium");
+	public static final ConfigManager CONFIG = new ConfigManager(FabricLoader.getInstance().getConfigDir().resolve("lanitium.json").toFile());
 	public static final Biscuit.RegisteredCookie COOKIE = Biscuit.register(ResourceLocation.fromNamespaceAndPath("lanitium", "cookie"), LanitiumCookie.class);
 
     public static Component MOTD = null;
@@ -26,6 +29,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 
 	@Override
 	public void onInitialize() {
+		CONFIG.loadAndUpdate();
 		CarpetServer.manageExtension(this);
 		ValueCaster.register(Lazy.class, "lazy");
 		ValueCaster.register(ContextValue.class, "context");
