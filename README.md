@@ -7,6 +7,30 @@
 
 Uses [Biscuit!](https://modrinth.com/mod/biscuit!)
 
+Better docs eventually...
+
+# Config
+The configuration file is stored at `config/lanitium.json`.
+- `"mod_name"` - Custom mod name (the `"fabric" server` string in F3). If omitted, the default one is used (usually `fabric`). Only legacy formatting (using `§`) is supported.
+- `"links"` - A list of server links. If omitted, the `bug-report` field in `server.properties` is used for a single link.
+  - `"link"` - The link URL (actually, URI).
+  - `"name"` - Formatted name of the link. If present, `"type"` is ignored.
+  - `"type"` - A known link type. Can be one of:
+    - `"report_bug"`
+    - `"community_guidelines"`
+    - `"support"`
+    - `"status"`
+    - `"feedback"`
+    - `"community"`
+    - `"website"`
+    - `"forums"`
+    - `"news"`
+    - `"announcements"`
+- `"display_motd"` - Default value for custom MOTD, formatted.
+- `"display_players_online"` - Default value for custom player count.
+- `"display_players_max"` - Default value for custom _displayed_ player limit.
+- `"display_players_sample"` - Default value for custom player sample, a list of player names. Omit for default behavior.
+
 # Functions
 
 ### `cookie(player, callback)`
@@ -77,6 +101,42 @@ Creates a unique symbol, only equal to itself.
 Creates a thread local value, local to each thread.
 - `initial()` - Function to initialize the value
 - `...args` - Additional arguments for `initial()`
+
+### `system_info(info)`
+- `'server_tps'` - Target server TPS. Isn't affected by freezing or sprinting
+- `'server_frozen'` - `true` if the server is frozen (via `/tick freeze`), `false` otherwise
+- `'server_sprinting'` - `true` if the server is sprinting (via `/tick sprint`), `false` otherwise
+
+### `set_server_tps(tps)`
+Sets the target server TPS. Works like `/tick rate <rate>`. Minimum TPS is 1.
+- `tps` - The new tick rate
+
+### `set_server_frozen(frozen)`
+Freezes or unfreezes the server. Works like `/tick (freeze|unfreeze)`.
+- `frozen` - Whether to freeze or unfreeze the server
+
+### `server_sprint(ticks)`
+Begins a server sprint. Works like `/tick sprint (<time>|stop)`.
+- `ticks` - The amount of ticks to sprint. Use `0` to stop sprinting
+
+### `display_server_motd(motd?)`
+Sets or resets custom MOTD. If custom MOTD is reset, the one from `server.properties` is used.
+- `motd?` - A format string to use as the new custom MOTD. Omit to reset custom MOTD
+
+### `display_server_players_online(count?)`
+Sets or resets custom player count in server list. If custom player count is reset, the actual player count is used.
+- `count?` - Custom player count. Omit to use the actual player count
+
+### `display_server_players_max(limit?)`
+Sets or resets custom _displayed_ player limit in server list. If custom _displayed_ player limit is reset, the one from `server.properties` is used.
+- `limit?` - Custom _displayed_ player limit. Omit to use the actual player limit
+
+### `display_server_players_sample(...names)`
+Sets custom player sample in server list (when hovering over player count).
+- `...names` - Names of players to display in the sample.
+
+### `display_server_players_sample_default()`
+Resets custom player sample to default behavior.
 
 # Types
 

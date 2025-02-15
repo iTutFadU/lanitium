@@ -1,6 +1,5 @@
 package me.itut.lanitium.mixin;
 
-import com.mojang.authlib.GameProfile;
 import me.itut.lanitium.Lanitium;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.status.ServerStatus;
@@ -13,8 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 
-import static me.itut.lanitium.Lanitium.MOTD;
-
 @Mixin(value = ServerStatus.class, priority = 1001) // above Scarpet Additions
 public abstract class ServerStatusMixin {
     @Shadow @Final
@@ -22,15 +19,15 @@ public abstract class ServerStatusMixin {
 
     @Inject(method = "description", at = @At("HEAD"), cancellable = true)
     private void descriptionFromScarpet(CallbackInfoReturnable<Component> cir) {
-        if (MOTD != null) cir.setReturnValue(MOTD);
+        if (Lanitium.CONFIG.displayMotd != null) cir.setReturnValue(Lanitium.CONFIG.displayMotd);
     }
 
     @Inject(method = "players", at = @At("HEAD"), cancellable = true)
     private void playersFromScarpet(CallbackInfoReturnable<Optional<ServerStatus.Players>> cir) {
-        if (players.isEmpty() || Lanitium.PLAYERS_ONLINE == null && Lanitium.PLAYERS_MAX == null && Lanitium.PLAYERS_SAMPLE == null) {
+        if (players.isEmpty() || Lanitium.CONFIG.displayPlayersOnline == null && Lanitium.CONFIG.displayPlayersMax == null && Lanitium.CONFIG.displayPlayersSampleProfiles == null) {
             cir.setReturnValue(players);
             return;
         }
-        cir.setReturnValue(Optional.of(new ServerStatus.Players(Lanitium.PLAYERS_ONLINE != null ? Lanitium.PLAYERS_ONLINE : players.get().online(), Lanitium.PLAYERS_MAX != null ? Lanitium.PLAYERS_MAX : players.get().max(), Lanitium.PLAYERS_SAMPLE != null ? Lanitium.PLAYERS_SAMPLE : players.get().sample())));
+        cir.setReturnValue(Optional.of(new ServerStatus.Players(Lanitium.CONFIG.displayPlayersMax != null ? Lanitium.CONFIG.displayPlayersMax : players.get().max(), Lanitium.CONFIG.displayPlayersOnline != null ? Lanitium.CONFIG.displayPlayersOnline : players.get().online(), Lanitium.CONFIG.displayPlayersSampleProfiles != null ? Lanitium.CONFIG.displayPlayersSampleProfiles : players.get().sample())));
     }
 }

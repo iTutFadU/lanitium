@@ -11,6 +11,7 @@ import carpet.script.utils.SystemInfo;
 import carpet.script.value.*;
 import com.mojang.authlib.GameProfile;
 import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
+import net.minecraft.Util;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -302,28 +303,27 @@ public class LanitiumFunctions {
 
     @ScarpetFunction(maxParams = 1)
     public void display_server_motd(Optional<Value> motd) {
-        Lanitium.MOTD = motd.map(FormattedTextValue::getTextByValue).orElse(null);
+        Lanitium.CONFIG.displayMotd = motd.map(FormattedTextValue::getTextByValue).orElse(null);
     }
 
     @ScarpetFunction(maxParams = 1)
     public void display_server_players_online(Optional<Integer> current) {
-        Lanitium.PLAYERS_ONLINE = current.orElse(null);
+        Lanitium.CONFIG.displayPlayersOnline = current.orElse(null);
     }
 
     @ScarpetFunction(maxParams = 1)
     public void display_server_players_max(Optional<Integer> max) {
-        Lanitium.PLAYERS_MAX = max.orElse(null);
+        Lanitium.CONFIG.displayPlayersMax = max.orElse(null);
     }
 
     @ScarpetFunction(maxParams = -1)
     public void display_server_players_sample(Value... players) {
-        if (players.length == 0)
-            Lanitium.PLAYERS_SAMPLE = null;
-        Lanitium.PLAYERS_SAMPLE = Stream.of(players).map(v -> {
-            if (v instanceof EntityValue ev && ev.getEntity() instanceof ServerPlayer player) return player.getGameProfile();
-            String name = v.getString();
-            return new GameProfile(UUID.fromString(name), name);
-        }).toList();
+        Lanitium.CONFIG.displayPlayersSampleProfiles = Stream.of(players).map(v -> new GameProfile(Util.NIL_UUID, v.getString())).toList();
+    }
+
+    @ScarpetFunction
+    public void display_server_players_sample_default() {
+        Lanitium.CONFIG.displayPlayersSampleProfiles = null;
     }
 
     @ScarpetFunction

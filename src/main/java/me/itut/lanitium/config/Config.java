@@ -1,15 +1,22 @@
 package me.itut.lanitium.config;
 
-import com.google.gson.annotations.SerializedName;
+import com.mojang.authlib.GameProfile;
+import net.minecraft.Util;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.ServerLinks;
 
+import java.util.List;
+
 public class Config {
-    @SerializedName("server_brand")
-    public String SERVER_BRAND;
-    @SerializedName("server_links")
-    public ServerLinks.Entry[] SERVER_LINKS;
+    public String modName;
+    public List<ServerLinks.Entry> links;
+    public Component displayMotd;
+    public Integer displayPlayersOnline, displayPlayersMax;
+    private List<String> displayPlayersSample;
+    public transient List<GameProfile> displayPlayersSampleProfiles;
 
     public void fillDefaults() {
-        if (SERVER_LINKS == null) SERVER_LINKS = new ServerLinks.Entry[0];
+        if (displayPlayersSample != null)
+            displayPlayersSampleProfiles = displayPlayersSample.stream().map(v -> new GameProfile(Util.NIL_UUID, v)).toList();
     }
 }

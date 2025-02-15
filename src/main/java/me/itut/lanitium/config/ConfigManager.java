@@ -1,7 +1,9 @@
 package me.itut.lanitium.config;
+import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import me.itut.lanitium.Lanitium;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.ServerLinks;
 
 import java.io.BufferedReader;
@@ -12,7 +14,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class ConfigManager {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+        .registerTypeAdapter(Component.class, new ComponentTypeAdapter())
         .registerTypeAdapter(ServerLinks.Entry.class, new ServerLinksEntryTypeAdapter())
         .create();
     protected Config config;
@@ -22,25 +25,19 @@ public class ConfigManager {
         this.configFile = configFile;
     }
 
-    public boolean loadAndUpdate() {
-        boolean newlyCreated = load();
-        config.fillDefaults();
-        save();
-        return newlyCreated;
-    }
-
     public Config config() {
         return config;
     }
 
-    public boolean load() {
+    public void load() {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(configFile)));
             config = GSON.fromJson(reader, Config.class);
-            return false;
+            config.fillDefaults();
         } catch (IOException e) {
             config = new Config();
-            return true;
+            config.fillDefaults();
+            save();
         }
     }
 
