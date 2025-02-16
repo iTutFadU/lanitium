@@ -138,6 +138,14 @@ Sets custom player sample in server list (when hovering over player count).
 ### `display_server_players_sample_default()`
 Resets custom player sample to default behavior.
 
+### `format_json(json)`
+Returns a `text` (like `format()`) using vanilla text component deserialization (like `/tellraw`).
+- `json` - The JSON component to deserialize
+
+  Throws `json_error` on a syntax or schema error.
+
+  **Note:** You can use `encode_nbt(text, true):''` to serialize a `text` (get raw JSON). [Blame Gnembon.](https://github.com/gnembon/fabric-carpet/commit/4e57eecf2d29718cd03b77eb4167c1829e6e2dd7?w=0#diff-5a29389bd119769dea9834d3916453aa270116b70b011cb46aeaf44457121e80L93)
+
 # Types
 
 ## `lanitium_cookie_future`

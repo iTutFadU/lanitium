@@ -9,6 +9,7 @@ import carpet.script.exception.*;
 import carpet.script.language.Operators;
 import carpet.script.utils.SystemInfo;
 import carpet.script.value.*;
+import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
 import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
 import net.minecraft.Util;
@@ -349,6 +350,15 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public Value emoticons_list() {
         return ListValue.wrap(Emoticons.list.stream().map(StringValue::of));
+    }
+
+    @ScarpetFunction
+    public Value format_json(Context c, String value) {
+        try {
+            return FormattedTextValue.deserialize(value, ((CarpetContext)c).registryAccess());
+        } catch (JsonParseException e) {
+            throw new ThrowStatement(e.getMessage(), Throwables.JSON_ERROR);
+        }
     }
 
 //    @ScarpetFunction
