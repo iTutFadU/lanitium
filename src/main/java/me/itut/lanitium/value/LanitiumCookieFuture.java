@@ -1,10 +1,11 @@
-package me.itut.lanitium;
+package me.itut.lanitium.value;
 
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.BooleanValue;
 import carpet.script.value.ListValue;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
+import me.itut.lanitium.LanitiumCookie;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.Tag;
 

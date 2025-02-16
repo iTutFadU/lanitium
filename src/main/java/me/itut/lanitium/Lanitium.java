@@ -7,6 +7,9 @@ import carpet.script.annotation.AnnotationParser;
 import carpet.script.annotation.ValueCaster;
 import me.itut.lanitium.config.Config;
 import me.itut.lanitium.config.ConfigManager;
+import me.itut.lanitium.value.ContextValue;
+import me.itut.lanitium.value.LanitiumCookieFuture;
+import me.itut.lanitium.value.Lazy;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 

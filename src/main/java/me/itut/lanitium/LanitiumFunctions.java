@@ -12,15 +12,20 @@ import carpet.script.value.*;
 import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
 import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
+import me.itut.lanitium.value.*;
 import net.minecraft.Util;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static me.itut.lanitium.Lazy.*;
+import static me.itut.lanitium.value.Lazy.*;
 
 public class LanitiumFunctions {
     static {
@@ -161,6 +166,41 @@ public class LanitiumFunctions {
             } catch (Throwable e) {
                 return LazyValue.NULL;
             }
+        });
+
+        expression.addLazyFunction("as_entity", 2, (c, t, lv) -> {
+            CommandSourceStack source = ((CarpetContext)c).source();
+            if (!(lv.getFirst().evalValue(c) instanceof EntityValue entity)) throw new InternalExpressionException("First argument to 'as_entity' must be an entity");
+            if (entity.getEntity().equals(source.getEntity())) return lv.get(1);
+            Context ctx = c.recreate();
+            ((CarpetContext)ctx).swapSource(source.withEntity(entity.getEntity()));
+            ctx.variables = c.variables;
+            Value output = lv.get(1).evalValue(ctx);
+            return (cc, tt) -> output;
+        });
+        expression.addLazyFunction("positioned", 2, (c, t, lv) -> {
+            CommandSourceStack source = ((CarpetContext)c).source();
+            if (!(lv.getFirst().evalValue(c) instanceof ListValue b)) throw new InternalExpressionException("First argument to 'positioned' must be a list");
+            List<Value> bl = b.getItems();
+            Vec3 pos = new Vec3(NumericValue.asNumber(bl.get(0)).getDouble(), NumericValue.asNumber(bl.get(1)).getDouble(), NumericValue.asNumber(bl.get(2)).getDouble());
+            if (pos.equals(source.getPosition())) return lv.get(1);
+            Context ctx = c.recreate();
+            ((CarpetContext)ctx).swapSource(source.withPosition(pos));
+            ctx.variables = c.variables;
+            Value output = lv.get(1).evalValue(ctx);
+            return (cc, tt) -> output;
+        });
+        expression.addLazyFunction("rotated", 2, (c, t, lv) -> {
+            CommandSourceStack source = ((CarpetContext)c).source();
+            if (!(lv.getFirst().evalValue(c) instanceof ListValue b)) throw new InternalExpressionException("First argument to 'rotated' must be a list");
+            List<Value> bl = b.getItems();
+            Vec2 rot = new Vec2(NumericValue.asNumber(bl.get(0)).getFloat(), NumericValue.asNumber(bl.get(1)).getFloat());
+            if (rot.equals(source.getRotation())) return lv.get(1);
+            Context ctx = c.recreate();
+            ((CarpetContext)ctx).swapSource(source.withRotation(rot));
+            ctx.variables = c.variables;
+            Value output = lv.get(1).evalValue(ctx);
+            return (cc, tt) -> output;
         });
     }
 
@@ -359,6 +399,22 @@ public class LanitiumFunctions {
         } catch (JsonParseException e) {
             throw new ThrowStatement(e.getMessage(), Throwables.JSON_ERROR);
         }
+    }
+
+    @ScarpetFunction(maxParams = 2)
+    public void send_success(Context c, Value message, Optional<Boolean> broadcast) {
+        Component component = FormattedTextValue.getTextByValue(message);
+        ((CarpetContext)c).source().sendSuccess(() -> component, broadcast.orElse(false));
+    }
+
+    @ScarpetFunction
+    public void send_failure(Context c, Value message) {
+        ((CarpetContext)c).source().sendFailure(FormattedTextValue.getTextByValue(message));
+    }
+
+    @ScarpetFunction
+    public void send_system_message(Context c, Value message) {
+        ((CarpetContext)c).source().sendSystemMessage(FormattedTextValue.getTextByValue(message));
     }
 
 //    @ScarpetFunction

@@ -1,4 +1,4 @@
-package me.itut.lanitium;
+package me.itut.lanitium.value;
 
 import carpet.script.LazyValue;
 

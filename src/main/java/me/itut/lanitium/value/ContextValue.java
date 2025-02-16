@@ -1,4 +1,4 @@
-package me.itut.lanitium;
+package me.itut.lanitium.value;
 
 import carpet.script.Context;
 import carpet.script.LazyValue;
@@ -7,10 +7,7 @@ import carpet.script.value.*;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.Tag;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 
 public class ContextValue extends Value implements WithValue {
     public final Context context;

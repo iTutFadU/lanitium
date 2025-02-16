@@ -4,7 +4,7 @@ import carpet.script.*;
 import carpet.script.Module;
 import carpet.script.exception.*;
 import carpet.script.value.FunctionValue;
-import me.itut.lanitium.LazyFunctionValue;
+import me.itut.lanitium.value.LazyFunctionValue;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

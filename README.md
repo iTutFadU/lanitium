@@ -146,6 +146,34 @@ Returns a `text` (like `format()`) using vanilla text component deserialization 
 
   **Note:** You can use `encode_nbt(text, true):''` to serialize a `text` (get raw JSON). [Blame Gnembon.](https://github.com/gnembon/fabric-carpet/commit/4e57eecf2d29718cd03b77eb4167c1829e6e2dd7?w=0#diff-5a29389bd119769dea9834d3916453aa270116b70b011cb46aeaf44457121e80L93)
 
+### `as_entity(entity, expr)`
+Changes source entity for the expression inside. Works like `in_dimension()` or `/execute as <entity>` (with one entity).
+- `entity` - New source entity
+- `expr` - Expression with a modified context
+
+### `positioned(pos, expr)`
+Changes source position for the expression inside. Works like `in_dimension()` or `/execute positioned <pos>`.
+- `pos` - New source position
+- `expr` - Expression with a modified context
+
+### `rotated(rot, expr)`
+Changes source rotation for the expression inside. Works like `in_dimension()` or `/execute positioned <rot>`. Format is `[pitch, yaw]`.
+- `rot` - New source rotation
+- `expr` - Expression with a modified context
+
+### `send_success(message, broadcast?)`
+Sends a success message (like 'Filled 121 blocks').
+- `message` - Formatted message
+- `broadcast?` - If `true`, the message will be broadcast to admins (like '_[Player: Filled 121 blocks]_')
+
+### `send_failure(message)`
+Sends a red failure message (like 'That position is out of this world!').
+- `message` - Formatted message, colored red by default
+
+### `send_system_message(message)`
+Sends a system message (like 'Player joined the game').
+- `message` - Formatted message
+
 # Types
 
 ## `lanitium_cookie_future`
