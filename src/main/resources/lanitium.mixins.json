@@ -8,7 +8,8 @@
         "MinecraftServerMixin",
         "ServerStatusMixin",
         "carpet.ExpressionMixin",
-        "carpet.SystemInfoMixin"
+        "carpet.SystemInfoMixin",
+        "ServerGamePacketListenerImplMixin"
     ],
     "injectors": {
         "defaultRequire": 1

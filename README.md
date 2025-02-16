@@ -206,3 +206,7 @@ Sets the value.
 
 ### `delete(thread_local:null)`
 Removes the value. If the value isn't set before getting it, it is _removed_ by default.
+
+# Miscellaneous
+
+Event `player_command(player, command)` is now cancellable, except when the command begins with `"script "`. Be careful with it.

@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
 
-@Mixin(value = ServerStatus.class, priority = 1001) // above Scarpet Additions
+@Mixin(value = ServerStatus.class, priority = 999) // _actually_ above Scarpet Additions
 public abstract class ServerStatusMixin {
     @Shadow @Final
     private Optional<ServerStatus.Players> players;
