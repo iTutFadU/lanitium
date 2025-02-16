@@ -341,6 +341,16 @@ public class LanitiumFunctions {
         ((CarpetContext)c).server().tickRateManager().requestGameToSprint(ticks);
     }
 
+    @ScarpetFunction
+    public Value emoticon() {
+        return StringValue.of(Emoticons.getRandomEmoticon());
+    }
+
+    @ScarpetFunction
+    public Value emoticons_list() {
+        return ListValue.wrap(Emoticons.list.stream().map(StringValue::of));
+    }
+
 //    @ScarpetFunction
 //    public void send_game_packet(Context c, EntityValue p, String type, Value... values) {
 //        CarpetContext context = (CarpetContext)c;

@@ -36,7 +36,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
         AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
 
 		registerCommand();
-		LOGGER.info("Yummy cookies! >u<");
+        LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());
 	}
 
 	@Override
