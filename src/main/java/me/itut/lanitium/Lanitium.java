@@ -10,7 +10,10 @@ import me.itut.lanitium.config.ConfigManager;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +34,27 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 		ValueCaster.register(ContextValue.class, "context");
 		ValueCaster.register(LanitiumCookieFuture.class, "lanitium_cookie_future");
         AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
+
+		registerCommand();
 		LOGGER.info("Yummy cookies! >u<");
 	}
 
 	@Override
 	public void scarpetApi(CarpetExpression expression) {
         LanitiumFunctions.apply(expression.getExpr());
+	}
+
+	private void registerCommand() {
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(Commands.literal("lanitium")
+			.then(Commands.literal("reload")
+				.requires(source -> source.hasPermission(2))
+				.executes(ctx -> {
+					CONFIG_MANAGER.load();
+					CONFIG = CONFIG_MANAGER.config();
+					ctx.getSource().sendSuccess(() -> Component.literal("Lanitium configuration reloaded"), true);
+					return 1;
+				})
+			)
+		));
 	}
 }
