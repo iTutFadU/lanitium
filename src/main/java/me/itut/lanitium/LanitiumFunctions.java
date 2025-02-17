@@ -27,10 +27,12 @@ import java.util.stream.Stream;
 
 import static me.itut.lanitium.value.Lazy.*;
 
+@SuppressWarnings({"unused", "OptionalUsedAsFieldOrParameterType"})
 public class LanitiumFunctions {
     static {
         Operators.precedence.put("with\\", 100);
 
+        @SuppressWarnings("InstantiationOfUtilityClass")
         final Map<String, Function<CarpetContext, Value>> options = ((SystemInfoOptionsGetter)new SystemInfo()).lanitium$getOptions();
         options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
@@ -62,7 +64,7 @@ public class LanitiumFunctions {
                     return fun.callInContext(c, t, args);
                 } else {
                     String name = lv.getFirst().evalValue(c, Context.NONE).getString();
-                    List<String> argsx = new ArrayList<>();
+                    List<String> args = new ArrayList<>();
                     List<String> globals = new ArrayList<>();
                     String varArgs = null;
 
@@ -83,12 +85,12 @@ public class LanitiumFunctions {
                                 varArgs = v.boundVariable;
                             }
                         } else {
-                            argsx.add(v.boundVariable);
+                            args.add(v.boundVariable);
                         }
                     }
 
-                    Value retval = new FunctionSignatureValue(name, argsx, varArgs, globals);
-                    return (cc, tt) -> retval;
+                    Value output = new FunctionSignatureValue(name, args, varArgs, globals);
+                    return (cc, tt) -> output;
                 }
             }
 
@@ -209,7 +211,7 @@ public class LanitiumFunctions {
         CarpetContext context = (CarpetContext)c;
         ServerPlayer player = EntityValue.getPlayerByValue(context.server(), p);
         CarpetScriptServer server = ((CarpetScriptServer)context.host.scriptServer());
-        return new LanitiumCookieFuture(player.getCookie(LanitiumCookie.class).whenComplete((cookie, exception) -> {
+        return new LanitiumCookieFuture(context, player.getCookie(LanitiumCookie.class).whenComplete((cookie, exception) -> {
             MapValue map = null;
             boolean set = false;
 
@@ -252,6 +254,7 @@ public class LanitiumFunctions {
         Lanitium.COOKIE.setSecret(secret);
     }
 
+    @SuppressWarnings("ConstantValue")
     @ScarpetFunction(maxParams = 4)
     public Value lazy_call(Lazy lazy, @Param.KeyValuePairs(allowMultiparam = false) Map<String, Value> vars, Optional<ContextValue> c, Optional<String> t) {
         Context context = c.map(values -> values.context).orElseGet(() -> lazy.context);
@@ -273,7 +276,7 @@ public class LanitiumFunctions {
         }
 
         try {
-            return lazy.value.evalValue(context, type);
+            return lazy.lazy.evalValue(context, type);
         } catch (BreakStatement e) {
             throw new ThrowStatement(e.retval != null ? e.retval : NULL, BREAK_ERROR);
         } catch (ContinueStatement e) {

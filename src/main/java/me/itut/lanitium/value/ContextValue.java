@@ -1,34 +1,32 @@
 package me.itut.lanitium.value;
 
+import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.LazyValue;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.nbt.Tag;
 
-import java.util.List;
-
-public class ContextValue extends Value implements WithValue {
-    public final Context context;
-
-    public ContextValue(Context context) {
-        this.context = context;
+public class ContextValue extends ObjectValue<CarpetContext> implements WithValue {
+    protected ContextValue(CarpetContext value) {
+        super(value, value);
     }
 
-    @Override
-    public String getString() {
-        return "context@" + Integer.toHexString(hashCode());
+    public static Value of(Context value) {
+        return value != null ? new ContextValue((CarpetContext)value) : Value.NULL;
     }
 
-    @Override
-    public boolean getBoolean() {
-        return true;
+    public static CarpetContext from(Value value) {
+        return switch (value) {
+            case null -> null;
+            case NullValue ignored -> null;
+            case ContextValue v -> v.value;
+            default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to context");
+        };
     }
 
-    @Override
-    public Tag toTag(boolean b, RegistryAccess registryAccess) {
-        throw new NBTSerializableValue.IncompatibleTypeException(this);
+    public static CarpetContext fromOrCurrent(CarpetContext context, Value value) {
+        CarpetContext output = from(value);
+        return output != null ? output : context;
     }
 
     @Override
@@ -38,40 +36,19 @@ public class ContextValue extends Value implements WithValue {
 
     @Override
     public ContextValue deepcopy() {
-        return new ContextValue(context.duplicate());
-    }
-
-    @Override
-    public Value in(Value args) {
-        if (args instanceof ListValue lv) {
-            List<Value> values = lv.getItems();
-            String what = values.getFirst().getString();
-            return get(what, values.subList(1, values.size()).toArray(new Value[0]));
-        } else {
-            return get(args.getString());
-        }
+        return new ContextValue(value.duplicate());
     }
 
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "strict" -> BooleanValue.of(context.host.strict);
-            default -> throw new InternalExpressionException("Unknown context feature: " + what);
+            case "strict" -> BooleanValue.of(value.host.strict);
+            default -> unknownFeature(what);
         };
     }
 
     @Override
     public LazyValue with(LazyValue arg) {
-        Value output = arg.evalValue(context);
+        Value output = arg.evalValue(value);
         return (c, t) -> output;
-    }
-
-    @Override
-    public int hashCode() {
-        return context.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return this == o || o instanceof ContextValue c && context.equals(c.context);
     }
 }

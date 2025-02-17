@@ -7,6 +7,7 @@ import net.minecraft.server.ServerLinks;
 
 import java.util.List;
 
+@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public class Config {
     public String modName;
     public List<ServerLinks.Entry> links;

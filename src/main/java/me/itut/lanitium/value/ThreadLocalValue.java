@@ -1,5 +1,6 @@
 package me.itut.lanitium.value;
 
+import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.value.ContainerValueInterface;
 import carpet.script.value.FunctionValue;
@@ -11,22 +12,20 @@ import net.minecraft.nbt.Tag;
 
 import java.util.Collections;
 
-public class ThreadLocalValue extends Value implements ContainerValueInterface {
-    private final ThreadLocal<Value> local;
-
+public class ThreadLocalValue extends ObjectValue<ThreadLocal<Value>> implements ContainerValueInterface {
     public ThreadLocalValue(Context c, FunctionValue initial) {
-        local = ThreadLocal.withInitial(() -> initial.callInContext(c, Context.NONE, Collections.emptyList()).evalValue(c));
+        super((CarpetContext)c, ThreadLocal.withInitial(() -> initial.callInContext(c, Context.NONE, Collections.emptyList()).evalValue(c)));
     }
 
     @Override
     public boolean put(Value k, Value value) {
-        local.set(value);
+        this.value.set(value);
         return true;
     }
 
     @Override
     public Value get(Value k) {
-        return local.get();
+        return value.get();
     }
 
     @Override
@@ -36,39 +35,24 @@ public class ThreadLocalValue extends Value implements ContainerValueInterface {
 
     @Override
     public boolean delete(Value k) {
-        local.remove();
-        return true;
-    }
-
-    @Override
-    public String getString() {
-        return "thread_local@" + Integer.toHexString(hashCode());
-    }
-
-    @Override
-    public boolean getBoolean() {
+        value.remove();
         return true;
     }
 
     @Override
     public Tag toTag(boolean force, RegistryAccess access) {
         if (!force) throw new NBTSerializableValue.IncompatibleTypeException(this);
-        return local.get().toTag(true, access);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return this == o || o instanceof ThreadLocalValue t && local.equals(t.local);
-    }
-
-    @Override
-    public int hashCode() {
-        return local.hashCode();
+        return value.get().toTag(true, access);
     }
 
     @Override
     public JsonElement toJson() {
-        return local.get().toJson();
+        return value.get().toJson();
+    }
+
+    @Override
+    public Value get(String what, Value... more) {
+        return unknownFeature(what);
     }
 
     @Override

@@ -1,12 +1,11 @@
 package me.itut.lanitium.value;
 
+import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.LazyValue;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.exception.Throwables;
 import carpet.script.value.*;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.nbt.Tag;
 
 import java.util.List;
 import java.util.Objects;
@@ -14,28 +13,28 @@ import java.util.Objects;
 import static carpet.script.exception.Throwables.THROWN_EXCEPTION_TYPE;
 import static carpet.script.exception.Throwables.register;
 
-public class Lazy extends Value implements WithValue {
-    public static Throwables
+public class Lazy extends ContextValue implements WithValue {
+    public static final Throwables
         LAZY_EXCEPTION = register("lazy_exception", THROWN_EXCEPTION_TYPE),
         BREAK_ERROR = register("break_error", LAZY_EXCEPTION),
         CONTINUE_ERROR = register("continue_error", LAZY_EXCEPTION),
         RETURN_ERROR = register("return_error", LAZY_EXCEPTION);
 
-    public final Context context;
     public final Context.Type type;
-    public final LazyValue value;
+    public final LazyValue lazy;
 
-    public Lazy(Context context, Context.Type type, LazyValue value) {
-        this.context = context;
+    public Lazy(Context context, Context.Type type, LazyValue lazy) {
+        super((CarpetContext)context);
         this.type = type;
-        this.value = value;
+        this.lazy = lazy;
     }
 
+    @SuppressWarnings("ConstantValue")
     public Value eval(Context c, Context.Type t) {
         LazyValue initial = c.getVariable("@");
-        c.setVariable("@", value);
+        c.setVariable("@", lazy);
         try {
-            return value.evalValue(c, t);
+            return lazy.evalValue(c, t);
         } finally {
             if (initial != null)
                 c.setVariable("@", initial);
@@ -57,8 +56,8 @@ public class Lazy extends Value implements WithValue {
 
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "context" -> new ContextValue(context);
-            case "type" -> StringValue.of(type.name().toLowerCase());
+            case "context" -> checkArguments(what, more, 0, () -> this);
+            case "type" -> checkArguments(what, more, 0, () -> StringValue.of(type.name().toLowerCase()));
             default -> throw new InternalExpressionException("Unknown lazy feature: " + what);
         };
     }
@@ -69,38 +68,28 @@ public class Lazy extends Value implements WithValue {
     }
 
     @Override
-    public boolean getBoolean() {
-        return true;
-    }
-
-    @Override
-    public Tag toTag(boolean b, RegistryAccess registryAccess) {
-        throw new NBTSerializableValue.IncompatibleTypeException(this);
-    }
-
-    @Override
     public String getTypeString() {
         return "lazy";
     }
 
     @Override
     public Lazy deepcopy() {
-        return new Lazy(context.duplicate(), type, value);
+        return new Lazy(value.duplicate(), type, lazy);
     }
 
     @Override
     public LazyValue with(LazyValue arg) {
-        Value output = arg.evalValue(context, type);
+        Value output = arg.evalValue(value, type);
         return (c, t) -> output;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(context, type, value);
+        return Objects.hash(value, type, lazy);
     }
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof Lazy c && context.equals(c.context) && type.equals(c.type) && value.equals(c.value);
+        return o instanceof Lazy c && value.equals(c.value) && type.equals(c.type) && lazy.equals(c.lazy);
     }
 }
