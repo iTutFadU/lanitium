@@ -106,6 +106,7 @@ Creates a thread local value, local to each thread.
 - `'server_tps'` - Target server TPS. Isn't affected by freezing or sprinting
 - `'server_frozen'` - `true` if the server is frozen (via `/tick freeze`), `false` otherwise
 - `'server_sprinting'` - `true` if the server is sprinting (via `/tick sprint`), `false` otherwise
+- `'source_anchor'` - Source anchor. Either `'eyes'` or `'feet'`
 
 ### `set_server_tps(tps)`
 Sets the target server TPS. Works like `/tick rate <rate>`. Minimum TPS is 1.
@@ -159,6 +160,11 @@ Changes source position for the expression inside. Works like `in_dimension()` o
 ### `rotated(rot, expr)`
 Changes source rotation for the expression inside. Works like `in_dimension()` or `/execute positioned <rot>`. Format is `[pitch, yaw]`.
 - `rot` - New source rotation
+- `expr` - Expression with a modified context
+
+### `anchored(anchor, expr)`
+Changes source anchor for the expression inside. Works like `in_dimension()` or `/execute anchored <anchor>`.
+- `anchor` - New source anchor
 - `expr` - Expression with a modified context
 
 ### `send_success(message, broadcast?)`

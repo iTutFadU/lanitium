@@ -15,6 +15,7 @@ import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
 import me.itut.lanitium.value.*;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -37,6 +38,7 @@ public class LanitiumFunctions {
         options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
         options.put("server_sprinting", c -> BooleanValue.of(c.server().tickRateManager().isSprinting()));
+        options.put("source_anchor", c -> StringValue.of(c.source().getAnchor() == EntityAnchorArgument.Anchor.EYES ? "eyes" : "feet"));
     }
 
     public static FunctionValue findIn(Context c, Module module, Value functionValue) {
@@ -171,35 +173,50 @@ public class LanitiumFunctions {
         });
 
         expression.addLazyFunction("as_entity", 2, (c, t, lv) -> {
-            CommandSourceStack source = ((CarpetContext)c).source();
+            final CommandSourceStack source = ((CarpetContext)c).source();
             if (!(lv.getFirst().evalValue(c) instanceof EntityValue entity)) throw new InternalExpressionException("First argument to 'as_entity' must be an entity");
             if (entity.getEntity().equals(source.getEntity())) return lv.get(1);
-            Context ctx = c.recreate();
+            final Context ctx = c.recreate();
             ((CarpetContext)ctx).swapSource(source.withEntity(entity.getEntity()));
             ctx.variables = c.variables;
-            Value output = lv.get(1).evalValue(ctx);
+            final Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
         expression.addLazyFunction("positioned", 2, (c, t, lv) -> {
-            CommandSourceStack source = ((CarpetContext)c).source();
+            final CommandSourceStack source = ((CarpetContext)c).source();
             if (!(lv.getFirst().evalValue(c) instanceof ListValue b)) throw new InternalExpressionException("First argument to 'positioned' must be a list");
-            List<Value> bl = b.getItems();
-            Vec3 pos = new Vec3(NumericValue.asNumber(bl.get(0)).getDouble(), NumericValue.asNumber(bl.get(1)).getDouble(), NumericValue.asNumber(bl.get(2)).getDouble());
+            final List<Value> bl = b.getItems();
+            final Vec3 pos = new Vec3(NumericValue.asNumber(bl.get(0)).getDouble(), NumericValue.asNumber(bl.get(1)).getDouble(), NumericValue.asNumber(bl.get(2)).getDouble());
             if (pos.equals(source.getPosition())) return lv.get(1);
-            Context ctx = c.recreate();
+            final Context ctx = c.recreate();
             ((CarpetContext)ctx).swapSource(source.withPosition(pos));
             ctx.variables = c.variables;
-            Value output = lv.get(1).evalValue(ctx);
+            final Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
         expression.addLazyFunction("rotated", 2, (c, t, lv) -> {
-            CommandSourceStack source = ((CarpetContext)c).source();
+            final CommandSourceStack source = ((CarpetContext)c).source();
             if (!(lv.getFirst().evalValue(c) instanceof ListValue b)) throw new InternalExpressionException("First argument to 'rotated' must be a list");
-            List<Value> bl = b.getItems();
-            Vec2 rot = new Vec2(NumericValue.asNumber(bl.get(0)).getFloat(), NumericValue.asNumber(bl.get(1)).getFloat());
+            final List<Value> bl = b.getItems();
+            final Vec2 rot = new Vec2(NumericValue.asNumber(bl.get(0)).getFloat(), NumericValue.asNumber(bl.get(1)).getFloat());
             if (rot.equals(source.getRotation())) return lv.get(1);
-            Context ctx = c.recreate();
+            final Context ctx = c.recreate();
             ((CarpetContext)ctx).swapSource(source.withRotation(rot));
+            ctx.variables = c.variables;
+            final Value output = lv.get(1).evalValue(ctx);
+            return (cc, tt) -> output;
+        });
+        expression.addLazyFunction("anchored", 2, (c, t, lv) -> {
+            final CommandSourceStack source = ((CarpetContext)c).source();
+            final String name = lv.getFirst().evalValue(c).getString();
+            final EntityAnchorArgument.Anchor anchor = switch (name) {
+                case "eyes" -> EntityAnchorArgument.Anchor.EYES;
+                case "feet" -> EntityAnchorArgument.Anchor.FEET;
+                default -> throw new ThrowStatement(name, Throwables.VALUE_EXCEPTION);
+            };
+            if (source.getAnchor() == anchor) return lv.get(1);
+            Context ctx = c.recreate();
+            ((CarpetContext)ctx).swapSource(source.withAnchor(anchor));
             ctx.variables = c.variables;
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;

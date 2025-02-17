@@ -16,7 +16,7 @@ import static carpet.script.exception.Throwables.register;
 public class CommandSyntaxError extends ObjectValue<CommandSyntaxException> {
     public static final Throwables COMMAND_SYNTAX_ERROR = register("command_syntax_error", THROWN_EXCEPTION_TYPE);
 
-    protected CommandSyntaxError(CarpetContext context, CommandSyntaxException value) {
+    public CommandSyntaxError(CarpetContext context, CommandSyntaxException value) {
         super(context, value);
     }
 
