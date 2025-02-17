@@ -62,7 +62,8 @@ public abstract class ObjectValue<T> extends Value {
     }
 
     protected void checkArguments(String what, Value[] more, int min, int max) throws InternalExpressionException {
-        if (more.length < min || max >= 0 && more.length > max) throw new InternalExpressionException(getTypeString() + "~'" + what + "' expected " + (min == max ? min == 0 ? "no" : "" + min : max < 0 ? "at least " + min : min == 0 ? "at most " + max : "from " + min + " to " + max) + " arguments, got " + more.length);
+        assert min >= 0 && (max < 0 || min <= max) : "Why.";
+        if (more.length < min || max >= 0 && more.length > max) throw new InternalExpressionException(getTypeString() + "~'" + what + "' expected " + (min == max ? min == 0 ? "no" : "" + min : max < 0 ? "at least " + min : min == 0 ? "at most " + max : "from " + min + " to " + max) + " argument" + ((max != 1 ? min : max) != 1 ? "s" : "") + ", got " + more.length);
     }
 
     protected void checkArguments(String what, Value[] more, int amount) throws InternalExpressionException {
