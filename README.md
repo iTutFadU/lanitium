@@ -180,6 +180,9 @@ Sends a red failure message (like 'That position is out of this world!').
 Sends a system message (like 'Player joined the game').
 - `message` - Formatted message
 
+### `send_commands_update()`
+Sends updated commands to players. Useful when using Brigadier to create commands.
+
 # Types
 
 ## `lanitium_cookie_future`

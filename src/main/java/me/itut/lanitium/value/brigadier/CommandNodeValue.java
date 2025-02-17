@@ -1,5 +1,6 @@
 package me.itut.lanitium.value.brigadier;
 
+import carpet.fakes.CommandNodeInterface;
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
@@ -79,6 +80,11 @@ public abstract class CommandNodeValue extends ObjectValue<CommandNode<CommandSo
                 }
             }
             case "create_builder" -> checkArguments(what, more, 0, () -> ArgumentBuilderValue.of(context, (ArgumentBuilder)value.createBuilder()));
+            case "remove_child" -> {
+                checkArguments(what, more, 1);
+                ((CommandNodeInterface)value).carpet$removeChild(more[0].getString());
+                yield this;
+            }
             default -> unknownFeature(what);
         };
     }

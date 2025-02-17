@@ -9,6 +9,7 @@ import carpet.script.exception.*;
 import carpet.script.language.Operators;
 import carpet.script.utils.SystemInfo;
 import carpet.script.value.*;
+import carpet.utils.CommandHelper;
 import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
 import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
@@ -435,6 +436,11 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public void send_system_message(Context c, Value message) {
         ((CarpetContext)c).source().sendSystemMessage(FormattedTextValue.getTextByValue(message));
+    }
+
+    @ScarpetFunction
+    public void send_commands_update(Context c) {
+        CommandHelper.notifyPlayersCommandsChanged(((CarpetContext)c).server());
     }
 
 //    @ScarpetFunction
