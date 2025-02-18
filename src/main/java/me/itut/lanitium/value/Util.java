@@ -21,11 +21,14 @@ public abstract class Util {
             case NullValue ignored -> null;
             case AbstractListValue list -> {
                 List<Value> values = list.unpack();
-                if (values.size() == 2)
-                    yield new StringRange(NumericValue.asNumber(values.getFirst()).getInt(), NumericValue.asNumber(values.get(1)).getInt());
-                throw new InternalExpressionException("A string range must be a list with two elements");
+                yield switch (values.size()) {
+                    case 1 -> StringRange.at(NumericValue.asNumber(values.getFirst()).getInt());
+                    case 2 -> StringRange.between(NumericValue.asNumber(values.getFirst()).getInt(), NumericValue.asNumber(values.get(1)).getInt());
+                    default -> throw new InternalExpressionException("A range must be either a list with one or two elements, or a number");
+                };
             }
-            default -> throw new InternalExpressionException("A string range must be a list with two elements");
+            case NumericValue number -> StringRange.at(number.getInt());
+            default -> throw new InternalExpressionException("A range must be either a list with one or two elements, or a number");
         };
     }
 

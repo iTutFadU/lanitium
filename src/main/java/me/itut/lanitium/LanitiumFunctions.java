@@ -23,6 +23,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -218,6 +220,16 @@ public class LanitiumFunctions {
             if (source.getAnchor() == anchor) return lv.get(1);
             Context ctx = c.recreate();
             ((CarpetContext)ctx).swapSource(source.withAnchor(anchor));
+            ctx.variables = c.variables;
+            Value output = lv.get(1).evalValue(ctx);
+            return (cc, tt) -> output;
+        });
+        expression.addLazyFunction("elevated", 2, (c, t, lv) -> {
+            final CommandSourceStack source = ((CarpetContext)c).source();
+            final int level = NumericValue.asNumber(lv.getFirst().evalValue(c)).getInt();
+            if (source.hasPermission(level)) return lv.get(1);
+            Context ctx = c.recreate();
+            ((CarpetContext)ctx).swapSource(source.withPermission(level));
             ctx.variables = c.variables;
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
@@ -441,6 +453,32 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public void send_commands_update(Context c) {
         CommandHelper.notifyPlayersCommandsChanged(((CarpetContext)c).server());
+    }
+
+    @ScarpetFunction
+    public Value has_permission(Context c, int level) {
+        return BooleanValue.of(((CarpetContext)c).source().hasPermission(level));
+    }
+
+    @ScarpetFunction
+    public Value char_to_int(String str) {
+        if (str.isEmpty()) return Value.NULL;
+        return NumericValue.of((int)str.charAt(0));
+    }
+
+    @ScarpetFunction
+    public Value int_to_char(int i) {
+        return StringValue.of(String.valueOf((char)i));
+    }
+
+    @ScarpetFunction
+    public Value encode_bytes(String data) {
+        return ByteBufferValue.of(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @ScarpetFunction
+    public Value decode_bytes(ByteBufferValue data) {
+        return StringValue.of(new String(data.buffer.array(), StandardCharsets.UTF_8));
     }
 
 //    @ScarpetFunction

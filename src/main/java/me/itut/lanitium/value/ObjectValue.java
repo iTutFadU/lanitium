@@ -42,7 +42,7 @@ public abstract class ObjectValue<T> extends Value {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof ObjectValue<?> b && Objects.equals(value, b.value);
+        return this == o || o instanceof ObjectValue<?> b && Objects.equals(value, b.value);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -75,9 +75,17 @@ public abstract class ObjectValue<T> extends Value {
         return true;
     }
 
-    protected void checkArguments(String what, Value[] more, int min, int max) throws InternalExpressionException {
+    public static void checkArguments(String fn, int length, int min, int max) throws InternalExpressionException {
         assert min >= 0 && (max < 0 || min <= max) : "Why.";
-        if (more.length < min || max >= 0 && more.length > max) throw new InternalExpressionException(getTypeString() + "~'" + what + "' expected " + (min == max ? min == 0 ? "no" : min : max < 0 ? "at least " + min : min == 0 ? "at most " + max : "from " + min + " to " + max) + " argument" + ((max != 1 ? min : max) != 1 ? "s" : "") + ", got " + more.length);
+        if (length < min || max >= 0 && length > max) throw new InternalExpressionException(fn + " expected " + (min == max ? min == 0 ? "no" : min : max < 0 ? "at least " + min : min == 0 ? "at most " + max : "from " + min + " to " + max) + " argument" + ((max != 1 ? min : max) != 1 ? "s" : "") + ", got " + length);
+    }
+
+    public static void checkArguments(String fn, int length, int amount) throws InternalExpressionException {
+        checkArguments(fn, length, amount, amount);
+    }
+
+    protected void checkArguments(String what, Value[] more, int min, int max) throws InternalExpressionException {
+        checkArguments(getTypeString() + "~'" + what + "'", more.length, min, max);
     }
 
     protected void checkArguments(String what, Value[] more, int amount) throws InternalExpressionException {

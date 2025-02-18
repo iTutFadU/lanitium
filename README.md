@@ -7,7 +7,7 @@
 
 Uses [Biscuit!](https://modrinth.com/mod/biscuit!)
 
-Better docs eventually...
+Better docs coming soon™
 
 # Config
 The configuration file is stored at `config/lanitium.json`.
@@ -167,6 +167,11 @@ Changes source anchor for the expression inside. Works like `in_dimension()` or 
 - `anchor` - New source anchor
 - `expr` - Expression with a modified context
 
+### `elevated(level, expr)`
+Elevates source permission level for the expression inside. Works like `in_dimension()`. If the source has a higher permission level, nothing changes.
+- `level` - New minimum source permission level
+- `expr` - Expression with a modified context
+
 ### `send_success(message, broadcast?)`
 Sends a success message (like 'Filled 121 blocks').
 - `message` - Formatted message
@@ -182,6 +187,10 @@ Sends a system message (like 'Player joined the game').
 
 ### `send_commands_update()`
 Sends updated commands to players. Useful when using Brigadier to create commands.
+
+### `has_permission(level)`
+Returns `true` if the source has at least this permission level, `false` otherwise.
+- `level` - Permission level to check
 
 # Types
 

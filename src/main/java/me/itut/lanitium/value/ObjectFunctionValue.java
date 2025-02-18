@@ -30,7 +30,7 @@ public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof ObjectFunctionValue<?> b && Objects.equals(value, b.value);
+        return this == o || o instanceof ObjectFunctionValue<?> b && Objects.equals(value, b.value);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
