@@ -7,9 +7,11 @@ import carpet.script.annotation.AnnotationParser;
 import carpet.script.annotation.ValueCaster;
 import me.itut.lanitium.config.Config;
 import me.itut.lanitium.config.ConfigManager;
+import me.itut.lanitium.value.ByteBufferValue;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.LanitiumCookieFuture;
 import me.itut.lanitium.value.Lazy;
+import me.itut.lanitium.value.brigadier.BrigadierFunctions;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 
@@ -36,7 +38,9 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 		ValueCaster.register(Lazy.class, "lazy");
 		ValueCaster.register(ContextValue.class, "context");
 		ValueCaster.register(LanitiumCookieFuture.class, "lanitium_cookie_future");
+		ValueCaster.register(ByteBufferValue.class, "byte_buffer");
         AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
+		AnnotationParser.parseFunctionClass(BrigadierFunctions.class);
 
 		registerCommand();
         LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());

@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.function;
 
 import carpet.script.CarpetContext;
 import carpet.script.Context;
@@ -10,6 +10,10 @@ import carpet.script.value.Value;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import me.itut.lanitium.value.ObjectFunctionValue;
+import me.itut.lanitium.value.brigadier.context.CommandContextValue;
+import me.itut.lanitium.value.brigadier.CommandSyntaxError;
+import me.itut.lanitium.value.brigadier.suggestion.SuggestionsBuilderValue;
+import me.itut.lanitium.value.brigadier.suggestion.SuggestionsFuture;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;

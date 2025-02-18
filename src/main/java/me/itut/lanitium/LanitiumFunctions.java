@@ -27,12 +27,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static me.itut.lanitium.value.Lazy.*;
 
-@SuppressWarnings({"unused", "OptionalUsedAsFieldOrParameterType"})
-public class LanitiumFunctions {
+public final class LanitiumFunctions {
     static {
         Operators.precedence.put("with\\", 100);
 
@@ -479,6 +479,13 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public Value decode_bytes(ByteBufferValue data) {
         return StringValue.of(new String(data.buffer.array(), StandardCharsets.UTF_8));
+    }
+
+    @ScarpetFunction(maxParams = -1)
+    public Value byte_buffer(int... values) {
+        byte[] arr = new byte[values.length];
+        IntStream.range(0, arr.length).forEach(i -> arr[i] = (byte)values[i]);
+        return ByteBufferValue.of(ByteBuffer.wrap(arr));
     }
 
 //    @ScarpetFunction

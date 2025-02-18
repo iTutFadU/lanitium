@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.context;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
@@ -7,6 +7,7 @@ import carpet.script.value.Value;
 import com.mojang.brigadier.context.ParsedCommandNode;
 import me.itut.lanitium.value.ObjectValue;
 import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.brigadier.tree.CommandNodeValue;
 import net.minecraft.commands.CommandSourceStack;
 
 public class ParsedCommandNodeValue extends ObjectValue<ParsedCommandNode<CommandSourceStack>> {

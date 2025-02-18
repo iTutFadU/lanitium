@@ -8,7 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 
-public abstract class Util {
+public final class Util {
     private Util() {}
 
     public static Value range(StringRange range) {

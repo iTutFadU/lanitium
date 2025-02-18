@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.context;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
@@ -7,6 +7,7 @@ import carpet.script.value.NumericValue;
 import carpet.script.value.Value;
 import com.mojang.brigadier.context.SuggestionContext;
 import me.itut.lanitium.value.ObjectValue;
+import me.itut.lanitium.value.brigadier.tree.CommandNodeValue;
 import net.minecraft.commands.CommandSourceStack;
 
 public class SuggestionContextValue extends ObjectValue<SuggestionContext<CommandSourceStack>> {
@@ -34,7 +35,7 @@ public class SuggestionContextValue extends ObjectValue<SuggestionContext<Comman
                 checkArguments(what, more, 0);
                 yield CommandNodeValue.of(context, value.parent);
             }
-            case "start_pos" -> {
+            case "start" -> {
                 checkArguments(what, more, 0);
                 yield NumericValue.of(value.startPos);
             }

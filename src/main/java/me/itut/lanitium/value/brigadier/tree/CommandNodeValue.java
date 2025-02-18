@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.tree;
 
 import carpet.fakes.CommandNodeInterface;
 import carpet.script.CarpetContext;
@@ -12,6 +12,16 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
+import me.itut.lanitium.value.brigadier.*;
+import me.itut.lanitium.value.brigadier.builder.ArgumentBuilderValue;
+import me.itut.lanitium.value.brigadier.context.CommandContextBuilderValue;
+import me.itut.lanitium.value.brigadier.context.CommandContextValue;
+import me.itut.lanitium.value.brigadier.function.AmbiguityConsumerValue;
+import me.itut.lanitium.value.brigadier.function.CommandValue;
+import me.itut.lanitium.value.brigadier.function.RedirectModifierValue;
+import me.itut.lanitium.value.brigadier.function.RequirementValue;
+import me.itut.lanitium.value.brigadier.suggestion.SuggestionsBuilderValue;
+import me.itut.lanitium.value.brigadier.suggestion.SuggestionsFuture;
 import net.minecraft.commands.CommandSourceStack;
 
 public abstract class CommandNodeValue extends ObjectValue<CommandNode<CommandSourceStack>> {
@@ -107,6 +117,18 @@ public abstract class CommandNodeValue extends ObjectValue<CommandNode<CommandSo
             case "create_builder" -> {
                 checkArguments(what, more, 0);
                 yield ArgumentBuilderValue.of(context, value.createBuilder());
+            }
+            case "relevant_nodes" -> {
+                checkArguments(what, more, 1);
+                yield ListValue.wrap(value.getRelevantNodes(StringReaderValue.from(more[0])).stream().map(v -> CommandNodeValue.of(context, v)));
+            }
+            case "forks" -> {
+                checkArguments(what, more, 0);
+                yield BooleanValue.of(value.isFork());
+            }
+            case "examples" -> {
+                checkArguments(what, more, 0);
+                yield ListValue.wrap(value.getExamples().stream().map(StringValue::of));
             }
             case "remove_child" -> {
                 checkArguments(what, more, 1);

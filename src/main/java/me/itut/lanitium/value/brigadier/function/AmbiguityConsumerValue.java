@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.function;
 
 import carpet.script.CarpetContext;
 import carpet.script.Context;
@@ -7,6 +7,7 @@ import carpet.script.value.*;
 import com.mojang.brigadier.AmbiguityConsumer;
 import me.itut.lanitium.value.ObjectFunctionValue;
 import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.brigadier.tree.CommandNodeValue;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;

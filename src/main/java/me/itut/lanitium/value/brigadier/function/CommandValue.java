@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.function;
 
 import carpet.script.CarpetContext;
 import carpet.script.Context;
@@ -8,6 +8,8 @@ import carpet.script.value.*;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.ObjectFunctionValue;
+import me.itut.lanitium.value.brigadier.CommandSyntaxError;
+import me.itut.lanitium.value.brigadier.context.CommandContextValue;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;

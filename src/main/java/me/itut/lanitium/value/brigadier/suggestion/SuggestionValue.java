@@ -1,6 +1,8 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.suggestion;
 
 import carpet.script.CarpetContext;
+import carpet.script.exception.InternalExpressionException;
+import carpet.script.value.NullValue;
 import carpet.script.value.NumericValue;
 import carpet.script.value.StringValue;
 import carpet.script.value.Value;
@@ -17,6 +19,15 @@ public class SuggestionValue extends ObjectValue<Suggestion> {
 
     public static Value of(CarpetContext context, Suggestion value) {
         return value != null ? new SuggestionValue(context, value) : Value.NULL;
+    }
+
+    public static Suggestion from(Value value) {
+        return switch (value) {
+            case null -> null;
+            case NullValue ignored -> null;
+            case SuggestionValue v -> v.value;
+            default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to suggestion");
+        };
     }
 
     @Override

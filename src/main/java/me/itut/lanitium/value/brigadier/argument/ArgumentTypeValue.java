@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.argument;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
@@ -12,6 +12,10 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.Conversions;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
+import me.itut.lanitium.value.brigadier.CommandSyntaxError;
+import me.itut.lanitium.value.brigadier.context.CommandContextValue;
+import me.itut.lanitium.value.brigadier.suggestion.SuggestionsBuilderValue;
+import me.itut.lanitium.value.brigadier.suggestion.SuggestionsFuture;
 
 public class ArgumentTypeValue<T> extends ObjectValue<ArgumentType<T>> {
     protected ArgumentTypeValue(CarpetContext context, ArgumentType<T> value) {
@@ -27,7 +31,6 @@ public class ArgumentTypeValue<T> extends ObjectValue<ArgumentType<T>> {
             case null -> null;
             case NullValue ignored -> null;
             case ArgumentTypeValue<?> v -> v.value;
-            // TODO: Add argument types
             default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to argument_type");
         };
     }

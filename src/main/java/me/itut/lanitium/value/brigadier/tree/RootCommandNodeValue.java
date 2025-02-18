@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.tree;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
@@ -22,6 +22,14 @@ public class RootCommandNodeValue extends CommandNodeValue {
             case NullValue ignored -> null;
             case RootCommandNodeValue v -> (RootCommandNode<CommandSourceStack>)v.value;
             default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to root_command_node");
+        };
+    }
+
+    @Override
+    public Value get(String what, Value... more) {
+        return switch (what) {
+            case "create_builder" -> unknownFeature(what);
+            default -> super.get(what, more);
         };
     }
 

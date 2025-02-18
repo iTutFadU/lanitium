@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.function;
 
 import carpet.script.CarpetContext;
 import carpet.script.Context;

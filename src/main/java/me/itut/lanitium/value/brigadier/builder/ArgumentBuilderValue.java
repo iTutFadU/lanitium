@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.builder;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
@@ -10,6 +10,11 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import me.itut.lanitium.value.ObjectValue;
+import me.itut.lanitium.value.brigadier.function.CommandValue;
+import me.itut.lanitium.value.brigadier.function.RedirectModifierValue;
+import me.itut.lanitium.value.brigadier.function.RequirementValue;
+import me.itut.lanitium.value.brigadier.function.SingleRedirectModifierValue;
+import me.itut.lanitium.value.brigadier.tree.CommandNodeValue;
 import net.minecraft.commands.CommandSourceStack;
 
 public abstract class ArgumentBuilderValue<T extends ArgumentBuilder<CommandSourceStack, T>> extends ObjectValue<T> {

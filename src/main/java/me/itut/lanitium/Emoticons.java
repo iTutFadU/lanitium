@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-public abstract class Emoticons {
+public final class Emoticons {
     public static final ImmutableList<String> list = ImmutableList.of(
         ":)", ":D", ":3", ":>", ":P", ";)", ";D", ";3", ";P", ":')", "C:",
         "^^", "^-^", "^_^", "^.^", "^u^", "^v^", "^w^", "^x^",

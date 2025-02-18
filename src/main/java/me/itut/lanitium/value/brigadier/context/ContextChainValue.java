@@ -1,4 +1,4 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value.brigadier.context;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
@@ -10,6 +10,8 @@ import com.mojang.brigadier.context.ContextChain;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
+import me.itut.lanitium.value.brigadier.CommandSyntaxError;
+import me.itut.lanitium.value.brigadier.function.ResultConsumerValue;
 import net.minecraft.commands.CommandSourceStack;
 
 public class ContextChainValue extends ObjectValue<ContextChain<CommandSourceStack>> {
