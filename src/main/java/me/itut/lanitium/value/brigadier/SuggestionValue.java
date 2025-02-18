@@ -1,8 +1,11 @@
 package me.itut.lanitium.value.brigadier;
 
 import carpet.script.CarpetContext;
+import carpet.script.value.NumericValue;
 import carpet.script.value.StringValue;
 import carpet.script.value.Value;
+import com.mojang.brigadier.Message;
+import com.mojang.brigadier.suggestion.IntegerSuggestion;
 import com.mojang.brigadier.suggestion.Suggestion;
 import me.itut.lanitium.value.ObjectValue;
 import me.itut.lanitium.value.Util;
@@ -29,7 +32,8 @@ public class SuggestionValue extends ObjectValue<Suggestion> {
             }
             case "tooltip" -> {
                 checkArguments(what, more, 0);
-                yield StringValue.of(value.getTooltip().getString());
+                Message tooltip = value.getTooltip();
+                yield tooltip != null ? StringValue.of(tooltip.getString()) : Value.NULL;
             }
             case "apply" -> {
                 checkArguments(what, more, 1);
@@ -38,6 +42,10 @@ public class SuggestionValue extends ObjectValue<Suggestion> {
             case "expand" -> {
                 checkArguments(what, more, 2);
                 yield of(context, value.expand(more[0].getString(), Util.toRange(more[1])));
+            }
+            case "value" -> {
+                checkArguments(what, more, 0);
+                yield value instanceof IntegerSuggestion v ? NumericValue.of(v.getValue()) : Value.NULL;
             }
             default -> unknownFeature(what);
         };

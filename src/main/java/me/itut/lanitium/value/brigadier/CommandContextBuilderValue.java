@@ -2,10 +2,7 @@ package me.itut.lanitium.value.brigadier;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
-import carpet.script.value.MapValue;
-import carpet.script.value.NullValue;
-import carpet.script.value.StringValue;
-import carpet.script.value.Value;
+import carpet.script.value.*;
 import com.mojang.brigadier.context.CommandContextBuilder;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
@@ -89,6 +86,18 @@ public class CommandContextBuilderValue extends ObjectValue<CommandContextBuilde
             case "build" -> {
                 checkArguments(what, more, 1);
                 yield CommandContextValue.of(context, value.build(more[0].getString()));
+            }
+            case "dispatcher" -> {
+                checkArguments(what, more, 0);
+                yield CommandDispatcherValue.of(context, value.getDispatcher());
+            }
+            case "range" -> {
+                checkArguments(what, more, 0);
+                yield Util.range(value.getRange());
+            }
+            case "find_suggestion_context" -> {
+                checkArguments(what, more, 1);
+                yield SuggestionContextValue.of(context, value.findSuggestionContext(NumericValue.asNumber(more[0]).getInt()));
             }
             default -> unknownFeature(what);
         };
