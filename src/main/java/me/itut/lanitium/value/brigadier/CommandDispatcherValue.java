@@ -10,8 +10,8 @@ import me.itut.lanitium.value.ObjectValue;
 import me.itut.lanitium.value.Util;
 import net.minecraft.commands.CommandSourceStack;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 public class CommandDispatcherValue extends ObjectValue<CommandDispatcher<CommandSourceStack>> {
@@ -23,7 +23,7 @@ public class CommandDispatcherValue extends ObjectValue<CommandDispatcher<Comman
         return value != null ? new CommandDispatcherValue(context, value) : Value.NULL;
     }
 
-    public static CommandDispatcher<CommandSourceStack> from(CarpetContext context, Value value) {
+    public static CommandDispatcher<CommandSourceStack> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -32,11 +32,13 @@ public class CommandDispatcherValue extends ObjectValue<CommandDispatcher<Comman
         };
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "register" -> checkArguments(what, more, 1, () -> LiteralCommandNodeValue.of(context, value.register(LiteralArgumentBuilderValue.from(context, more[0]))));
+            case "register" -> {
+                checkArguments(what, more, 1);
+                yield LiteralCommandNodeValue.of(context, value.register(LiteralArgumentBuilderValue.from(more[0])));
+            }
             case "set_consumer" -> {
                 checkArguments(what, more, 1);
                 value.setConsumer(ResultConsumerValue.from(context, more[0]));
@@ -46,18 +48,41 @@ public class CommandDispatcherValue extends ObjectValue<CommandDispatcher<Comman
                 checkArguments(what, more, 1, 2);
                 try {
                     if (more.length > 1) yield NumericValue.of(value.execute(more[0].getString(), ContextValue.fromOrCurrent(context, more[1]).source()));
-                    yield NumericValue.of(value.execute(ParseResultsValue.from(context, more[0])));
+                    yield NumericValue.of(value.execute(ParseResultsValue.from(more[0])));
                 } catch (CommandSyntaxException e) {
                     throw CommandSyntaxError.create(context, e);
                 }
             }
-            case "parse" -> checkArguments(what, more, 2, () -> ParseResultsValue.of(context, value.parse(more[0].getString(), ContextValue.fromOrCurrent(context, more[1]).source())));
-            case "all_usage" -> checkArguments(what, more, 3, () -> ListValue.wrap(Arrays.stream(value.getAllUsage(CommandNodeValue.from(context, more[0]), ContextValue.fromOrCurrent(context, more[1]).source(), more[2].getBoolean())).map(StringValue::of)));
-            case "smart_usage" -> checkArguments(what, more, 2, () -> MapValue.wrap(Map.ofEntries(value.getSmartUsage(CommandNodeValue.from(context, more[0]), ContextValue.fromOrCurrent(context, more[1]).source()).entrySet().stream().map(v -> new AbstractMap.SimpleEntry<>(CommandNodeValue.of(context, v.getKey()), StringValue.of(v.getValue()))).toArray(Map.Entry[]::new))));
-            case "completion_suggestions" -> checkArguments(what, more, 1, 2, () -> SuggestionsFuture.of(context, more.length > 1 ? value.getCompletionSuggestions(ParseResultsValue.from(context, more[0]), NumericValue.asNumber(more[1]).getInt()) : value.getCompletionSuggestions(ParseResultsValue.from(context, more[0]))));
-            case "root" -> checkArguments(what, more, 0, () -> RootCommandNodeValue.of(context, value.getRoot()));
-            case "path" -> checkArguments(what, more, 1, () -> ListValue.wrap(value.getPath(CommandNodeValue.from(context, more[0])).stream().map(StringValue::of)));
-            case "find_node" -> checkArguments(what, more, 1, () -> CommandNodeValue.of(context, value.findNode(Util.listFrom(more[0]).stream().map(Value::getString).toList())));
+            case "parse" -> {
+                checkArguments(what, more, 2);
+                yield ParseResultsValue.of(context, value.parse(StringReaderValue.from(more[0]), ContextValue.fromOrCurrent(context, more[1]).source()));
+            }
+            case "all_usage" -> {
+                checkArguments(what, more, 3);
+                yield ListValue.wrap(Arrays.stream(value.getAllUsage(CommandNodeValue.from(more[0]), ContextValue.fromOrCurrent(context, more[1]).source(), more[2].getBoolean())).map(StringValue::of));
+            }
+            case "smart_usage" -> {
+                checkArguments(what, more, 2);
+                Map<Value, Value> map = new HashMap<>();
+                value.getSmartUsage(CommandNodeValue.from(more[0]), ContextValue.fromOrCurrent(context, more[1]).source()).forEach((k, v) -> map.put(CommandNodeValue.of(context, k), StringValue.of(v)));
+                yield MapValue.wrap(map);
+            }
+            case "completion_suggestions" -> {
+                checkArguments(what, more, 1, 2);
+                yield SuggestionsFuture.of(context, more.length > 1 ? value.getCompletionSuggestions(ParseResultsValue.from(more[0]), NumericValue.asNumber(more[1]).getInt()) : value.getCompletionSuggestions(ParseResultsValue.from(more[0])));
+            }
+            case "root" -> {
+                checkArguments(what, more, 0);
+                yield RootCommandNodeValue.of(context, value.getRoot());
+            }
+            case "path" -> {
+                checkArguments(what, more, 1);
+                yield ListValue.wrap(value.getPath(CommandNodeValue.from(more[0])).stream().map(StringValue::of));
+            }
+            case "find_node" -> {
+                checkArguments(what, more, 1);
+                yield CommandNodeValue.of(context, value.findNode(Util.listFrom(more[0]).stream().map(Value::getString).toList()));
+            }
             case "find_ambiguities" -> {
                 checkArguments(what, more, 1);
                 value.findAmbiguities(AmbiguityConsumerValue.from(context, more[0]));

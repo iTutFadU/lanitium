@@ -16,7 +16,7 @@ public class LiteralArgumentBuilderValue extends ArgumentBuilderValue<LiteralArg
         return value != null ? new LiteralArgumentBuilderValue(context, value) : Value.NULL;
     }
 
-    public static LiteralArgumentBuilder<CommandSourceStack> from(CarpetContext context, Value value) {
+    public static LiteralArgumentBuilder<CommandSourceStack> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -28,7 +28,10 @@ public class LiteralArgumentBuilderValue extends ArgumentBuilderValue<LiteralArg
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "literal" -> checkArguments(what, more, 0, () -> StringValue.of(value.getLiteral()));
+            case "literal" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getLiteral());
+            }
             default -> super.get(what, more);
         };
     }

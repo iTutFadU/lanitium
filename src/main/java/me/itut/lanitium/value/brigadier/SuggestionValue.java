@@ -19,11 +19,26 @@ public class SuggestionValue extends ObjectValue<Suggestion> {
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "range" -> checkArguments(what, more, 0, () -> Util.range(value.getRange()));
-            case "text" -> checkArguments(what, more, 0, () -> StringValue.of(value.getText()));
-            case "tooltip" -> checkArguments(what, more, 0, () -> StringValue.of(value.getTooltip().getString()));
-            case "apply" -> checkArguments(what, more, 1, () -> StringValue.of(value.apply(more[0].getString())));
-            case "expand" -> checkArguments(what, more, 2, () -> of(context, value.expand(more[0].getString(), Util.toRange(more[1]))));
+            case "range" -> {
+                checkArguments(what, more, 0);
+                yield Util.range(value.getRange());
+            }
+            case "text" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getText());
+            }
+            case "tooltip" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getTooltip().getString());
+            }
+            case "apply" -> {
+                checkArguments(what, more, 1);
+                yield StringValue.of(value.apply(more[0].getString()));
+            }
+            case "expand" -> {
+                checkArguments(what, more, 2);
+                yield of(context, value.expand(more[0].getString(), Util.toRange(more[1])));
+            }
             default -> unknownFeature(what);
         };
     }

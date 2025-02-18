@@ -18,7 +18,7 @@ public class ParsedCommandNodeValue extends ObjectValue<ParsedCommandNode<Comman
         return value != null ? new ParsedCommandNodeValue(context, value) : Value.NULL;
     }
 
-    public static ParsedCommandNode<CommandSourceStack> from(CarpetContext context, Value value) {
+    public static ParsedCommandNode<CommandSourceStack> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -30,8 +30,14 @@ public class ParsedCommandNodeValue extends ObjectValue<ParsedCommandNode<Comman
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "node" -> checkArguments(what, more, 0, () -> CommandNodeValue.of(context, value.getNode()));
-            case "range" -> checkArguments(what, more, 0, () -> Util.range(value.getRange()));
+            case "node" -> {
+                checkArguments(what, more, 0);
+                yield CommandNodeValue.of(context, value.getNode());
+            }
+            case "range" -> {
+                checkArguments(what, more, 0);
+                yield Util.range(value.getRange());
+            }
             default -> unknownFeature(what);
         };
     }

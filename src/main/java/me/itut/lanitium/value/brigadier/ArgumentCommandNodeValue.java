@@ -17,7 +17,7 @@ public class ArgumentCommandNodeValue<T> extends CommandNodeValue {
         return value != null ? new ArgumentCommandNodeValue<>(context, value) : Value.NULL;
     }
 
-    public static ArgumentCommandNode<CommandSourceStack, ?> from(CarpetContext context, Value value) {
+    public static ArgumentCommandNode<CommandSourceStack, ?> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -30,9 +30,18 @@ public class ArgumentCommandNodeValue<T> extends CommandNodeValue {
     public Value get(String what, Value... more) {
         final ArgumentCommandNode<CommandSourceStack, T> value = (ArgumentCommandNode<CommandSourceStack, T>)this.value;
         return switch (what) {
-            case "type" -> checkArguments(what, more, 0, () -> ArgumentTypeValue.of(context, value.getType()));
-            case "custom_suggestions" -> checkArguments(what, more, 0, () -> SuggestionProviderValue.of(context, value.getCustomSuggestions()));
-            case "valid_input" -> checkArguments(what, more, 1, () -> BooleanValue.of(value.isValidInput(more[0].getString())));
+            case "type" -> {
+                checkArguments(what, more, 0);
+                yield ArgumentTypeValue.of(context, value.getType());
+            }
+            case "custom_suggestions" -> {
+                checkArguments(what, more, 0);
+                yield SuggestionProviderValue.of(context, value.getCustomSuggestions());
+            }
+            case "valid_input" -> {
+                checkArguments(what, more, 1);
+                yield BooleanValue.of(value.isValidInput(more[0].getString()));
+            }
             default -> super.get(what, more);
         };
     }

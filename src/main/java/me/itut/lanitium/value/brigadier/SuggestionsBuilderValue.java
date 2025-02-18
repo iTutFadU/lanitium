@@ -18,7 +18,7 @@ public class SuggestionsBuilderValue extends ObjectValue<SuggestionsBuilder> {
         return value != null ? new SuggestionsBuilderValue(context, value) : Value.NULL;
     }
 
-    public static SuggestionsBuilder from(CarpetContext context, Value value) {
+    public static SuggestionsBuilder from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -30,12 +30,30 @@ public class SuggestionsBuilderValue extends ObjectValue<SuggestionsBuilder> {
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "input" -> checkArguments(what, more, 0, () -> StringValue.of(value.getInput()));
-            case "start" -> checkArguments(what, more, 0, () -> NumericValue.of(value.getStart()));
-            case "remaining" -> checkArguments(what, more, 0, () -> StringValue.of(value.getRemaining()));
-            case "remaining_lowercase" -> checkArguments(what, more, 0, () -> StringValue.of(value.getRemainingLowerCase()));
-            case "build" -> checkArguments(what, more, 0, () -> SuggestionsValue.of(context, value.build()));
-            case "build_future" -> checkArguments(what, more, 0, () -> SuggestionsFuture.of(context, value.buildFuture()));
+            case "input" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getInput());
+            }
+            case "start" -> {
+                checkArguments(what, more, 0);
+                yield NumericValue.of(value.getStart());
+            }
+            case "remaining" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getRemaining());
+            }
+            case "remaining_lowercase" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getRemainingLowerCase());
+            }
+            case "build" -> {
+                checkArguments(what, more, 0);
+                yield SuggestionsValue.of(context, value.build());
+            }
+            case "build_future" -> {
+                checkArguments(what, more, 0);
+                yield SuggestionsFuture.of(context, value.buildFuture());
+            }
             case "suggest" -> {
                 checkArguments(what, more, 1, 2);
                 if (more.length > 1) {
@@ -47,11 +65,17 @@ public class SuggestionsBuilderValue extends ObjectValue<SuggestionsBuilder> {
             }
             case "add" -> {
                 checkArguments(what, more, 1);
-                value.add(SuggestionsBuilderValue.from(context, more[0]));
+                value.add(SuggestionsBuilderValue.from(more[0]));
                 yield this;
             }
-            case "create_offset" -> checkArguments(what, more, 1, () -> of(context, value.createOffset(NumericValue.asNumber(more[0]).getInt())));
-            case "restart" -> checkArguments(what, more, 0, () -> of(context, value.restart()));
+            case "create_offset" -> {
+                checkArguments(what, more, 1);
+                yield of(context, value.createOffset(NumericValue.asNumber(more[0]).getInt()));
+            }
+            case "restart" -> {
+                checkArguments(what, more, 0);
+                yield of(context, value.restart());
+            }
             default -> unknownFeature(what);
         };
     }

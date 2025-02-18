@@ -9,25 +9,20 @@ import carpet.script.value.NullValue;
 import carpet.script.value.Value;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import me.itut.lanitium.value.SimpleFunctionValue;
+import me.itut.lanitium.value.ObjectFunctionValue;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 
-public class SuggestionProviderValue extends SimpleFunctionValue {
-    public final CarpetContext context;
-    public final SuggestionProvider<CommandSourceStack> value;
-
+public class SuggestionProviderValue extends ObjectFunctionValue<SuggestionProvider<CommandSourceStack>> {
     protected SuggestionProviderValue(CarpetContext context, SuggestionProvider<CommandSourceStack> value) {
-        super((c, t) -> {
+        super(context, value, (c, t) -> {
             try {
-                return SuggestionsFuture.of(context, value.getSuggestions(CommandContextValue.from((CarpetContext)c, c.getVariable("c").evalValue(c, t)), SuggestionsBuilderValue.from((CarpetContext)c, c.getVariable("b").evalValue(c, t))));
+                return SuggestionsFuture.of(context, value.getSuggestions(CommandContextValue.from(c.getVariable("c").evalValue(c, t)), SuggestionsBuilderValue.from(c.getVariable("b").evalValue(c, t))));
             } catch (CommandSyntaxException e) {
                 throw CommandSyntaxError.create(context, e);
             }
         }, List.of("c", "b"), null);
-        this.context = context;
-        this.value = value;
     }
 
     public static Value of(CarpetContext context, SuggestionProvider<CommandSourceStack> value) {
@@ -41,7 +36,7 @@ public class SuggestionProviderValue extends SimpleFunctionValue {
             case SuggestionProviderValue v -> v.value;
             case FunctionValue fn -> (ctx, builder) -> {
                 try {
-                    return SuggestionsFuture.from(context, fn.callInContext(context, Context.NONE, List.of(CommandContextValue.of(context, ctx), SuggestionsBuilderValue.of(context, builder))).evalValue(context));
+                    return SuggestionsFuture.from(fn.callInContext(context, Context.NONE, List.of(CommandContextValue.of(context, ctx), SuggestionsBuilderValue.of(context, builder))).evalValue(context));
                 } catch (ProcessedThrowStatement e) {
                     if (e.thrownExceptionType == CommandSyntaxError.COMMAND_SYNTAX_ERROR && e.data instanceof CommandSyntaxError err) throw err.value;
                     throw e;

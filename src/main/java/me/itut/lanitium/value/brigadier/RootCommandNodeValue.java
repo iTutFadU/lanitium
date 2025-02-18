@@ -16,7 +16,7 @@ public class RootCommandNodeValue extends CommandNodeValue {
         return value != null ? new RootCommandNodeValue(context, value) : Value.NULL;
     }
 
-    public static RootCommandNode<CommandSourceStack> from(CarpetContext context, Value value) {
+    public static RootCommandNode<CommandSourceStack> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;

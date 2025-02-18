@@ -28,11 +28,26 @@ public class CommandSyntaxError extends ObjectValue<CommandSyntaxException> {
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "message" -> checkArguments(what, more, 0, () -> StringValue.of(value.getMessage()));
-            case "raw_message" -> checkArguments(what, more, 0, () -> StringValue.of(value.getRawMessage().getString()));
-            case "context" -> checkArguments(what, more, 0, () -> StringValue.of(value.getContext()));
-            case "input" -> checkArguments(what, more, 0, () -> StringValue.of(value.getInput()));
-            case "cursor" -> checkArguments(what, more, 0, () -> NumericValue.of(value.getCursor()));
+            case "message" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getMessage());
+            }
+            case "raw_message" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getRawMessage().getString());
+            }
+            case "context" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getContext());
+            }
+            case "input" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getInput());
+            }
+            case "cursor" -> {
+                checkArguments(what, more, 0);
+                yield NumericValue.of(value.getCursor());
+            }
             default -> unknownFeature(what);
         };
     }

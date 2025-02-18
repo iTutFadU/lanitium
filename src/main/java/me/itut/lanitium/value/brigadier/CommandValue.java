@@ -7,25 +7,20 @@ import carpet.script.exception.ProcessedThrowStatement;
 import carpet.script.value.*;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import me.itut.lanitium.value.SimpleFunctionValue;
+import me.itut.lanitium.value.ObjectFunctionValue;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 
-public class CommandValue extends SimpleFunctionValue {
-    public final CarpetContext context;
-    public final Command<CommandSourceStack> value;
-
+public class CommandValue extends ObjectFunctionValue<Command<CommandSourceStack>> {
     protected CommandValue(CarpetContext context, Command<CommandSourceStack> value) {
-        super((c, t) -> {
+        super(context, value, (c, t) -> {
             try {
-                return NumericValue.of(value.run(CommandContextValue.from((CarpetContext)c, c.getVariable("c").evalValue(c, t))));
+                return NumericValue.of(value.run(CommandContextValue.from(c.getVariable("c").evalValue(c, t))));
             } catch (CommandSyntaxException e) {
                 throw CommandSyntaxError.create(context, e);
             }
         }, List.of("c"), null);
-        this.context = context;
-        this.value = value;
     }
 
     public static Value of(CarpetContext context, Command<CommandSourceStack> value) {

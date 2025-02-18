@@ -18,7 +18,7 @@ public class LiteralCommandNodeValue extends CommandNodeValue {
         return value != null ? new LiteralCommandNodeValue(context, value) : Value.NULL;
     }
 
-    public static LiteralCommandNode<CommandSourceStack> from(CarpetContext context, Value value) {
+    public static LiteralCommandNode<CommandSourceStack> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -31,8 +31,14 @@ public class LiteralCommandNodeValue extends CommandNodeValue {
     public Value get(String what, Value... more) {
         final LiteralCommandNode<CommandSourceStack> value = (LiteralCommandNode<CommandSourceStack>)this.value;
         return switch (what) {
-            case "literal" -> checkArguments(what, more, 0, () -> StringValue.of(value.getLiteral()));
-            case "valid_input" -> checkArguments(what, more, 1, () -> BooleanValue.of(value.isValidInput(more[0].getString())));
+            case "literal" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getLiteral());
+            }
+            case "valid_input" -> {
+                checkArguments(what, more, 1);
+                yield BooleanValue.of(value.isValidInput(more[0].getString()));
+            }
             default -> super.get(what, more);
         };
     }

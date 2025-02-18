@@ -19,7 +19,7 @@ public class SuggestionsFuture extends ObjectValue<CompletableFuture<Suggestions
         return value != null ? new SuggestionsFuture(context, value) : Value.NULL;
     }
 
-    public static CompletableFuture<Suggestions> from(CarpetContext context, Value value) {
+    public static CompletableFuture<Suggestions> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -36,8 +36,14 @@ public class SuggestionsFuture extends ObjectValue<CompletableFuture<Suggestions
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "done" -> checkArguments(what, more, 0, () -> BooleanValue.of(value.isDone()));
-            case "cancelled" -> checkArguments(what, more, 0, () -> BooleanValue.of(value.isCancelled()));
+            case "done" -> {
+                checkArguments(what, more, 0);
+                yield BooleanValue.of(value.isDone());
+            }
+            case "cancelled" -> {
+                checkArguments(what, more, 0);
+                yield BooleanValue.of(value.isCancelled());
+            }
             default -> unknownFeature(what);
         };
     }

@@ -1,6 +1,7 @@
 package me.itut.lanitium.value.brigadier;
 
 import carpet.script.CarpetContext;
+import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.BooleanValue;
 import carpet.script.value.ListValue;
 import carpet.script.value.NullValue;
@@ -16,13 +17,17 @@ public abstract class ArgumentBuilderValue<T extends ArgumentBuilder<CommandSour
         super(context, value);
     }
 
-    public static <T extends ArgumentBuilder<CommandSourceStack, T>> ArgumentBuilderValue<T> of(CarpetContext context, T builder) {
-        if (builder instanceof LiteralArgumentBuilder<?>) return LiteralArgumentBuilderValue.of(context, builder);
-        if (builder instanceof RequiredArgumentBuilder<?, ?>) return RequiredArgumentBuilderValue.of(context, builder);
-        return null;
+    @SuppressWarnings("unchecked")
+    public static Value of(CarpetContext context, ArgumentBuilder<CommandSourceStack, ?> value) {
+        return switch (value) {
+            case null -> null;
+            case LiteralArgumentBuilder<?> literal -> LiteralArgumentBuilderValue.of(context, (LiteralArgumentBuilder<CommandSourceStack>)literal);
+            case RequiredArgumentBuilder<?, ?> argument -> RequiredArgumentBuilderValue.of(context, (RequiredArgumentBuilder<CommandSourceStack, ?>)argument);
+            default -> throw new InternalExpressionException("Unknown argument builder class: " + value.getClass().getSimpleName() + " (how did you get here?)");
+        };
     }
 
-    public static ArgumentBuilder<CommandSourceStack, ?> from(CarpetContext context, Value value) {
+    public static ArgumentBuilder<CommandSourceStack, ?> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -37,42 +42,63 @@ public abstract class ArgumentBuilderValue<T extends ArgumentBuilder<CommandSour
             case "then" -> {
                 checkArguments(what, more, 1);
                 if (more[0] instanceof ArgumentBuilderValue<?> builder) value.then(builder.value);
-                else value.then(CommandNodeValue.from(context, more[0]));
+                else value.then(CommandNodeValue.from(more[0]));
                 yield this;
             }
-            case "arguments" -> checkArguments(what, more, 0, () -> ListValue.wrap(value.getArguments().stream().map(v -> CommandNodeValue.of(context, v))));
+            case "arguments" -> {
+                checkArguments(what, more, 0);
+                yield ListValue.wrap(value.getArguments().stream().map(v -> CommandNodeValue.of(context, v)));
+            }
             case "executes" -> {
                 checkArguments(what, more, 1);
                 value.executes(CommandValue.from(context, more[0]));
                 yield this;
             }
-            case "command" -> checkArguments(what, more, 0, () -> CommandValue.of(context, value.getCommand()));
+            case "command" -> {
+                checkArguments(what, more, 0);
+                yield CommandValue.of(context, value.getCommand());
+            }
             case "requires" -> {
                 checkArguments(what, more, 1);
                 value.requires(RequirementValue.from(context, more[0]));
                 yield this;
             }
-            case "requirement" -> checkArguments(what, more, 0, () -> RequirementValue.of(context, value.getRequirement()));
+            case "requirement" -> {
+                checkArguments(what, more, 0);
+                yield RequirementValue.of(context, value.getRequirement());
+            }
             case "redirect" -> {
                 checkArguments(what, more, 1, 2);
-                if (more.length > 1) value.redirect(CommandNodeValue.from(context, more[0]), SingleRedirectModifierValue.from(context, more[1]));
-                else value.redirect(CommandNodeValue.from(context, more[0]));
+                if (more.length > 1) value.redirect(CommandNodeValue.from(more[0]), SingleRedirectModifierValue.from(context, more[1]));
+                else value.redirect(CommandNodeValue.from(more[0]));
                 yield this;
             }
             case "fork" -> {
                 checkArguments(what, more, 2);
-                value.fork(CommandNodeValue.from(context, more[0]), RedirectModifierValue.from(context, more[1]));
+                value.fork(CommandNodeValue.from(more[0]), RedirectModifierValue.from(context, more[1]));
                 yield this;
             }
             case "forward" -> {
                 checkArguments(what, more, 3);
-                value.forward(CommandNodeValue.from(context, more[0]), RedirectModifierValue.from(context, more[1]), more[2].getBoolean());
+                value.forward(CommandNodeValue.from(more[0]), RedirectModifierValue.from(context, more[1]), more[2].getBoolean());
                 yield this;
             }
-            case "target" -> checkArguments(what, more, 0, () -> CommandNodeValue.of(context, value.getRedirect()));
-            case "redirect_modifier" -> checkArguments(what, more, 0, () -> RedirectModifierValue.of(context, value.getRedirectModifier()));
-            case "forks" -> checkArguments(what, more, 0, () -> BooleanValue.of(value.isFork()));
-            case "build" -> checkArguments(what, more, 0, () -> CommandNodeValue.of(context, value.build()));
+            case "target" -> {
+                checkArguments(what, more, 0);
+                yield CommandNodeValue.of(context, value.getRedirect());
+            }
+            case "redirect_modifier" -> {
+                checkArguments(what, more, 0);
+                yield RedirectModifierValue.of(context, value.getRedirectModifier());
+            }
+            case "forks" -> {
+                checkArguments(what, more, 0);
+                yield BooleanValue.of(value.isFork());
+            }
+            case "build" -> {
+                checkArguments(what, more, 0);
+                yield CommandNodeValue.of(context, value.build());
+            }
             default -> unknownFeature(what);
         };
     }

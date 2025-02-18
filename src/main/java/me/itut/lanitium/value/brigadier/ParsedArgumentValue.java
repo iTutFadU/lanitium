@@ -19,7 +19,7 @@ public class ParsedArgumentValue<T> extends ObjectValue<ParsedArgument<CommandSo
         return value != null ? new ParsedArgumentValue<>(context, value) : Value.NULL;
     }
 
-    public static ParsedArgument<CommandSourceStack, ?> from(CarpetContext context, Value value) {
+    public static ParsedArgument<CommandSourceStack, ?> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -31,8 +31,14 @@ public class ParsedArgumentValue<T> extends ObjectValue<ParsedArgument<CommandSo
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "range" -> checkArguments(what, more, 0, () -> Util.range(value.getRange()));
-            case "result" -> checkArguments(what, more, 0, () -> Conversions.from(value.getResult()));
+            case "range" -> {
+                checkArguments(what, more, 0);
+                yield Util.range(value.getRange());
+            }
+            case "result" -> {
+                checkArguments(what, more, 0);
+                yield Conversions.from(value.getResult());
+            }
             default -> unknownFeature(what);
         };
     }

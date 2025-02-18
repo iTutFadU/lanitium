@@ -5,7 +5,6 @@ import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
@@ -30,7 +29,7 @@ public abstract class CommandNodeValue extends ObjectValue<CommandNode<CommandSo
         };
     }
 
-    public static CommandNode<CommandSourceStack> from(CarpetContext context, Value value) {
+    public static CommandNode<CommandSourceStack> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -39,19 +38,36 @@ public abstract class CommandNodeValue extends ObjectValue<CommandNode<CommandSo
         };
     }
 
-    @SuppressWarnings("rawtypes")
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "command" -> checkArguments(what, more, 0, () -> CommandValue.of(context, value.getCommand()));
-            case "children" -> checkArguments(what, more, 0, () -> ListValue.wrap(value.getChildren().stream().map(v -> CommandNodeValue.of(context, v))));
-            case "child" -> checkArguments(what, more, 1, () -> of(context, value.getChild(more[0].getString())));
-            case "target" -> checkArguments(what, more, 0, () -> of(context, value.getRedirect()));
-            case "redirect_modifier" -> checkArguments(what, more, 0, () -> RedirectModifierValue.of(context, value.getRedirectModifier()));
-            case "can_use" -> checkArguments(what, more, 1, () -> BooleanValue.of(value.canUse(ContextValue.fromOrCurrent(context, more[0]).source())));
+            case "command" -> {
+                checkArguments(what, more, 0);
+                yield CommandValue.of(context, value.getCommand());
+            }
+            case "children" -> {
+                checkArguments(what, more, 0);
+                yield ListValue.wrap(value.getChildren().stream().map(v -> CommandNodeValue.of(context, v)));
+            }
+            case "child" -> {
+                checkArguments(what, more, 1);
+                yield of(context, value.getChild(more[0].getString()));
+            }
+            case "target" -> {
+                checkArguments(what, more, 0);
+                yield of(context, value.getRedirect());
+            }
+            case "redirect_modifier" -> {
+                checkArguments(what, more, 0);
+                yield RedirectModifierValue.of(context, value.getRedirectModifier());
+            }
+            case "can_use" -> {
+                checkArguments(what, more, 1);
+                yield BooleanValue.of(value.canUse(ContextValue.fromOrCurrent(context, more[0]).source()));
+            }
             case "add_child" -> {
                 checkArguments(what, more, 1);
-                value.addChild(CommandNodeValue.from(context, more[0]));
+                value.addChild(CommandNodeValue.from(more[0]));
                 yield this;
             }
             case "find_ambiguities" -> {
@@ -59,13 +75,22 @@ public abstract class CommandNodeValue extends ObjectValue<CommandNode<CommandSo
                 value.findAmbiguities(AmbiguityConsumerValue.from(context, more[0]));
                 yield Value.NULL;
             }
-            case "requirement" -> checkArguments(what, more, 0, () -> RequirementValue.of(context, value.getRequirement()));
-            case "name" -> checkArguments(what, more, 0, () -> StringValue.of(value.getName()));
-            case "usage_text" -> checkArguments(what, more, 0, () -> StringValue.of(value.getUsageText()));
+            case "requirement" -> {
+                checkArguments(what, more, 0);
+                yield RequirementValue.of(context, value.getRequirement());
+            }
+            case "name" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getName());
+            }
+            case "usage_text" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getUsageText());
+            }
             case "parse" -> {
                 checkArguments(what, more, 2);
                 try {
-                    value.parse(new StringReader(more[0].getString()), CommandContextBuilderValue.from(context, more[1]));
+                    value.parse(new StringReader(more[0].getString()), CommandContextBuilderValue.from(more[1]));
                     yield Value.NULL;
                 } catch (CommandSyntaxException e) {
                     throw CommandSyntaxError.create(context, e);
@@ -74,12 +99,15 @@ public abstract class CommandNodeValue extends ObjectValue<CommandNode<CommandSo
             case "list_suggestions" -> {
                 checkArguments(what, more, 2);
                 try {
-                    yield SuggestionsFuture.of(context, value.listSuggestions(CommandContextValue.from(context, more[0]), SuggestionsBuilderValue.from(context, more[1])));
+                    yield SuggestionsFuture.of(context, value.listSuggestions(CommandContextValue.from(more[0]), SuggestionsBuilderValue.from(more[1])));
                 } catch (CommandSyntaxException e) {
                     throw CommandSyntaxError.create(context, e);
                 }
             }
-            case "create_builder" -> checkArguments(what, more, 0, () -> ArgumentBuilderValue.of(context, (ArgumentBuilder)value.createBuilder()));
+            case "create_builder" -> {
+                checkArguments(what, more, 0);
+                yield ArgumentBuilderValue.of(context, value.createBuilder());
+            }
             case "remove_child" -> {
                 checkArguments(what, more, 1);
                 ((CommandNodeInterface)value).carpet$removeChild(more[0].getString());

@@ -10,7 +10,7 @@ import com.mojang.brigadier.ParseResults;
 import me.itut.lanitium.value.ObjectValue;
 import net.minecraft.commands.CommandSourceStack;
 
-import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ParseResultsValue extends ObjectValue<ParseResults<CommandSourceStack>> {
@@ -22,7 +22,7 @@ public class ParseResultsValue extends ObjectValue<ParseResults<CommandSourceSta
         return value != null ? new ParseResultsValue(context, value) : Value.NULL;
     }
 
-    public static ParseResults<CommandSourceStack> from(CarpetContext context, Value value) {
+    public static ParseResults<CommandSourceStack> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -31,13 +31,23 @@ public class ParseResultsValue extends ObjectValue<ParseResults<CommandSourceSta
         };
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "context" -> checkArguments(what, more, 0, () -> CommandContextBuilderValue.of(context, value.getContext()));
-            case "string" -> checkArguments(what, more, 0, () -> StringValue.of(value.getReader().getString()));
-            case "errors" -> checkArguments(what, more, 0, () -> MapValue.wrap(Map.ofEntries(value.getExceptions().entrySet().stream().map(v -> new AbstractMap.SimpleEntry<>(CommandNodeValue.of(context, v.getKey()), new CommandSyntaxError(context, v.getValue()))).toArray(Map.Entry[]::new))));
+            case "context" -> {
+                checkArguments(what, more, 0);
+                yield CommandContextBuilderValue.of(context, value.getContext());
+            }
+            case "string" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(value.getReader().getString());
+            }
+            case "errors" -> {
+                checkArguments(what, more, 0);
+                Map<Value, Value> map = new HashMap<>();
+                value.getExceptions().forEach((k, v) -> map.put(CommandNodeValue.of(context, k), new CommandSyntaxError(context, v)));
+                yield MapValue.wrap(map);
+            }
             default -> unknownFeature(what);
         };
     }

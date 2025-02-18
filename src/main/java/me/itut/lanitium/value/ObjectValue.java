@@ -9,7 +9,6 @@ import net.minecraft.nbt.Tag;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 public abstract class ObjectValue<T> extends Value {
     public final CarpetContext context;
@@ -46,6 +45,21 @@ public abstract class ObjectValue<T> extends Value {
         return o instanceof ObjectValue<?> b && Objects.equals(value, b.value);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public int compareTo(Value o) {
+        if (!(value instanceof Comparable a)) return super.compareTo(o);
+        try {
+            if (o instanceof ObjectValue<?> ob && ob.value instanceof Comparable b)
+                return a.compareTo(b);
+            if (o instanceof ObjectFunctionValue<?> ob && ob.value instanceof Comparable b)
+                return a.compareTo(b);
+        } catch (ClassCastException e) {
+            throw new RuntimeException(e);
+        }
+        return super.compareTo(o);
+    }
+
     @Override
     public Tag toTag(boolean force, RegistryAccess regs) {
         throw new NBTSerializableValue.IncompatibleTypeException(this);
@@ -63,20 +77,10 @@ public abstract class ObjectValue<T> extends Value {
 
     protected void checkArguments(String what, Value[] more, int min, int max) throws InternalExpressionException {
         assert min >= 0 && (max < 0 || min <= max) : "Why.";
-        if (more.length < min || max >= 0 && more.length > max) throw new InternalExpressionException(getTypeString() + "~'" + what + "' expected " + (min == max ? min == 0 ? "no" : "" + min : max < 0 ? "at least " + min : min == 0 ? "at most " + max : "from " + min + " to " + max) + " argument" + ((max != 1 ? min : max) != 1 ? "s" : "") + ", got " + more.length);
+        if (more.length < min || max >= 0 && more.length > max) throw new InternalExpressionException(getTypeString() + "~'" + what + "' expected " + (min == max ? min == 0 ? "no" : min : max < 0 ? "at least " + min : min == 0 ? "at most " + max : "from " + min + " to " + max) + " argument" + ((max != 1 ? min : max) != 1 ? "s" : "") + ", got " + more.length);
     }
 
     protected void checkArguments(String what, Value[] more, int amount) throws InternalExpressionException {
         checkArguments(what, more, amount, amount);
-    }
-
-    protected <A> A checkArguments(String what, Value[] more, int min, int max, Supplier<A> result) {
-        checkArguments(what, more, min, max);
-        return result.get();
-    }
-
-    protected <A> A checkArguments(String what, Value[] more, int amount, Supplier<A> result) {
-        checkArguments(what, more, amount);
-        return result.get();
     }
 }

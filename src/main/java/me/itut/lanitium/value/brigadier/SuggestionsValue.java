@@ -18,7 +18,7 @@ public class SuggestionsValue extends ObjectValue<Suggestions> {
         return value != null ? new SuggestionsValue(context, value) : Value.NULL;
     }
 
-    public static Suggestions from(CarpetContext context, Value value) {
+    public static Suggestions from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -30,8 +30,14 @@ public class SuggestionsValue extends ObjectValue<Suggestions> {
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "range" -> checkArguments(what, more, 0, () -> Util.range(value.getRange()));
-            case "list" -> checkArguments(what, more, 0, () -> ListValue.wrap(value.getList().stream().map(v -> SuggestionValue.of(context, v))));
+            case "range" -> {
+                checkArguments(what, more, 0);
+                yield Util.range(value.getRange());
+            }
+            case "list" -> {
+                checkArguments(what, more, 0);
+                yield ListValue.wrap(value.getList().stream().map(v -> SuggestionValue.of(context, v)));
+            }
             default -> unknownFeature(what);
         };
     }

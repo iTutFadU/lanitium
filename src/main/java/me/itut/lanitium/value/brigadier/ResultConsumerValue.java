@@ -5,22 +5,17 @@ import carpet.script.Context;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.mojang.brigadier.ResultConsumer;
-import me.itut.lanitium.value.SimpleFunctionValue;
+import me.itut.lanitium.value.ObjectFunctionValue;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 
-public class ResultConsumerValue extends SimpleFunctionValue {
-    public final CarpetContext context;
-    public final ResultConsumer<CommandSourceStack> value;
-
+public class ResultConsumerValue extends ObjectFunctionValue<ResultConsumer<CommandSourceStack>> {
     protected ResultConsumerValue(CarpetContext context, ResultConsumer<CommandSourceStack> value) {
-        super((c, t) -> {
-            value.onCommandComplete(CommandContextValue.from((CarpetContext)c, c.getVariable("c").evalValue(c, t)), c.getVariable("s").evalValue(c, t).getBoolean(), NumericValue.asNumber(c.getVariable("r").evalValue(c, t)).getInt());
+        super(context, value, (c, t) -> {
+            value.onCommandComplete(CommandContextValue.from(c.getVariable("c").evalValue(c, t)), c.getVariable("s").evalValue(c, t).getBoolean(), NumericValue.asNumber(c.getVariable("r").evalValue(c, t)).getInt());
             return Value.NULL;
         }, List.of("c", "s", "r"), null);
-        this.context = context;
-        this.value = value;
     }
 
     public static Value of(CarpetContext context, ResultConsumer<CommandSourceStack> value) {

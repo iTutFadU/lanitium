@@ -56,8 +56,14 @@ public class Lazy extends ContextValue implements WithValue {
 
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "context" -> checkArguments(what, more, 0, () -> this);
-            case "type" -> checkArguments(what, more, 0, () -> StringValue.of(type.name().toLowerCase()));
+            case "context" -> {
+                checkArguments(what, more, 0);
+                yield this;
+            }
+            case "type" -> {
+                checkArguments(what, more, 0);
+                yield StringValue.of(type.name().toLowerCase());
+            }
             default -> throw new InternalExpressionException("Unknown lazy feature: " + what);
         };
     }

@@ -22,7 +22,7 @@ public class ArgumentTypeValue<T> extends ObjectValue<ArgumentType<T>> {
         return value != null ? new ArgumentTypeValue<>(context, value) : Value.NULL;
     }
 
-    public static ArgumentType<?> from(CarpetContext context, Value value) {
+    public static ArgumentType<?> from(Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
@@ -45,8 +45,14 @@ public class ArgumentTypeValue<T> extends ObjectValue<ArgumentType<T>> {
                     throw CommandSyntaxError.create(context, e);
                 }
             }
-            case "list_suggestions" -> checkArguments(what, more, 2, () -> SuggestionsFuture.of(context, value.listSuggestions(CommandContextValue.from(context, more[0]), SuggestionsBuilderValue.from(context, more[1]))));
-            case "examples" -> checkArguments(what, more, 0, () -> ListValue.wrap(value.getExamples().stream().map(StringValue::of)));
+            case "list_suggestions" -> {
+                checkArguments(what, more, 2);
+                yield SuggestionsFuture.of(context, value.listSuggestions(CommandContextValue.from(more[0]), SuggestionsBuilderValue.from(more[1])));
+            }
+            case "examples" -> {
+                checkArguments(what, more, 0);
+                yield ListValue.wrap(value.getExamples().stream().map(StringValue::of));
+            }
             default -> unknownFeature(what);
         };
     }

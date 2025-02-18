@@ -14,8 +14,14 @@ public class LanitiumCookieFuture extends ObjectValue<CompletableFuture<Lanitium
 
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "done" -> checkArguments(what, more, 0, () -> BooleanValue.of(value.isDone()));
-            case "cancelled" -> checkArguments(what, more, 0, () -> BooleanValue.of(value.isCancelled()));
+            case "done" -> {
+                checkArguments(what, more, 0);
+                yield BooleanValue.of(value.isDone());
+            }
+            case "cancelled" -> {
+                checkArguments(what, more, 0);
+                yield BooleanValue.of(value.isCancelled());
+            }
             default -> unknownFeature(what);
         };
     }

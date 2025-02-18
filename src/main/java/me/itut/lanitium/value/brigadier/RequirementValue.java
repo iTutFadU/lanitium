@@ -7,20 +7,15 @@ import carpet.script.value.BooleanValue;
 import carpet.script.value.FunctionValue;
 import carpet.script.value.NullValue;
 import carpet.script.value.Value;
-import me.itut.lanitium.value.SimpleFunctionValue;
+import me.itut.lanitium.value.ObjectFunctionValue;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 import java.util.function.Predicate;
 
-public class RequirementValue extends SimpleFunctionValue {
-    public final CarpetContext context;
-    public final Predicate<CommandSourceStack> value;
-
+public class RequirementValue extends ObjectFunctionValue<Predicate<CommandSourceStack>> {
     protected RequirementValue(CarpetContext context, Predicate<CommandSourceStack> value) {
-        super((c, t) -> BooleanValue.of(value.test(((CarpetContext)c).source())), List.of(), null);
-        this.context = context;
-        this.value = value;
+        super(context, value, (c, t) -> BooleanValue.of(value.test(((CarpetContext)c).source())), List.of(), null);
     }
 
     public static Value of(CarpetContext context, Predicate<CommandSourceStack> value) {

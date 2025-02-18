@@ -5,23 +5,18 @@ import carpet.script.Context;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.mojang.brigadier.AmbiguityConsumer;
-import me.itut.lanitium.value.SimpleFunctionValue;
+import me.itut.lanitium.value.ObjectFunctionValue;
 import me.itut.lanitium.value.Util;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 
-public class AmbiguityConsumerValue extends SimpleFunctionValue {
-    public final CarpetContext context;
-    public final AmbiguityConsumer<CommandSourceStack> value;
-
+public class AmbiguityConsumerValue extends ObjectFunctionValue<AmbiguityConsumer<CommandSourceStack>> {
     protected AmbiguityConsumerValue(CarpetContext context, AmbiguityConsumer<CommandSourceStack> value) {
-        super((c, t) -> {
-            value.ambiguous(CommandNodeValue.from((CarpetContext)c, c.getVariable("p").evalValue(c, t)), CommandNodeValue.from((CarpetContext)c, c.getVariable("c").evalValue(c, t)), CommandNodeValue.from((CarpetContext)c, c.getVariable("s").evalValue(c, t)), Util.listFrom(c.getVariable("i").evalValue(c, t)).stream().map(Value::getString).toList());
+        super(context, value, (c, t) -> {
+            value.ambiguous(CommandNodeValue.from(c.getVariable("p").evalValue(c, t)), CommandNodeValue.from(c.getVariable("c").evalValue(c, t)), CommandNodeValue.from(c.getVariable("s").evalValue(c, t)), Util.listFrom(c.getVariable("i").evalValue(c, t)).stream().map(Value::getString).toList());
             return Value.NULL;
         }, List.of("p", "c", "s", "i"), null);
-        this.context = context;
-        this.value = value;
     }
 
     public static Value of(CarpetContext context, AmbiguityConsumer<CommandSourceStack> value) {
