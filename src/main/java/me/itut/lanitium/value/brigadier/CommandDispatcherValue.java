@@ -1,5 +1,6 @@
 package me.itut.lanitium.value.brigadier;
 
+import carpet.fakes.CommandDispatcherInterface;
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
@@ -93,6 +94,11 @@ public class CommandDispatcherValue extends ObjectValue<CommandDispatcher<Comman
             case "find_ambiguities" -> {
                 checkArguments(what, more, 1);
                 value.findAmbiguities(AmbiguityConsumerValue.from(context, more[0]));
+                yield Value.NULL;
+            }
+            case "unregister" -> {
+                checkArguments(what, more, 1);
+                ((CommandDispatcherInterface)value).carpet$unregister(more[0].getString());
                 yield Value.NULL;
             }
             default -> unknownFeature(what);

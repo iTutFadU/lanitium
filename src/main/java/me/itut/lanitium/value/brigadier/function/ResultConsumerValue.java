@@ -28,7 +28,13 @@ public class ResultConsumerValue extends ObjectFunctionValue<ResultConsumer<Comm
             case null -> null;
             case NullValue ignored -> null;
             case ResultConsumerValue v -> v.value;
-            case FunctionValue fn -> (ctx, success, result) -> fn.callInContext(context, Context.VOID, List.of(CommandContextValue.of(context, ctx), BooleanValue.of(success), NumericValue.of(result))).evalValue(context, Context.VOID);
+            case FunctionValue fn -> (ctx, success, result) -> {
+                CarpetContext copy = (CarpetContext)context.recreate();
+                copy.variables = context.variables;
+                copy.swapSource(ctx.getSource());
+
+                fn.callInContext(copy, Context.VOID, List.of(CommandContextValue.of(copy, ctx), BooleanValue.of(success), NumericValue.of(result))).evalValue(copy, Context.VOID);
+            };
             default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to result_consumer");
         };
     }

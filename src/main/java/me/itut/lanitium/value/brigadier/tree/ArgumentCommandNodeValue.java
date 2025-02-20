@@ -10,6 +10,7 @@ import me.itut.lanitium.value.brigadier.argument.ArgumentTypeValue;
 import me.itut.lanitium.value.brigadier.function.SuggestionProviderValue;
 import net.minecraft.commands.CommandSourceStack;
 
+@SuppressWarnings("unchecked")
 public class ArgumentCommandNodeValue<T> extends CommandNodeValue {
     protected ArgumentCommandNodeValue(CarpetContext context, ArgumentCommandNode<CommandSourceStack, T> value) {
         super(context, value);

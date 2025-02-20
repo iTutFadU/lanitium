@@ -8,9 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 
-public final class Util {
-    private Util() {}
-
+public class Util {
     public static Value range(StringRange range) {
         return range != null ? ListValue.of(NumericValue.of(range.getStart()), NumericValue.of(range.getEnd())) : Value.NULL;
     }
@@ -34,7 +32,8 @@ public final class Util {
 
     public static Value source(CarpetContext context, CommandSourceStack source) {
         if (source == null) return Value.NULL;
-        CarpetContext copy = context.duplicate();
+        CarpetContext copy = (CarpetContext)context.recreate();
+        copy.variables = context.variables;
         copy.swapSource(source);
         return ContextValue.of(copy);
     }

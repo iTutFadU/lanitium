@@ -36,7 +36,11 @@ public class CommandValue extends ObjectFunctionValue<Command<CommandSourceStack
             case CommandValue v -> v.value;
             case FunctionValue fn -> ctx -> {
                 try {
-                    return NumericValue.asNumber(fn.callInContext(context, Context.NUMBER, List.of(CommandContextValue.of(context, ctx))).evalValue(context, Context.NUMBER)).getInt();
+                    CarpetContext copy = (CarpetContext)context.recreate();
+                    copy.variables = context.variables;
+                    copy.swapSource(ctx.getSource());
+
+                    return NumericValue.asNumber(fn.callInContext(copy, Context.NUMBER, List.of(CommandContextValue.of(copy, ctx))).evalValue(copy, Context.NUMBER)).getInt();
                 } catch (ProcessedThrowStatement e) {
                     if (e.thrownExceptionType == CommandSyntaxError.COMMAND_SYNTAX_ERROR && e.data instanceof CommandSyntaxError err) throw err.value;
                     throw e;

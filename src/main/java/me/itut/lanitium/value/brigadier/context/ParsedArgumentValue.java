@@ -37,7 +37,7 @@ public class ParsedArgumentValue<T> extends ObjectValue<ParsedArgument<CommandSo
             }
             case "result" -> {
                 checkArguments(what, more, 0);
-                yield Conversions.from(value.getResult());
+                yield Conversions.from(context, value.getResult());
             }
             default -> unknownFeature(what);
         };

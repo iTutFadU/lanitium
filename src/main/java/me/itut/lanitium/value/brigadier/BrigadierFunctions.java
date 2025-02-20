@@ -4,13 +4,12 @@ import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
-import carpet.script.value.FunctionValue;
-import carpet.script.value.ListValue;
-import carpet.script.value.NumericValue;
-import carpet.script.value.Value;
+import carpet.script.exception.InternalExpressionException;
+import carpet.script.value.*;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.Message;
 import com.mojang.brigadier.ParseResults;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.context.*;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
@@ -21,9 +20,11 @@ import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
+import me.itut.lanitium.internal.carpet.EntityValueSelectorCache;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.Util;
 import me.itut.lanitium.value.brigadier.argument.ArgumentTypeValue;
+import me.itut.lanitium.value.brigadier.argument.EntitySelectorValue;
 import me.itut.lanitium.value.brigadier.builder.LiteralArgumentBuilderValue;
 import me.itut.lanitium.value.brigadier.builder.RequiredArgumentBuilderValue;
 import me.itut.lanitium.value.brigadier.context.*;
@@ -38,11 +39,17 @@ import me.itut.lanitium.value.brigadier.tree.LiteralCommandNodeValue;
 import me.itut.lanitium.value.brigadier.tree.RootCommandNodeValue;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.selector.EntitySelector;
+import net.minecraft.commands.arguments.selector.EntitySelectorParser;
+import net.minecraft.nbt.TagParser;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public final class BrigadierFunctions {
+import static me.itut.lanitium.internal.carpet.EntityValueSelectorCache.selectorCache;
+
+public class BrigadierFunctions {
     @ScarpetFunction
     public void perform_command(Context c, Value parseResults, String command) {
         ((CarpetContext)c).server().getCommands().performCommand(ParseResultsValue.from(parseResults), command);
@@ -162,17 +169,17 @@ public final class BrigadierFunctions {
 
     @ScarpetFunction(maxParams = -1)
     public Value suggestions(Context c, Value range, Value... suggestions) {
-        return SuggestionsValue.of((CarpetContext)c, new Suggestions(Util.toRange(range), Arrays.stream(suggestions).map(v -> SuggestionValue.from(v)).toList()));
+        return SuggestionsValue.of((CarpetContext)c, new Suggestions(Util.toRange(range), Arrays.stream(suggestions).map(SuggestionValue::from).toList()));
     }
 
     @ScarpetFunction(maxParams = -1)
     public Value suggestions_merge(Context c, String command, Value... suggestions) {
-        return SuggestionsValue.of((CarpetContext)c, Suggestions.merge(command, Arrays.stream(suggestions).map(v -> SuggestionsValue.from(v)).toList()));
+        return SuggestionsValue.of((CarpetContext)c, Suggestions.merge(command, Arrays.stream(suggestions).map(SuggestionsValue::from).toList()));
     }
 
     @ScarpetFunction(maxParams = -1)
     public Value suggestions_create(Context c, String command, Value... suggestions) {
-        return SuggestionsValue.of((CarpetContext)c, Suggestions.create(command, Arrays.stream(suggestions).map(v -> SuggestionValue.from(v)).toList()));
+        return SuggestionsValue.of((CarpetContext)c, Suggestions.create(command, Arrays.stream(suggestions).map(SuggestionValue::from).toList()));
     }
 
     @ScarpetFunction(maxParams = 3)
@@ -193,5 +200,42 @@ public final class BrigadierFunctions {
     @ScarpetFunction
     public Value root_command_node(Context c) {
         return RootCommandNodeValue.of((CarpetContext)c, new RootCommandNode<>());
+    }
+
+    @ScarpetFunction
+    public Value create_entity_selector(Context c, String selector) {
+        if (selectorCache.get(selector) instanceof EntitySelector s) {
+            return EntitySelectorValue.of((CarpetContext)c, s);
+        }
+        try {
+            EntitySelector s = new EntitySelectorParser(new StringReader(selector), true).parse();
+            selectorCache.put(selector, s);
+            return EntitySelectorValue.of((CarpetContext)c, s);
+        } catch (CommandSyntaxException e) {
+            throw new InternalExpressionException("Cannot select entities from " + selector);
+        }
+    }
+
+    @ScarpetFunction
+    public Value string_reader(Context c, Value reader) {
+        return StringReaderValue.of((CarpetContext)c, StringReaderValue.from(reader));
+    }
+
+    @ScarpetFunction
+    public Value read_nbt(Context c, Value reader) {
+        try {
+            return NBTSerializableValue.of(new TagParser(StringReaderValue.from(reader)).readValue());
+        } catch (CommandSyntaxException e) {
+            throw CommandSyntaxError.create((CarpetContext)c, e);
+        }
+    }
+
+    @ScarpetFunction
+    public Value read_compound(Context c, Value reader) {
+        try {
+            return NBTSerializableValue.of(new TagParser(StringReaderValue.from(reader)).readStruct());
+        } catch (CommandSyntaxException e) {
+            throw CommandSyntaxError.create((CarpetContext)c, e);
+        }
     }
 }

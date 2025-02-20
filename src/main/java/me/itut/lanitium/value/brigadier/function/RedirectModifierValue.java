@@ -41,7 +41,11 @@ public class RedirectModifierValue extends ObjectFunctionValue<RedirectModifier<
             case RedirectModifierValue v -> v.value;
             case FunctionValue fn -> ctx -> {
                 try {
-                    return Util.listFrom(fn.callInContext(context, Context.LIST, List.of(CommandContextValue.of(context, ctx))).evalValue(context, Context.LIST)).stream().map(v -> ContextValue.from(v).source()).toList();
+                    CarpetContext copy = (CarpetContext)context.recreate();
+                    copy.variables = context.variables;
+                    copy.swapSource(ctx.getSource());
+
+                    return Util.listFrom(fn.callInContext(copy, Context.LIST, List.of(CommandContextValue.of(copy, ctx))).evalValue(copy, Context.LIST)).stream().map(v -> ContextValue.from(v).source()).toList();
                 } catch (ProcessedThrowStatement e) {
                     if (e.thrownExceptionType == CommandSyntaxError.COMMAND_SYNTAX_ERROR && e.data instanceof CommandSyntaxError err) throw err.value;
                     throw e;

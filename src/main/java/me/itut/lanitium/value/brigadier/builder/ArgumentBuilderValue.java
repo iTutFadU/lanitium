@@ -37,7 +37,7 @@ public abstract class ArgumentBuilderValue<T extends ArgumentBuilder<CommandSour
             case null -> null;
             case NullValue ignored -> null;
             case ArgumentBuilderValue<?> v -> v.value;
-            default -> LiteralArgumentBuilder.literal(value.getString());
+            default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to argument_builder");
         };
     }
 

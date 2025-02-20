@@ -56,7 +56,11 @@ public class CommandContextValue extends ObjectValue<CommandContext<CommandSourc
             }
             case "argument" -> {
                 checkArguments(what, more, 1);
-                yield Conversions.from(value.getArgument(more[0].getString(), Object.class));
+                try {
+                    yield Conversions.from(context, value.getArgument(more[0].getString(), Object.class));
+                } catch (IllegalArgumentException ignored) {
+                    yield Value.NULL;
+                }
             }
             case "redirect_modifier" -> {
                 checkArguments(what, more, 0);

@@ -1,6 +1,7 @@
 package me.itut.lanitium.value.brigadier.builder;
 
 import carpet.script.CarpetContext;
+import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.NullValue;
 import carpet.script.value.StringValue;
 import carpet.script.value.Value;
@@ -21,7 +22,7 @@ public class LiteralArgumentBuilderValue extends ArgumentBuilderValue<LiteralArg
             case null -> null;
             case NullValue ignored -> null;
             case LiteralArgumentBuilderValue v -> v.value;
-            default -> LiteralArgumentBuilder.literal(value.getString());
+            default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to literal_argument_builder");
         };
     }
 

@@ -7,41 +7,45 @@ import carpet.script.annotation.ScarpetFunction;
 import carpet.script.argument.FunctionArgument;
 import carpet.script.exception.*;
 import carpet.script.language.Operators;
-import carpet.script.utils.SystemInfo;
 import carpet.script.value.*;
 import carpet.utils.CommandHelper;
 import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
-import me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter;
+import me.itut.lanitium.internal.CommandSourceStackCustomValues;
 import me.itut.lanitium.value.*;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
-import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static me.itut.lanitium.value.Lazy.*;
+import static me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter.options;
 
-public final class LanitiumFunctions {
+public class LanitiumFunctions {
     static {
         Operators.precedence.put("with\\", 100);
 
-        @SuppressWarnings("InstantiationOfUtilityClass")
-        final Map<String, Function<CarpetContext, Value>> options = ((SystemInfoOptionsGetter)new SystemInfo()).lanitium$getOptions();
         options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
         options.put("server_sprinting", c -> BooleanValue.of(c.server().tickRateManager().isSprinting()));
         options.put("source_anchor", c -> StringValue.of(c.source().getAnchor() == EntityAnchorArgument.Anchor.EYES ? "eyes" : "feet"));
+        options.put("source_custom_values", c -> {
+            Map<Value, Value> map = ((CommandSourceStackCustomValues)c.source()).lanitium$customValues();
+            return map != null ? MapValue.wrap(map) : Value.NULL;
+        });
     }
 
     public static FunctionValue findIn(Context c, Module module, Value functionValue) {
@@ -234,14 +238,27 @@ public final class LanitiumFunctions {
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
+        expression.addLazyFunction("with_custom_values", 2, (c, t, lv) -> {
+            final CommandSourceStack source = ((CarpetContext)c).source();
+            final MapValue customValues = switch (lv.getFirst().evalValue(c)) {
+                case NullValue ignored -> null;
+                case MapValue map -> map;
+                case AbstractListValue list -> new MapValue(list.unpack());
+                default -> throw new InternalExpressionException("Argument 'custom_values' must be a map");
+            };
+            if (customValues == null || customValues.getMap().isEmpty()) return lv.get(1);
+            Context ctx = c.recreate();
+            ((CarpetContext)ctx).swapSource(((CommandSourceStackCustomValues)source).lanitium$withCustomValues(customValues.getMap()));
+            ctx.variables = c.variables;
+            Value output = lv.get(1).evalValue(ctx);
+            return (cc, tt) -> output;
+        });
     }
 
     @ScarpetFunction
     public LanitiumCookieFuture cookie(Context c, EntityValue p, FunctionValue callback) {
-        CarpetContext context = (CarpetContext)c;
-        ServerPlayer player = EntityValue.getPlayerByValue(context.server(), p);
-        CarpetScriptServer server = ((CarpetScriptServer)context.host.scriptServer());
-        return new LanitiumCookieFuture(context, player.getCookie(LanitiumCookie.class).whenComplete((cookie, exception) -> {
+        ServerPlayer player = EntityValue.getPlayerByValue(((CarpetContext)c).server(), p);
+        return new LanitiumCookieFuture((CarpetContext)c, player.getCookie(LanitiumCookie.class).whenComplete((cookie, exception) -> {
             MapValue map = null;
             boolean set = false;
 
@@ -253,10 +270,12 @@ public final class LanitiumFunctions {
             }
 
             try {
-                List<Value> args = new ArrayList<>();
-                args.add(p);
-                args.add(map);
-                Value out = server.getAppHostByName(context.host.getName()).callNow(callback, args);
+                final MapValue finalMap = map;
+                List<Value> args = new ArrayList<>() {{
+                    add(p);
+                    add(finalMap);
+                }};
+                Value out = callback.callInContext(c, Context.STRING, args).evalValue(c, Context.STRING);
                 if ("set".equals(out.getString())) set = true;
             } finally {
                 if (set)
@@ -264,8 +283,7 @@ public final class LanitiumFunctions {
                         player.setCookie(LanitiumCookie.EMPTY);
                     else {
                         Map<String, Tag> newCookie = new HashMap<>();
-                        for (Map.Entry<Value, Value> e : map.getMap().entrySet())
-                            newCookie.put(e.getKey().getString(), ((NBTSerializableValue)NBTSerializableValue.fromValue(e.getValue())).getTag());
+                        map.getMap().forEach((k, v) -> newCookie.put(k.getString(), v.toTag(true, ((CarpetContext)c).registryAccess())));
                         player.setCookie(new LanitiumCookie(newCookie));
                     }
             }
@@ -450,9 +468,13 @@ public final class LanitiumFunctions {
         ((CarpetContext)c).source().sendSystemMessage(FormattedTextValue.getTextByValue(message));
     }
 
-    @ScarpetFunction
-    public void send_commands_update(Context c) {
-        CommandHelper.notifyPlayersCommandsChanged(((CarpetContext)c).server());
+    @ScarpetFunction(maxParams = -1)
+    public void send_commands_update(Context c, ServerPlayer... players) {
+        MinecraftServer server = ((CarpetContext)c).server();
+        if (players.length == 0) CommandHelper.notifyPlayersCommandsChanged(server);
+        else server.schedule(new TickTask(server.getTickCount(), () -> {
+            for (ServerPlayer player : players) server.getCommands().sendCommands(player);
+        }));
     }
 
     @ScarpetFunction
@@ -479,6 +501,53 @@ public final class LanitiumFunctions {
     @ScarpetFunction
     public Value decode_bytes(ByteBufferValue data) {
         return StringValue.of(new String(data.buffer.array(), StandardCharsets.UTF_8));
+    }
+
+    @ScarpetFunction
+    public Value encode_nbt_bytes(Context c, NBTSerializableValue data) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        try {
+            NbtIo.writeAnyTag(data.getTag(), new DataOutputStream(stream));
+        } catch (IOException e) {
+            throw new ThrowStatement(e.getMessage(), Throwables.IO_EXCEPTION);
+        }
+        return ByteBufferValue.of(ByteBuffer.wrap(stream.toByteArray()));
+    }
+
+    @ScarpetFunction
+    public Value decode_nbt_bytes(ByteBufferValue data) {
+        ByteArrayInputStream stream = new ByteArrayInputStream(data.buffer.array());
+        try {
+            return NBTSerializableValue.of(NbtIo.readAnyTag(new DataInputStream(stream), NbtAccounter.unlimitedHeap()));
+        } catch (IOException e) {
+            throw new ThrowStatement(e.getMessage(), Throwables.IO_EXCEPTION);
+        }
+    }
+
+    @ScarpetFunction
+    public Value encode_compressed_compound(Context c, NBTSerializableValue data) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        try {
+            NbtIo.writeCompressed(data.getCompoundTag(), new DataOutputStream(stream));
+        } catch (IOException e) {
+            throw new ThrowStatement(e.getMessage(), Throwables.IO_EXCEPTION);
+        }
+        return ByteBufferValue.of(ByteBuffer.wrap(stream.toByteArray()));
+    }
+
+    @ScarpetFunction
+    public Value decode_compressed_compound(ByteBufferValue data) {
+        ByteArrayInputStream stream = new ByteArrayInputStream(data.buffer.array());
+        try {
+            return NBTSerializableValue.of(NbtIo.readCompressed(new DataInputStream(stream), NbtAccounter.unlimitedHeap()));
+        } catch (IOException e) {
+            throw new ThrowStatement(e.getMessage(), Throwables.IO_EXCEPTION);
+        }
+    }
+
+    @ScarpetFunction(maxParams = 2)
+    public Value pretty_nbt(Context c, NBTSerializableValue nbt, Optional<String> indent) {
+        return FormattedTextValue.of(new TextComponentTagVisitor(indent.orElse("")).visit(nbt.getTag()));
     }
 
     @ScarpetFunction(maxParams = -1)

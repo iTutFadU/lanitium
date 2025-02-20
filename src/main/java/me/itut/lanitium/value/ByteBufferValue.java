@@ -13,9 +13,11 @@ import net.minecraft.nbt.Tag;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ByteBufferValue extends AbstractListValue implements ContainerValueInterface {
@@ -154,7 +156,10 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
 
     @Override
     public String getString() {
-        return "[B;...]";
+        byte[] src = buffer.array();
+        String[] strings = new String[src.length];
+        for (int i = 0; i < src.length; i++) strings[i] = src[i] + "B";
+        return "[B;" + String.join(",", strings) + "]";
     }
 
     @Override
@@ -182,5 +187,15 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
                 return NumericValue.of(iter.get());
             }
         };
+    }
+
+    @Override
+    public Value slice(long fromDesc, Long toDesc) {
+        byte[] arr = buffer.array();
+        int from = ListValue.normalizeIndex(fromDesc, arr.length); // Gotta follow the convention :\
+        if (toDesc == null) return new ByteBufferValue(ByteBuffer.wrap(Arrays.copyOfRange(arr, from, arr.length)));
+        int to = ListValue.normalizeIndex(toDesc, arr.length + 1);
+        if (from >= to) return new ByteBufferValue(ByteBuffer.allocate(0));
+        return new ByteBufferValue(ByteBuffer.wrap(Arrays.copyOfRange(arr, from, to)));
     }
 }

@@ -40,7 +40,11 @@ public class SuggestionProviderValue extends ObjectFunctionValue<SuggestionProvi
             case SuggestionProviderValue v -> v.value;
             case FunctionValue fn -> (ctx, builder) -> {
                 try {
-                    return SuggestionsFuture.from(fn.callInContext(context, Context.NONE, List.of(CommandContextValue.of(context, ctx), SuggestionsBuilderValue.of(context, builder))).evalValue(context));
+                    CarpetContext copy = (CarpetContext)context.recreate();
+                    copy.variables = context.variables;
+                    copy.swapSource(ctx.getSource());
+
+                    return SuggestionsFuture.from(fn.callInContext(copy, Context.NONE, List.of(CommandContextValue.of(copy, ctx), SuggestionsBuilderValue.of(copy, builder))).evalValue(copy));
                 } catch (ProcessedThrowStatement e) {
                     if (e.thrownExceptionType == CommandSyntaxError.COMMAND_SYNTAX_ERROR && e.data instanceof CommandSyntaxError err) throw err.value;
                     throw e;

@@ -28,10 +28,15 @@ public class RequirementValue extends ObjectFunctionValue<Predicate<CommandSourc
             case NullValue ignored -> null;
             case RequirementValue v -> v.value;
             case FunctionValue fn -> s -> {
-                CarpetContext copy = context.duplicate();
+                CarpetContext copy = (CarpetContext)context.recreate();
+                copy.variables = context.variables;
                 copy.swapSource(s);
                 return fn.callInContext(copy, Context.BOOLEAN, List.of()).evalValue(copy, Context.BOOLEAN).getBoolean();
             };
+            case BooleanValue bool -> {
+                boolean result = bool.getBoolean();
+                yield s -> result;
+            }
             default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to requirement");
         };
     }

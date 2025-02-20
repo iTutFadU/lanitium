@@ -165,7 +165,17 @@ public class StringReaderValue extends ObjectValue<StringReader> {
     }
 
     @Override
+    public String getString() {
+        return value.getString();
+    }
+
+    @Override
     public String getTypeString() {
         return "string_reader";
+    }
+
+    @Override
+    public Value deepcopy() {
+        return new StringReaderValue(context, new StringReader(value));
     }
 }

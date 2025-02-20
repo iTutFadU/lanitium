@@ -12,9 +12,11 @@ import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.LanitiumCookieFuture;
 import me.itut.lanitium.value.Lazy;
 import me.itut.lanitium.value.brigadier.BrigadierFunctions;
+import me.itut.lanitium.value.brigadier.argument.ArgumentFunctions;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.command.v2.ArgumentTypeRegistry;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.Commands;
@@ -41,6 +43,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 		ValueCaster.register(ByteBufferValue.class, "byte_buffer");
         AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
 		AnnotationParser.parseFunctionClass(BrigadierFunctions.class);
+		AnnotationParser.parseFunctionClass(ArgumentFunctions.class);
 
 		registerCommand();
         LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());

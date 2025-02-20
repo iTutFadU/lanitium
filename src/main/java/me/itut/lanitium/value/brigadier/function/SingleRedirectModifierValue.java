@@ -40,7 +40,11 @@ public class SingleRedirectModifierValue extends ObjectFunctionValue<SingleRedir
             case SingleRedirectModifierValue v -> v.value;
             case FunctionValue fn -> ctx -> {
                 try {
-                    return ContextValue.from(fn.callInContext(context, Context.NONE, List.of(CommandContextValue.of(context, ctx))).evalValue(context)).source();
+                    CarpetContext copy = (CarpetContext)context.recreate();
+                    copy.variables = context.variables;
+                    copy.swapSource(ctx.getSource());
+
+                    return ContextValue.from(fn.callInContext(copy, Context.NONE, List.of(CommandContextValue.of(copy, ctx))).evalValue(copy)).source();
                 } catch (ProcessedThrowStatement e) {
                     if (e.thrownExceptionType == CommandSyntaxError.COMMAND_SYNTAX_ERROR && e.data instanceof CommandSyntaxError err) throw err.value;
                     throw e;
