@@ -46,6 +46,20 @@ public class Util {
         };
     }
 
+    public static char toChar(Value value) {
+        return switch (value) {
+            case null -> '\0';
+            case NullValue ignored -> '\0';
+            case NumericValue c -> (char)c.getInt();
+            default -> {
+                String str = value.getString();
+                if (str.isEmpty())
+                    throw new InternalExpressionException("Empty string cannot be used as a character");
+                yield str.charAt(0);
+            }
+        };
+    }
+
     public static Value source(CarpetContext context, CommandSourceStack source) {
         if (source == null) return Value.NULL;
         CarpetContext copy = (CarpetContext)context.recreate();

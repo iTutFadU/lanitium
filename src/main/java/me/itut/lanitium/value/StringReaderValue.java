@@ -6,6 +6,7 @@ import carpet.script.value.*;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.brigadier.CommandSyntaxError;
+import net.minecraft.nbt.TagParser;
 
 public class StringReaderValue extends ObjectValue<StringReader> {
     protected StringReaderValue(CarpetContext context, StringReader value) {
@@ -125,10 +126,8 @@ public class StringReaderValue extends ObjectValue<StringReader> {
             }
             case "read_string_until" -> {
                 checkArguments(what, more, 1);
-                String terminator = more[0].getString();
-                if (terminator.isEmpty()) throw new InternalExpressionException("Empty string cannot be used as a character");
                 try {
-                    yield StringValue.of(value.readStringUntil(terminator.charAt(0)));
+                    yield StringValue.of(value.readStringUntil(Util.toChar(more[0])));
                 } catch (CommandSyntaxException e) {
                     yield Value.NULL;
                 }
@@ -148,6 +147,112 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 } catch (CommandSyntaxException e) {
                     yield Value.NULL;
                 }
+            }
+            case "read_nbt" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NBTSerializableValue.of(new TagParser(value).readValue());
+                } catch (CommandSyntaxException e) {
+                    yield Value.NULL;
+                }
+            }
+            case "read_compound" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NBTSerializableValue.of(new TagParser(value).readStruct());
+                } catch (CommandSyntaxException e) {
+                    yield Value.NULL;
+                }
+            }
+            case "indexof", "find" -> {
+                checkArguments(what, more, 1, 2);
+                String find = more[0].getString();
+                int length = more.length > 1 ? NumericValue.asNumber(more[1]).getInt() : value.getRemainingLength();
+                if (find.length() > length) yield Value.NULL;
+                int cursor = value.getCursor(), index = value.getString().indexOf(find, cursor, cursor + length);
+                if (index < 0) yield Value.NULL;
+                if ("find".equals(what)) value.setCursor(index);
+                yield NumericValue.of(index);
+            }
+            case "indexof_last", "find_last" -> {
+                checkArguments(what, more, 1, 2);
+                String find = more[0].getString();
+                int length = more.length > 1 ? NumericValue.asNumber(more[1]).getInt() : value.getRemainingLength();
+                if (find.length() > length) yield Value.NULL;
+                int cursor = value.getCursor(), index = cursor + value.getRemaining().lastIndexOf(find, length);
+                if (index < cursor) yield Value.NULL;
+                if ("find_last".equals(what)) value.setCursor(index);
+                yield NumericValue.of(index);
+            }
+            case "next", "expect" -> {
+                checkArguments(what, more, 1);
+                char c = value.peek();
+                if (!value.canRead() || c != Util.toChar(more[0])) yield Value.NULL;
+                if ("expect".equals(what)) value.skip();
+                yield StringValue.of(String.valueOf(c));
+            }
+            case "next_not", "expect_not" -> {
+                checkArguments(what, more, 1);
+                char c = value.peek();
+                if (!value.canRead() || c == Util.toChar(more[0])) yield Value.NULL;
+                if ("expect_not".equals(what)) value.skip();
+                yield StringValue.of(String.valueOf(c));
+            }
+            case "next_range", "expect_range" -> {
+                checkArguments(what, more, 2);
+                char c = value.peek();
+                if (!value.canRead() || c < Util.toChar(more[0]) || c > Util.toChar(more[1])) yield Value.NULL;
+                if ("expect_range".equals(what)) value.skip();
+                yield StringValue.of(String.valueOf(c));
+            }
+            case "next_not_range", "expect_not_range" -> {
+                checkArguments(what, more, 2);
+                char c = value.peek();
+                if (!value.canRead() || c >= Util.toChar(more[0]) || c <= Util.toChar(more[1])) yield Value.NULL;
+                if ("expect_not_range".equals(what)) value.skip();
+                yield StringValue.of(String.valueOf(c));
+            }
+            case "next_list", "expect_list" -> {
+                checkArguments(what, more, 1, -1);
+                if (!value.canRead()) yield Value.NULL;
+                char c = value.peek();
+                for (Value v : more) if (c == Util.toChar(v)) {
+                    if ("expect_list".equals(what)) value.skip();
+                    yield StringValue.of(String.valueOf(c));
+                }
+                yield Value.NULL;
+            }
+            case "next_not_list", "expect_not_list" -> {
+                checkArguments(what, more, 1, -1);
+                if (!value.canRead()) yield Value.NULL;
+                char c = value.peek();
+                for (Value v : more) if (c == Util.toChar(v)) {
+                    if ("expect_not_list".equals(what)) value.skip();
+                    yield Value.NULL;
+                }
+                yield StringValue.of(String.valueOf(c));
+            }
+            case "next_range_list", "expect_range_list" -> {
+                checkArguments(what, more, 2, -1);
+                if ((more.length & 1) != 0) throw new InternalExpressionException("Range list must have an even size");
+                if (!value.canRead()) yield Value.NULL;
+                char c = value.peek();
+                for (int i = 0; i < more.length; i += 2) if (c >= Util.toChar(more[i]) && c <= Util.toChar(more[i + 1])) {
+                    if ("expect_range_list".equals(what)) value.skip();
+                    yield StringValue.of(String.valueOf(c));
+                }
+                yield Value.NULL;
+            }
+            case "next_not_range_list", "expect_not_range_list" -> {
+                checkArguments(what, more, 2, -1);
+                if ((more.length & 1) != 0) throw new InternalExpressionException("Range list must have an even size");
+                if (!value.canRead()) yield Value.NULL;
+                char c = value.peek();
+                for (int i = 0; i < more.length; i += 2) if (c >= Util.toChar(more[i]) && c <= Util.toChar(more[i + 1])) {
+                    if ("expect_not_range_list".equals(what)) value.skip();
+                    yield Value.NULL;
+                }
+                yield StringValue.of(String.valueOf(c));
             }
             default -> unknownFeature(what);
         };

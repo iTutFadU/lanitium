@@ -12,6 +12,7 @@ import carpet.utils.CommandHelper;
 import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.internal.CommandSourceStackCustomValues;
 import me.itut.lanitium.value.*;
@@ -579,24 +580,6 @@ public class LanitiumFunctions {
     }
 
     @ScarpetFunction
-    public static Value read_nbt(Context c, Value reader) {
-        try {
-            return NBTSerializableValue.of(new TagParser(StringReaderValue.from(reader)).readValue());
-        } catch (CommandSyntaxException e) {
-            return Value.NULL;
-        }
-    }
-
-    @ScarpetFunction
-    public static Value read_compound(Context c, Value reader) {
-        try {
-            return NBTSerializableValue.of(new TagParser(StringReaderValue.from(reader)).readStruct());
-        } catch (CommandSyntaxException e) {
-            return Value.NULL;
-        }
-    }
-
-    @ScarpetFunction
     public static Value command_suggestions(Context c, String command) {
         CommandDispatcher<CommandSourceStack> dispatcher = ((CarpetContext)c).server().getCommands().getDispatcher();
         return FutureValue.of((CarpetContext)c, dispatcher.getCompletionSuggestions(dispatcher.parse(command, ((CarpetContext)c).source())).thenApply(Util::suggestions));
@@ -605,6 +588,21 @@ public class LanitiumFunctions {
     @ScarpetFunction(maxParams = 1)
     public static Value future(Context c, Optional<Value> completed) {
         return FutureValue.of((CarpetContext)c, completed.map(CompletableFuture::completedFuture).orElseGet(CompletableFuture::new));
+    }
+
+    @ScarpetFunction
+    public static Value allocate_list(int capacity) {
+        return ListValue.wrap(new ArrayList<>(capacity));
+    }
+
+    @ScarpetFunction
+    public static Value allocate_map(int capacity) {
+        return MapValue.wrap(new HashMap<>(capacity));
+    }
+
+    @ScarpetFunction
+    public static Value allocate_byte_buffer(int capacity) {
+        return ByteBufferValue.of(ByteBuffer.allocate(capacity));
     }
     
 //    @ScarpetFunction
