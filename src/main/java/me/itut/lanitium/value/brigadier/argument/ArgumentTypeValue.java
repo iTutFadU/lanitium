@@ -1,31 +1,21 @@
 package me.itut.lanitium.value.brigadier.argument;
 
 import carpet.script.CarpetContext;
-import carpet.script.Context;
 import carpet.script.exception.InternalExpressionException;
-import carpet.script.exception.ProcessedThrowStatement;
-import carpet.script.value.*;
+import carpet.script.value.ListValue;
+import carpet.script.value.NullValue;
+import carpet.script.value.StringValue;
+import carpet.script.value.Value;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.suggestion.Suggestions;
-import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import me.itut.lanitium.Conversions;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.Util;
 import me.itut.lanitium.value.brigadier.CommandSyntaxError;
-import me.itut.lanitium.value.brigadier.StringReaderValue;
 import me.itut.lanitium.value.brigadier.context.CommandContextValue;
 import me.itut.lanitium.value.brigadier.suggestion.SuggestionsBuilderValue;
 import me.itut.lanitium.value.brigadier.suggestion.SuggestionsFuture;
-import net.minecraft.commands.CommandSourceStack;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class ArgumentTypeValue<T> extends ObjectValue<ArgumentType<T>> {
     protected ArgumentTypeValue(CarpetContext context, ArgumentType<T> value) {

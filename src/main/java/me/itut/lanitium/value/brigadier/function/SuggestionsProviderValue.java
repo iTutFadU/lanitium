@@ -10,16 +10,16 @@ import carpet.script.value.Value;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import me.itut.lanitium.value.ObjectFunctionValue;
-import me.itut.lanitium.value.brigadier.context.CommandContextValue;
 import me.itut.lanitium.value.brigadier.CommandSyntaxError;
+import me.itut.lanitium.value.brigadier.context.CommandContextValue;
 import me.itut.lanitium.value.brigadier.suggestion.SuggestionsBuilderValue;
 import me.itut.lanitium.value.brigadier.suggestion.SuggestionsFuture;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.List;
 
-public class SuggestionProviderValue extends ObjectFunctionValue<SuggestionProvider<CommandSourceStack>> {
-    protected SuggestionProviderValue(CarpetContext context, SuggestionProvider<CommandSourceStack> value) {
+public class SuggestionsProviderValue extends ObjectFunctionValue<SuggestionProvider<CommandSourceStack>> {
+    protected SuggestionsProviderValue(CarpetContext context, SuggestionProvider<CommandSourceStack> value) {
         super(context, value, (c, t) -> {
             try {
                 return SuggestionsFuture.of(context, value.getSuggestions(CommandContextValue.from(c.getVariable("c").evalValue(c, t)), SuggestionsBuilderValue.from(c.getVariable("b").evalValue(c, t))));
@@ -30,14 +30,14 @@ public class SuggestionProviderValue extends ObjectFunctionValue<SuggestionProvi
     }
 
     public static Value of(CarpetContext context, SuggestionProvider<CommandSourceStack> value) {
-        return value != null ? new SuggestionProviderValue(context, value) : Value.NULL;
+        return value != null ? new SuggestionsProviderValue(context, value) : Value.NULL;
     }
 
     public static SuggestionProvider<CommandSourceStack> from(CarpetContext context, Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
-            case SuggestionProviderValue v -> v.value;
+            case SuggestionsProviderValue v -> v.value;
             case FunctionValue fn -> (ctx, builder) -> {
                 try {
                     CarpetContext copy = (CarpetContext)context.recreate();
@@ -50,12 +50,12 @@ public class SuggestionProviderValue extends ObjectFunctionValue<SuggestionProvi
                     throw e;
                 }
             };
-            default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to suggestion_provider");
+            default -> throw new InternalExpressionException("Cannot convert " + value.getTypeString() + " to suggestions_provider");
         };
     }
 
     @Override
     public String getTypeString() {
-        return "suggestion_provider";
+        return "suggestions_provider";
     }
 }

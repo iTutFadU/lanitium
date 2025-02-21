@@ -4,7 +4,9 @@ import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.LazyValue;
 import carpet.script.exception.InternalExpressionException;
-import carpet.script.value.*;
+import carpet.script.value.BooleanValue;
+import carpet.script.value.NullValue;
+import carpet.script.value.Value;
 
 public class ContextValue extends ObjectValue<CarpetContext> implements WithValue {
     protected ContextValue(CarpetContext value) {

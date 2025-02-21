@@ -1,11 +1,11 @@
-package me.itut.lanitium.value.brigadier;
+package me.itut.lanitium.value;
 
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import me.itut.lanitium.value.ObjectValue;
+import me.itut.lanitium.value.brigadier.CommandSyntaxError;
 
 public class StringReaderValue extends ObjectValue<StringReader> {
     protected StringReaderValue(CarpetContext context, StringReader value) {
@@ -84,7 +84,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readInt());
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
             }
             case "read_long" -> {
@@ -92,7 +92,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readLong());
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
             }
             case "read_double" -> {
@@ -100,7 +100,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readDouble());
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
             }
             case "read_float" -> {
@@ -120,7 +120,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield StringValue.of(value.readQuotedString());
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
             }
             case "read_string_until" -> {
@@ -130,7 +130,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield StringValue.of(value.readStringUntil(terminator.charAt(0)));
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
             }
             case "read_string" -> {
@@ -138,7 +138,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield StringValue.of(value.readString());
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
             }
             case "read_boolean" -> {
@@ -146,19 +146,8 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield BooleanValue.of(value.readBoolean());
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
-            }
-            case "expect" -> {
-                checkArguments(what, more, 1);
-                String expect = more[0].getString();
-                if (expect.isEmpty()) throw new InternalExpressionException("Empty string cannot be used as a character");
-                try {
-                    value.expect(expect.charAt(0));
-                } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
-                }
-                yield Value.NULL;
             }
             default -> unknownFeature(what);
         };

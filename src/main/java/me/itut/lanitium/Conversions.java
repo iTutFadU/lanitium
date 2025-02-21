@@ -6,7 +6,6 @@ import carpet.script.external.Vanilla;
 import carpet.script.value.*;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.SimpleFunctionValue;
-import me.itut.lanitium.value.Util;
 import me.itut.lanitium.value.brigadier.CommandSyntaxError;
 import me.itut.lanitium.value.brigadier.argument.EntitySelectorValue;
 import net.minecraft.ChatFormatting;
@@ -15,11 +14,9 @@ import net.minecraft.commands.arguments.*;
 import net.minecraft.commands.arguments.blocks.BlockInput;
 import net.minecraft.commands.arguments.blocks.BlockPredicateArgument;
 import net.minecraft.commands.arguments.coordinates.Coordinates;
-import net.minecraft.commands.arguments.item.FunctionArgument;
 import net.minecraft.commands.arguments.item.ItemInput;
 import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.commands.arguments.selector.EntitySelectorParser;
-import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -34,13 +31,11 @@ import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.ScoreAccess;
 
 import java.util.*;
-import java.util.function.Predicate;
 
 public class Conversions {
     public static Value from(final CarpetContext c, final Object object) throws InternalExpressionException {

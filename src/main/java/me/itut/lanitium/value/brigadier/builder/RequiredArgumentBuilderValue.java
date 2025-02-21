@@ -7,8 +7,7 @@ import carpet.script.value.StringValue;
 import carpet.script.value.Value;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import me.itut.lanitium.value.brigadier.argument.ArgumentTypeValue;
-import me.itut.lanitium.value.brigadier.function.SuggestionProviderValue;
-import me.itut.lanitium.value.brigadier.tree.ArgumentCommandNodeValue;
+import me.itut.lanitium.value.brigadier.function.SuggestionsProviderValue;
 import net.minecraft.commands.CommandSourceStack;
 
 public class RequiredArgumentBuilderValue<T> extends ArgumentBuilderValue<RequiredArgumentBuilder<CommandSourceStack, T>> {
@@ -34,12 +33,12 @@ public class RequiredArgumentBuilderValue<T> extends ArgumentBuilderValue<Requir
         return switch (what) {
             case "suggests" -> {
                 checkArguments(what, more, 1);
-                value.suggests(SuggestionProviderValue.from(context, more[0]));
+                value.suggests(SuggestionsProviderValue.from(context, more[0]));
                 yield this;
             }
-            case "suggestion_provider" -> {
+            case "suggestions_provider" -> {
                 checkArguments(what, more, 0);
-                yield SuggestionProviderValue.of(context, value.getSuggestionsProvider());
+                yield SuggestionsProviderValue.of(context, value.getSuggestionsProvider());
             }
             case "type" -> {
                 checkArguments(what, more, 0);
@@ -48,10 +47,6 @@ public class RequiredArgumentBuilderValue<T> extends ArgumentBuilderValue<Requir
             case "name" -> {
                 checkArguments(what, more, 0);
                 yield StringValue.of(value.getName());
-            }
-            case "build" -> {
-                checkArguments(what, more, 0);
-                yield ArgumentCommandNodeValue.of(context, value.build());
             }
             default -> super.get(what, more);
         };

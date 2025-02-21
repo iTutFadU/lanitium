@@ -5,7 +5,10 @@ import carpet.script.Context;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.exception.InternalExpressionException;
-import carpet.script.value.*;
+import carpet.script.value.FunctionValue;
+import carpet.script.value.ListValue;
+import carpet.script.value.NumericValue;
+import carpet.script.value.Value;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.Message;
 import com.mojang.brigadier.ParseResults;
@@ -20,8 +23,8 @@ import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
-import me.itut.lanitium.internal.carpet.EntityValueSelectorCache;
 import me.itut.lanitium.value.ContextValue;
+import me.itut.lanitium.value.StringReaderValue;
 import me.itut.lanitium.value.Util;
 import me.itut.lanitium.value.brigadier.argument.ArgumentTypeValue;
 import me.itut.lanitium.value.brigadier.argument.EntitySelectorValue;
@@ -39,10 +42,8 @@ import me.itut.lanitium.value.brigadier.tree.LiteralCommandNodeValue;
 import me.itut.lanitium.value.brigadier.tree.RootCommandNodeValue;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.commands.arguments.selector.EntitySelectorParser;
-import net.minecraft.nbt.TagParser;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -189,7 +190,7 @@ public class BrigadierFunctions {
 
     @ScarpetFunction
     public Value argument_command_node(Context c, String name, Value type, Value command, Value requirement, Value redirect, Value modifier, boolean forks, Value suggestions) {
-        return ArgumentCommandNodeValue.of((CarpetContext)c, new ArgumentCommandNode<>(name, ArgumentTypeValue.from(type), CommandValue.from((CarpetContext)c, command), RequirementValue.from((CarpetContext)c, requirement), CommandNodeValue.from(redirect), RedirectModifierValue.from((CarpetContext)c, modifier), forks, SuggestionProviderValue.from((CarpetContext)c, suggestions)));
+        return ArgumentCommandNodeValue.of((CarpetContext)c, new ArgumentCommandNode<>(name, ArgumentTypeValue.from(type), CommandValue.from((CarpetContext)c, command), RequirementValue.from((CarpetContext)c, requirement), CommandNodeValue.from(redirect), RedirectModifierValue.from((CarpetContext)c, modifier), forks, SuggestionsProviderValue.from((CarpetContext)c, suggestions)));
     }
 
     @ScarpetFunction
@@ -213,29 +214,6 @@ public class BrigadierFunctions {
             return EntitySelectorValue.of((CarpetContext)c, s);
         } catch (CommandSyntaxException e) {
             throw new InternalExpressionException("Cannot select entities from " + selector);
-        }
-    }
-
-    @ScarpetFunction
-    public Value string_reader(Context c, Value reader) {
-        return StringReaderValue.of((CarpetContext)c, StringReaderValue.from(reader));
-    }
-
-    @ScarpetFunction
-    public Value read_nbt(Context c, Value reader) {
-        try {
-            return NBTSerializableValue.of(new TagParser(StringReaderValue.from(reader)).readValue());
-        } catch (CommandSyntaxException e) {
-            throw CommandSyntaxError.create((CarpetContext)c, e);
-        }
-    }
-
-    @ScarpetFunction
-    public Value read_compound(Context c, Value reader) {
-        try {
-            return NBTSerializableValue.of(new TagParser(StringReaderValue.from(reader)).readStruct());
-        } catch (CommandSyntaxException e) {
-            throw CommandSyntaxError.create((CarpetContext)c, e);
         }
     }
 }

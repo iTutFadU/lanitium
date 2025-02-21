@@ -5,7 +5,9 @@ import carpet.script.Context;
 import carpet.script.LazyValue;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.exception.Throwables;
-import carpet.script.value.*;
+import carpet.script.value.ListValue;
+import carpet.script.value.StringValue;
+import carpet.script.value.Value;
 
 import java.util.List;
 import java.util.Objects;

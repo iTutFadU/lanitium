@@ -1,8 +1,9 @@
 package me.itut.lanitium.mixin.carpet;
 
-import carpet.script.*;
 import carpet.script.Module;
-import carpet.script.exception.*;
+import carpet.script.*;
+import carpet.script.exception.ExpressionException;
+import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.FunctionValue;
 import me.itut.lanitium.value.LazyFunctionValue;
 import org.spongepowered.asm.mixin.Final;

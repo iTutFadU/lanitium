@@ -38,7 +38,8 @@ public class CommandContextBuilderValue extends ObjectValue<CommandContextBuilde
         return switch (what) {
             case "with_source" -> {
                 checkArguments(what, more, 1);
-                yield of(context, value.withSource(ContextValue.fromOrCurrent(context, more[0]).source()));
+                value.withSource(ContextValue.fromOrCurrent(context, more[0]).source());
+                yield this;
             }
             case "source" -> {
                 checkArguments(what, more, 0);

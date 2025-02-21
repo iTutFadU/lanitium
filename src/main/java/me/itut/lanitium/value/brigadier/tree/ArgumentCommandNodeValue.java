@@ -7,7 +7,7 @@ import carpet.script.value.NullValue;
 import carpet.script.value.Value;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import me.itut.lanitium.value.brigadier.argument.ArgumentTypeValue;
-import me.itut.lanitium.value.brigadier.function.SuggestionProviderValue;
+import me.itut.lanitium.value.brigadier.function.SuggestionsProviderValue;
 import net.minecraft.commands.CommandSourceStack;
 
 @SuppressWarnings("unchecked")
@@ -39,7 +39,7 @@ public class ArgumentCommandNodeValue<T> extends CommandNodeValue {
             }
             case "custom_suggestions" -> {
                 checkArguments(what, more, 0);
-                yield SuggestionProviderValue.of(context, value.getCustomSuggestions());
+                yield SuggestionsProviderValue.of(context, value.getCustomSuggestions());
             }
             case "valid_input" -> {
                 checkArguments(what, more, 1);

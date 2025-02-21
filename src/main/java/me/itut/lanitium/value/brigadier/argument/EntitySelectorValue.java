@@ -3,14 +3,10 @@ package me.itut.lanitium.value.brigadier.argument;
 import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
-import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.ObjectValue;
 import me.itut.lanitium.value.brigadier.CommandSyntaxError;
 import net.minecraft.commands.arguments.selector.EntitySelector;
-import net.minecraft.commands.arguments.selector.EntitySelectorParser;
-
-import static me.itut.lanitium.internal.carpet.EntityValueSelectorCache.selectorCache;
 
 public class EntitySelectorValue extends ObjectValue<EntitySelector> {
     protected EntitySelectorValue(CarpetContext context, EntitySelector value) {

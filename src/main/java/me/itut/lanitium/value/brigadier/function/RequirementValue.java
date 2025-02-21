@@ -31,6 +31,7 @@ public class RequirementValue extends ObjectFunctionValue<Predicate<CommandSourc
                 CarpetContext copy = (CarpetContext)context.recreate();
                 copy.variables = context.variables;
                 copy.swapSource(s);
+
                 return fn.callInContext(copy, Context.BOOLEAN, List.of()).evalValue(copy, Context.BOOLEAN).getBoolean();
             };
             case BooleanValue bool -> {
