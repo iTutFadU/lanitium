@@ -12,18 +12,21 @@ import carpet.utils.CommandHelper;
 import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.context.StringRange;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.tree.RootCommandNode;
 import me.itut.lanitium.internal.CommandSourceStackCustomValues;
 import me.itut.lanitium.value.*;
+import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.nbt.*;
+import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -35,7 +38,7 @@ import java.util.stream.Stream;
 
 import static me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter.options;
 import static me.itut.lanitium.value.Lazy.*;
-import static me.itut.lanitium.value.Util.*;
+import static me.itut.lanitium.value.ValueConversions.*;
 import static net.minecraft.Util.NIL_UUID;
 
 public class LanitiumFunctions {
@@ -471,18 +474,18 @@ public class LanitiumFunctions {
     }
 
     @ScarpetFunction(maxParams = 2)
-    public static void send_success(Context c, FormattedTextValue message, Optional<Boolean> broadcast) {
-        ((CarpetContext)c).source().sendSuccess(message::getText, broadcast.orElse(false));
+    public static void send_success(Context c, Value message, Optional<Boolean> broadcast) {
+        ((CarpetContext)c).source().sendSuccess(() -> FormattedTextValue.getTextByValue(message), broadcast.orElse(false));
     }
 
     @ScarpetFunction
-    public static void send_failure(Context c, FormattedTextValue message) {
-        ((CarpetContext)c).source().sendFailure(message.getText());
+    public static void send_failure(Context c, Value message) {
+        ((CarpetContext)c).source().sendFailure(FormattedTextValue.getTextByValue(message));
     }
 
     @ScarpetFunction
-    public static void send_system_message(Context c, FormattedTextValue message) {
-        ((CarpetContext)c).source().sendSystemMessage(message.getText());
+    public static void send_system_message(Context c, Value message) {
+        ((CarpetContext)c).source().sendSystemMessage(FormattedTextValue.getTextByValue(message));
     }
 
     @ScarpetFunction(maxParams = -1)
@@ -491,6 +494,16 @@ public class LanitiumFunctions {
         if (players.length == 0) CommandHelper.notifyPlayersCommandsChanged(server);
         else server.schedule(new TickTask(server.getTickCount(), () -> {
             for (ServerPlayer player : players) server.getCommands().sendCommands(player);
+        }));
+    }
+
+    @ApiStatus.Experimental
+    @ScarpetFunction(maxParams = -1)
+    public static void send_empty_commands(Context c, ServerPlayer... players) {
+        MinecraftServer server = ((CarpetContext)c).server();
+        RootCommandNode<SharedSuggestionProvider> empty = new RootCommandNode<>();
+        server.schedule(new TickTask(server.getTickCount(), () -> {
+            for (ServerPlayer player : players) player.connection.send(new ClientboundCommandsPacket(empty));
         }));
     }
 
@@ -582,7 +595,7 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public static Value command_suggestions(Context c, String command) {
         CommandDispatcher<CommandSourceStack> dispatcher = ((CarpetContext)c).server().getCommands().getDispatcher();
-        return FutureValue.of((CarpetContext)c, dispatcher.getCompletionSuggestions(dispatcher.parse(command, ((CarpetContext)c).source())).thenApply(Util::suggestions));
+        return FutureValue.of((CarpetContext)c, dispatcher.getCompletionSuggestions(dispatcher.parse(command, ((CarpetContext)c).source())).thenApply(ValueConversions::suggestions));
     }
 
     @ScarpetFunction(maxParams = 1)

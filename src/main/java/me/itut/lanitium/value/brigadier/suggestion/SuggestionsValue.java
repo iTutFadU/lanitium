@@ -7,7 +7,7 @@ import carpet.script.value.NullValue;
 import carpet.script.value.Value;
 import com.mojang.brigadier.suggestion.Suggestions;
 import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 
 public class SuggestionsValue extends ObjectValue<Suggestions> {
     protected SuggestionsValue(CarpetContext context, Suggestions value) {
@@ -32,7 +32,7 @@ public class SuggestionsValue extends ObjectValue<Suggestions> {
         return switch (what) {
             case "range" -> {
                 checkArguments(what, more, 0);
-                yield Util.range(value.getRange());
+                yield ValueConversions.range(value.getRange());
             }
             case "list" -> {
                 checkArguments(what, more, 0);

@@ -43,7 +43,7 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
 
     @Override
     public Value in(Value args) {
-        List<Value> values = Util.listFrom(args);
+        List<Value> values = ValueConversions.listFrom(args);
         if (values.isEmpty()) return get("null");
         return get(values.getFirst().getString(), values.subList(1, values.size()).toArray(Value[]::new));
     }
@@ -129,7 +129,7 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
     public Value get(Value where) {
         if (where.isNull()) return NumericValue.of(buffer.get());
         if (where instanceof AbstractListValue list) {
-            StringRange range = Util.toRange(list);
+            StringRange range = ValueConversions.toRange(list);
             assert range != null;
             if (list.length() == 1) {
                 byte[] arr = new byte[range.getEnd()];

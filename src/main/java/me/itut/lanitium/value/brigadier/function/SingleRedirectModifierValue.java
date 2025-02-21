@@ -11,7 +11,7 @@ import com.mojang.brigadier.SingleRedirectModifier;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectFunctionValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.brigadier.CommandSyntaxError;
 import me.itut.lanitium.value.brigadier.context.CommandContextValue;
 import net.minecraft.commands.CommandSourceStack;
@@ -22,7 +22,7 @@ public class SingleRedirectModifierValue extends ObjectFunctionValue<SingleRedir
     protected SingleRedirectModifierValue(CarpetContext context, SingleRedirectModifier<CommandSourceStack> value) {
         super(context, value, (c, t) -> {
             try {
-                return Util.source((CarpetContext)c, value.apply(CommandContextValue.from(c.getVariable("c").evalValue(c, t))));
+                return ValueConversions.source((CarpetContext)c, value.apply(CommandContextValue.from(c.getVariable("c").evalValue(c, t))));
             } catch (CommandSyntaxException e) {
                 throw CommandSyntaxError.create(context, e);
             }

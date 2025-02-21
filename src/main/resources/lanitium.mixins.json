@@ -9,6 +9,7 @@
         "MinecraftServerMixin",
         "ServerGamePacketListenerImplMixin",
         "ServerStatusMixin",
+        "carpet.CommandArgumentMixin",
         "carpet.EntityValueMixin",
         "carpet.ExpressionMixin",
         "carpet.SystemInfoMixin"

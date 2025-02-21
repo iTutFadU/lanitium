@@ -25,8 +25,8 @@ public abstract class ExpressionMixin {
     @Shadow(remap = false) @Final
     private Map<String, Fluff.ILazyFunction> functions;
 
-    @Unique
-    public FunctionValue createUserDefinedLazyFunction(Context context, String name, Expression expr, Tokenizer.Token token, List<String> arguments, String varArgs, List<String> outers, LazyValue code) {
+    @Unique // A copy of Expression#createUserDefinedFunction
+    private FunctionValue createUserDefinedLazyFunction(Context context, String name, Expression expr, Tokenizer.Token token, List<String> arguments, String varArgs, List<String> outers, LazyValue code) {
         if (functions.containsKey(name)) {
             throw new ExpressionException(context, expr, token, "Function " + name + " would mask a built-in function");
         }
@@ -50,7 +50,7 @@ public abstract class ExpressionMixin {
         return result;
     }
 
-    @Inject(method = "createUserDefinedFunction(Lcarpet/script/Context;Ljava/lang/String;Lcarpet/script/Expression;Lcarpet/script/Tokenizer$Token;Ljava/util/List;Ljava/lang/String;Ljava/util/List;Lcarpet/script/LazyValue;)Lcarpet/script/value/FunctionValue;", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "createUserDefinedFunction(Lcarpet/script/Context;Ljava/lang/String;Lcarpet/script/Expression;Lcarpet/script/Tokenizer$Token;Ljava/util/List;Ljava/lang/String;Ljava/util/List;Lcarpet/script/LazyValue;)Lcarpet/script/value/FunctionValue;", at = @At("HEAD"), cancellable = true)
     public void createUserDefinedFunctionLazyCheck(Context context, String name, Expression expr, Tokenizer.Token token, List<String> arguments, String varArgs, List<String> outers, LazyValue code, CallbackInfoReturnable<FunctionValue> cir) {
         if (name.startsWith("LAZY#")) // Forgive me
             cir.setReturnValue(createUserDefinedLazyFunction(context, name.substring(5), expr, token, arguments, varArgs, outers, code));

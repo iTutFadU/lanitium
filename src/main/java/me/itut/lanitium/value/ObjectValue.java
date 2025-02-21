@@ -21,7 +21,7 @@ public abstract class ObjectValue<T> extends Value {
 
     @Override
     public Value in(Value args) {
-        List<Value> values = Util.listFrom(args);
+        List<Value> values = ValueConversions.listFrom(args);
         if (values.isEmpty()) return get("null");
         return get(values.getFirst().getString(), values.subList(1, values.size()).toArray(Value[]::new));
     }

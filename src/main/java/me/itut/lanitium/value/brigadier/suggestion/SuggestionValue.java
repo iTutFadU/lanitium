@@ -10,7 +10,7 @@ import com.mojang.brigadier.Message;
 import com.mojang.brigadier.suggestion.IntegerSuggestion;
 import com.mojang.brigadier.suggestion.Suggestion;
 import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 
 public class SuggestionValue extends ObjectValue<Suggestion> {
     private SuggestionValue(CarpetContext context, Suggestion value) {
@@ -35,7 +35,7 @@ public class SuggestionValue extends ObjectValue<Suggestion> {
         return switch (what) {
             case "range" -> {
                 checkArguments(what, more, 0);
-                yield Util.range(value.getRange());
+                yield ValueConversions.range(value.getRange());
             }
             case "text" -> {
                 checkArguments(what, more, 0);
@@ -52,7 +52,7 @@ public class SuggestionValue extends ObjectValue<Suggestion> {
             }
             case "expand" -> {
                 checkArguments(what, more, 2);
-                yield of(context, value.expand(more[0].getString(), Util.toRange(more[1])));
+                yield of(context, value.expand(more[0].getString(), ValueConversions.toRange(more[1])));
             }
             case "value" -> {
                 checkArguments(what, more, 0);

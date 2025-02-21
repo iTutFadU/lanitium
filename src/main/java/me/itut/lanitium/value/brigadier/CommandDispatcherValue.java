@@ -9,7 +9,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
 import me.itut.lanitium.value.StringReaderValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.brigadier.builder.LiteralArgumentBuilderValue;
 import me.itut.lanitium.value.brigadier.function.AmbiguityConsumerValue;
 import me.itut.lanitium.value.brigadier.function.ResultConsumerValue;
@@ -90,7 +90,7 @@ public class CommandDispatcherValue extends ObjectValue<CommandDispatcher<Comman
             }
             case "find_node" -> {
                 checkArguments(what, more, 1);
-                yield CommandNodeValue.of(context, value.findNode(Util.listFrom(more[0]).stream().map(Value::getString).toList()));
+                yield CommandNodeValue.of(context, value.findNode(ValueConversions.listFrom(more[0]).stream().map(Value::getString).toList()));
             }
             case "find_ambiguities" -> {
                 checkArguments(what, more, 1);

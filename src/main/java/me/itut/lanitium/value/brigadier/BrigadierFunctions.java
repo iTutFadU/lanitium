@@ -25,7 +25,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.StringReaderValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.brigadier.argument.ArgumentTypeValue;
 import me.itut.lanitium.value.brigadier.argument.EntitySelectorValue;
 import me.itut.lanitium.value.brigadier.builder.LiteralArgumentBuilderValue;
@@ -106,7 +106,7 @@ public class BrigadierFunctions {
     public Value command_context(Context c, ContextValue source, String input, @Param.KeyValuePairs(allowMultiparam = false) Map<String, Value> arguments, Value command, Value root, @Param.AllowSingleton List<Value> nodes, Value range, Value child, Value modifier, boolean forks) {
         Map<String, ParsedArgument<CommandSourceStack, ?>> map = new HashMap<>();
         arguments.forEach((k, v) -> map.put(k, ParsedArgumentValue.from(v)));
-        return CommandContextValue.of((CarpetContext)c, new CommandContext<>(source.value.source(), input, map, CommandValue.from((CarpetContext)c, command), CommandNodeValue.from(root), nodes.stream().map(ParsedCommandNodeValue::from).toList(), Util.toRange(range), CommandContextValue.from(child), RedirectModifierValue.from((CarpetContext)c, modifier), forks));
+        return CommandContextValue.of((CarpetContext)c, new CommandContext<>(source.value.source(), input, map, CommandValue.from((CarpetContext)c, command), CommandNodeValue.from(root), nodes.stream().map(ParsedCommandNodeValue::from).toList(), ValueConversions.toRange(range), CommandContextValue.from(child), RedirectModifierValue.from((CarpetContext)c, modifier), forks));
     }
 
     @ScarpetFunction(maxParams = -1)
@@ -126,7 +126,7 @@ public class BrigadierFunctions {
     @ScarpetFunction
     public Value context_chain_run_modifier(Context c, Value modifier, ContextValue source, Value consumer, boolean forked) {
         try {
-            return ListValue.wrap(ContextChain.runModifier(CommandContextValue.from(modifier), source.value.source(), ResultConsumerValue.from((CarpetContext)c, consumer), forked).stream().map(v -> Util.source((CarpetContext)c, v)));
+            return ListValue.wrap(ContextChain.runModifier(CommandContextValue.from(modifier), source.value.source(), ResultConsumerValue.from((CarpetContext)c, consumer), forked).stream().map(v -> ValueConversions.source((CarpetContext)c, v)));
         } catch (CommandSyntaxException e) {
             throw CommandSyntaxError.create((CarpetContext)c, e);
         }
@@ -148,7 +148,7 @@ public class BrigadierFunctions {
 
     @ScarpetFunction
     public Value parsed_command_node(Context c, Value node, Value range) {
-        return ParsedCommandNodeValue.of((CarpetContext)c, new ParsedCommandNode<>(CommandNodeValue.from(node), Util.toRange(range)));
+        return ParsedCommandNodeValue.of((CarpetContext)c, new ParsedCommandNode<>(CommandNodeValue.from(node), ValueConversions.toRange(range)));
     }
 
     @ScarpetFunction
@@ -170,7 +170,7 @@ public class BrigadierFunctions {
 
     @ScarpetFunction(maxParams = -1)
     public Value suggestions(Context c, Value range, Value... suggestions) {
-        return SuggestionsValue.of((CarpetContext)c, new Suggestions(Util.toRange(range), Arrays.stream(suggestions).map(SuggestionValue::from).toList()));
+        return SuggestionsValue.of((CarpetContext)c, new Suggestions(ValueConversions.toRange(range), Arrays.stream(suggestions).map(SuggestionValue::from).toList()));
     }
 
     @ScarpetFunction(maxParams = -1)
@@ -185,7 +185,7 @@ public class BrigadierFunctions {
 
     @ScarpetFunction(maxParams = 3)
     public Value suggestion(Context c, Value range, String text, Optional<String> tooltip) {
-        return SuggestionValue.of((CarpetContext)c, new Suggestion(Util.toRange(range), text, tooltip.map(v -> (Message)() -> v).orElse(null)));
+        return SuggestionValue.of((CarpetContext)c, new Suggestion(ValueConversions.toRange(range), text, tooltip.map(v -> (Message)() -> v).orElse(null)));
     }
 
     @ScarpetFunction

@@ -37,6 +37,7 @@ import net.minecraft.world.scores.ScoreAccess;
 
 import java.util.*;
 
+@Deprecated(forRemoval = true)
 public class Conversions {
     public static Value from(final CarpetContext c, final Object object) throws InternalExpressionException {
         return switch (object) {

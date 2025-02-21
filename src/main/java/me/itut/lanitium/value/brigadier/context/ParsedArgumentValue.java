@@ -7,7 +7,7 @@ import carpet.script.value.Value;
 import com.mojang.brigadier.context.ParsedArgument;
 import me.itut.lanitium.Conversions;
 import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
 
 public class ParsedArgumentValue<T> extends ObjectValue<ParsedArgument<CommandSourceStack, T>> {
@@ -33,7 +33,7 @@ public class ParsedArgumentValue<T> extends ObjectValue<ParsedArgument<CommandSo
         return switch (what) {
             case "range" -> {
                 checkArguments(what, more, 0);
-                yield Util.range(value.getRange());
+                yield ValueConversions.range(value.getRange());
             }
             case "result" -> {
                 checkArguments(what, more, 0);

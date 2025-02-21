@@ -6,7 +6,7 @@ import carpet.script.value.*;
 import com.mojang.brigadier.context.CommandContextBuilder;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.brigadier.CommandDispatcherValue;
 import me.itut.lanitium.value.brigadier.function.CommandValue;
 import me.itut.lanitium.value.brigadier.tree.CommandNodeValue;
@@ -43,7 +43,7 @@ public class CommandContextBuilderValue extends ObjectValue<CommandContextBuilde
             }
             case "source" -> {
                 checkArguments(what, more, 0);
-                yield Util.source(context, value.getSource());
+                yield ValueConversions.source(context, value.getSource());
             }
             case "root_node" -> {
                 checkArguments(what, more, 0);
@@ -67,7 +67,7 @@ public class CommandContextBuilderValue extends ObjectValue<CommandContextBuilde
             }
             case "with_node" -> {
                 checkArguments(what, more, 2);
-                value.withNode(CommandNodeValue.from(more[0]), Util.toRange(more[1]));
+                value.withNode(CommandNodeValue.from(more[0]), ValueConversions.toRange(more[1]));
                 yield this;
             }
             case "copy" -> {
@@ -97,7 +97,7 @@ public class CommandContextBuilderValue extends ObjectValue<CommandContextBuilde
             }
             case "range" -> {
                 checkArguments(what, more, 0);
-                yield Util.range(value.getRange());
+                yield ValueConversions.range(value.getRange());
             }
             case "find_suggestion_context" -> {
                 checkArguments(what, more, 1);

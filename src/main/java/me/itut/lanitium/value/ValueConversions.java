@@ -8,6 +8,7 @@ import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.suggestion.IntegerSuggestion;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 
 import java.util.HashMap;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class Util {
+public class ValueConversions {
     public static final Value
         EYES = StringValue.of("eyes"),
         FEET = StringValue.of("feet"),
@@ -77,36 +78,29 @@ public class Util {
         };
     }
 
-    public static class MessageValue extends SimpleFunctionValue {
-        public final Message message;
-
-        public MessageValue(Message message) {
-            super((cc, tt) -> StringValue.of(message.getString()), List.of(), null);
-            this.message = message;
-        }
-    }
-
     public static Value suggestions(Suggestions suggestions) {
         Map<Value, Value> map = new HashMap<>(2) {{
             put(RANGE, range(suggestions.getRange()));
-            put(LIST, ListValue.wrap(suggestions.getList().stream().map(Util::suggestion)));
+            put(LIST, ListValue.wrap(suggestions.getList().stream().map(ValueConversions::suggestion)));
         }};
         return MapValue.wrap(map);
     }
 
-    public static Suggestions toSuggestions(String command, Value value) {
+    public static Suggestions toSuggestions(SuggestionsBuilder builder, Value value) {
+        String command = builder.getInput();
+        int start = builder.getStart(), length = command.length() - start;
         return switch (value) {
             case null -> Suggestions.empty().resultNow();
             case NullValue ignored -> Suggestions.empty().resultNow();
             case MapValue complex -> {
                 Value list = complex.get(LIST);
-                if (list.isNull()) yield Suggestions.create(command, toSuggestion(command.length(), value) instanceof Suggestion suggestion ? List.of(suggestion) : List.of());
+                if (list.isNull()) yield Suggestions.create(command, toSuggestion(start, length, value) instanceof Suggestion suggestion ? List.of(suggestion) : List.of());
                 StringRange range = toRange(complex.get(RANGE));
-                if (range == null) yield toSuggestions(command, list);
-                yield new Suggestions(range, listFrom(list).stream().flatMap(v -> toSuggestion(command.length(), v) instanceof Suggestion suggestion ? Stream.of(suggestion) : Stream.empty()).toList());
+                if (range == null) yield toSuggestions(builder, list);
+                yield new Suggestions(range, listFrom(list).stream().flatMap(v -> toSuggestion(start, length, v) instanceof Suggestion suggestion ? Stream.of(suggestion) : Stream.empty()).toList());
             }
-            case AbstractListValue list -> Suggestions.create(command, list.unpack().stream().map(v -> toSuggestion(command.length(), v)).toList());
-            default -> Suggestions.create(command, toSuggestion(command.length(), value) instanceof Suggestion suggestion ? List.of(suggestion) : List.of());
+            case AbstractListValue list -> Suggestions.create(command, list.unpack().stream().map(v -> toSuggestion(start, length, v)).toList());
+            default -> Suggestions.create(command, toSuggestion(start, length, value) instanceof Suggestion suggestion ? List.of(suggestion) : List.of());
         };
     }
 
@@ -122,29 +116,19 @@ public class Util {
         return MapValue.wrap(map);
     }
 
-    public static Suggestion toSuggestion(int cursor, Value value) {
+    public static Suggestion toSuggestion(int start, int length, Value value) {
         return switch (value) {
             case null -> null;
             case NullValue ignored -> null;
-            case NumericValue number -> {
-                int suggest = number.getInt(), length = Integer.toString(suggest).length();
-                yield new IntegerSuggestion(StringRange.between(cursor, cursor + length), suggest);
-            }
+            case NumericValue number -> new IntegerSuggestion(StringRange.between(start, start + length), number.getInt());
             case MapValue complex -> {
-                StringRange range = toRange(complex.get(RANGE));
-                Message tooltip = switch (complex.get(TOOLTIP)) {
-                    case NullValue ignored -> null;
-                    case MessageValue message -> message.message;
-                    case Value v -> v::getString;
-                };
+                StringRange rawRange = toRange(complex.get(RANGE)), range = rawRange != null ? StringRange.between(start + rawRange.getStart(), start + rawRange.getEnd()) : StringRange.between(start, start + length);
+                Message tooltip = complex.has(TOOLTIP) ? FormattedTextValue.getTextByValue(complex.get(TOOLTIP)) : null;
                 if (complex.has(VALUE))
                     yield new IntegerSuggestion(range, NumericValue.asNumber(complex.get(VALUE)).getInt(), tooltip);
                 yield new Suggestion(range, complex.get(TEXT).getString(), tooltip);
             }
-            default -> {
-                String string = value.getString();
-                yield new Suggestion(StringRange.between(cursor, cursor + string.length()), string);
-            }
+            default -> new Suggestion(StringRange.between(start, start + length), value.getString());
         };
     }
 }

@@ -7,7 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import me.itut.lanitium.Conversions;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.brigadier.function.CommandValue;
 import me.itut.lanitium.value.brigadier.function.RedirectModifierValue;
 import me.itut.lanitium.value.brigadier.tree.CommandNodeValue;
@@ -52,7 +52,7 @@ public class CommandContextValue extends ObjectValue<CommandContext<CommandSourc
             }
             case "source" -> {
                 checkArguments(what, more, 1);
-                yield Util.source(ContextValue.fromOrCurrent(context, more[0]), value.getSource());
+                yield ValueConversions.source(ContextValue.fromOrCurrent(context, more[0]), value.getSource());
             }
             case "argument" -> {
                 checkArguments(what, more, 1);
@@ -68,7 +68,7 @@ public class CommandContextValue extends ObjectValue<CommandContext<CommandSourc
             }
             case "range" -> {
                 checkArguments(what, more, 0);
-                yield Util.range(value.getRange());
+                yield ValueConversions.range(value.getRange());
             }
             case "input" -> {
                 checkArguments(what, more, 0);

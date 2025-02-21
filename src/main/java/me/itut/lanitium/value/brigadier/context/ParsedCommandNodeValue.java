@@ -6,7 +6,7 @@ import carpet.script.value.NullValue;
 import carpet.script.value.Value;
 import com.mojang.brigadier.context.ParsedCommandNode;
 import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.brigadier.tree.CommandNodeValue;
 import net.minecraft.commands.CommandSourceStack;
 
@@ -37,7 +37,7 @@ public class ParsedCommandNodeValue extends ObjectValue<ParsedCommandNode<Comman
             }
             case "range" -> {
                 checkArguments(what, more, 0);
-                yield Util.range(value.getRange());
+                yield ValueConversions.range(value.getRange());
             }
             default -> unknownFeature(what);
         };

@@ -12,7 +12,7 @@ import com.mojang.brigadier.RedirectModifier;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.ObjectFunctionValue;
-import me.itut.lanitium.value.Util;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.brigadier.CommandSyntaxError;
 import me.itut.lanitium.value.brigadier.context.CommandContextValue;
 import net.minecraft.commands.CommandSourceStack;
@@ -23,7 +23,7 @@ public class RedirectModifierValue extends ObjectFunctionValue<RedirectModifier<
     protected RedirectModifierValue(CarpetContext context, RedirectModifier<CommandSourceStack> value) {
         super(context, value, (c, t) -> {
             try {
-                return ListValue.wrap(value.apply(CommandContextValue.from(c.getVariable("c").evalValue(c, t))).stream().map(v -> Util.source((CarpetContext)c, v)));
+                return ListValue.wrap(value.apply(CommandContextValue.from(c.getVariable("c").evalValue(c, t))).stream().map(v -> ValueConversions.source((CarpetContext)c, v)));
             } catch (CommandSyntaxException e) {
                 throw CommandSyntaxError.create(context, e);
             }
@@ -45,7 +45,7 @@ public class RedirectModifierValue extends ObjectFunctionValue<RedirectModifier<
                     copy.variables = context.variables;
                     copy.swapSource(ctx.getSource());
 
-                    return Util.listFrom(fn.callInContext(copy, Context.LIST, List.of(CommandContextValue.of(copy, ctx))).evalValue(copy, Context.LIST)).stream().map(v -> ContextValue.from(v).source()).toList();
+                    return ValueConversions.listFrom(fn.callInContext(copy, Context.LIST, List.of(CommandContextValue.of(copy, ctx))).evalValue(copy, Context.LIST)).stream().map(v -> ContextValue.from(v).source()).toList();
                 } catch (ProcessedThrowStatement e) {
                     if (e.thrownExceptionType == CommandSyntaxError.COMMAND_SYNTAX_ERROR && e.data instanceof CommandSyntaxError err) throw err.value;
                     throw e;

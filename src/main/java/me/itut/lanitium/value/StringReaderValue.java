@@ -5,7 +5,6 @@ import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import me.itut.lanitium.value.brigadier.CommandSyntaxError;
 import net.minecraft.nbt.TagParser;
 
 public class StringReaderValue extends ObjectValue<StringReader> {
@@ -109,7 +108,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readFloat());
                 } catch (CommandSyntaxException e) {
-                    throw CommandSyntaxError.create(context, e);
+                    yield Value.NULL;
                 }
             }
             case "read_unquoted_string" -> {
@@ -127,7 +126,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
             case "read_string_until" -> {
                 checkArguments(what, more, 1);
                 try {
-                    yield StringValue.of(value.readStringUntil(Util.toChar(more[0])));
+                    yield StringValue.of(value.readStringUntil(ValueConversions.toChar(more[0])));
                 } catch (CommandSyntaxException e) {
                     yield Value.NULL;
                 }
@@ -164,7 +163,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                     yield Value.NULL;
                 }
             }
-            case "indexof", "find" -> {
+            case "index_of", "find" -> {
                 checkArguments(what, more, 1, 2);
                 String find = more[0].getString();
                 int length = more.length > 1 ? NumericValue.asNumber(more[1]).getInt() : value.getRemainingLength();
@@ -174,7 +173,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 if ("find".equals(what)) value.setCursor(index);
                 yield NumericValue.of(index);
             }
-            case "indexof_last", "find_last" -> {
+            case "index_of_last", "find_last" -> {
                 checkArguments(what, more, 1, 2);
                 String find = more[0].getString();
                 int length = more.length > 1 ? NumericValue.asNumber(more[1]).getInt() : value.getRemainingLength();
@@ -184,31 +183,53 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 if ("find_last".equals(what)) value.setCursor(index);
                 yield NumericValue.of(index);
             }
+            case "next_span", "expect_span" -> {
+                checkArguments(what, more, 1);
+                String span = more[0].getString();
+                if (!value.canRead(span.length())) yield Value.NULL;
+                String read = value.getString().substring(value.getCursor(), value.getCursor() + span.length());
+                if (!read.equals(span)) yield Value.NULL;
+                if ("expect_span".equals(what)) value.setCursor(value.getCursor() + span.length());
+                yield StringValue.of(read);
+            }
+            case "next_not_span", "expect_not_span" -> {
+                checkArguments(what, more, 1);
+                String span = more[0].getString();
+                if (!value.canRead(span.length())) yield Value.NULL;
+                String read = value.getString().substring(value.getCursor(), value.getCursor() + span.length());
+                if (read.equals(span)) yield Value.NULL;
+                if ("expect_not_span".equals(what)) value.setCursor(value.getCursor() + span.length());
+                yield StringValue.of(read);
+            }
             case "next", "expect" -> {
                 checkArguments(what, more, 1);
+                if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (!value.canRead() || c != Util.toChar(more[0])) yield Value.NULL;
+                if (c != ValueConversions.toChar(more[0])) yield Value.NULL;
                 if ("expect".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
             case "next_not", "expect_not" -> {
                 checkArguments(what, more, 1);
+                if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (!value.canRead() || c == Util.toChar(more[0])) yield Value.NULL;
+                if (c == ValueConversions.toChar(more[0])) yield Value.NULL;
                 if ("expect_not".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
             case "next_range", "expect_range" -> {
                 checkArguments(what, more, 2);
+                if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (!value.canRead() || c < Util.toChar(more[0]) || c > Util.toChar(more[1])) yield Value.NULL;
+                if (c < ValueConversions.toChar(more[0]) || c > ValueConversions.toChar(more[1])) yield Value.NULL;
                 if ("expect_range".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
             case "next_not_range", "expect_not_range" -> {
                 checkArguments(what, more, 2);
+                if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (!value.canRead() || c >= Util.toChar(more[0]) || c <= Util.toChar(more[1])) yield Value.NULL;
+                if (c >= ValueConversions.toChar(more[0]) || c <= ValueConversions.toChar(more[1])) yield Value.NULL;
                 if ("expect_not_range".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
@@ -216,7 +237,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 1, -1);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (Value v : more) if (c == Util.toChar(v)) {
+                for (Value v : more) if (c == ValueConversions.toChar(v)) {
                     if ("expect_list".equals(what)) value.skip();
                     yield StringValue.of(String.valueOf(c));
                 }
@@ -226,7 +247,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 1, -1);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (Value v : more) if (c == Util.toChar(v)) {
+                for (Value v : more) if (c == ValueConversions.toChar(v)) {
                     if ("expect_not_list".equals(what)) value.skip();
                     yield Value.NULL;
                 }
@@ -237,7 +258,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 if ((more.length & 1) != 0) throw new InternalExpressionException("Range list must have an even size");
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (int i = 0; i < more.length; i += 2) if (c >= Util.toChar(more[i]) && c <= Util.toChar(more[i + 1])) {
+                for (int i = 0; i < more.length; i += 2) if (c >= ValueConversions.toChar(more[i]) && c <= ValueConversions.toChar(more[i + 1])) {
                     if ("expect_range_list".equals(what)) value.skip();
                     yield StringValue.of(String.valueOf(c));
                 }
@@ -248,7 +269,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 if ((more.length & 1) != 0) throw new InternalExpressionException("Range list must have an even size");
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (int i = 0; i < more.length; i += 2) if (c >= Util.toChar(more[i]) && c <= Util.toChar(more[i + 1])) {
+                for (int i = 0; i < more.length; i += 2) if (c >= ValueConversions.toChar(more[i]) && c <= ValueConversions.toChar(more[i + 1])) {
                     if ("expect_not_range_list".equals(what)) value.skip();
                     yield Value.NULL;
                 }
