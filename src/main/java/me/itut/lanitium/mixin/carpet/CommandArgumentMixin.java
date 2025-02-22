@@ -14,9 +14,11 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
+import me.itut.lanitium.internal.carpet.CommandArgumentValueFromContext;
 import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,17 +31,20 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Mixin(value = CommandArgument.class, remap = false)
-public abstract class CommandArgumentMixin {
+public abstract class CommandArgumentMixin implements CommandArgumentValueFromContext {
     @Unique
     private Value customSuggestions;
+
+    @Shadow
+    protected abstract Value getValueFromContext(CommandContext<CommandSourceStack> context, String param) throws CommandSyntaxException;
 
     @Inject(method = "suggest(Lcom/mojang/brigadier/context/CommandContext;Lcom/mojang/brigadier/suggestion/SuggestionsBuilder;Lcarpet/script/CarpetScriptHost;)Ljava/util/concurrent/CompletableFuture;", at = @At("HEAD"), cancellable = true)
     private void customSuggest(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder, CarpetScriptHost host, CallbackInfoReturnable<CompletableFuture<Suggestions>> cir) throws CommandSyntaxException {
         if (customSuggestions == null) return;
         Runnable currentSection = Carpet.startProfilerSection("Scarpet command");
         try {
-            Value response = customSuggestions;
-            if (response instanceof FunctionValue fn) {
+            Value suggestions = customSuggestions;
+            if (suggestions instanceof FunctionValue fn) {
                 Map<Value, Value> params = new HashMap<>();
                 for (ParsedCommandNode<CommandSourceStack> parsed : context.getNodes()) {
                     CommandNode<CommandSourceStack> node = parsed.getNode();
@@ -48,9 +53,9 @@ public abstract class CommandArgumentMixin {
                     }
                 }
                 List<Value> args = List.of(MapValue.wrap(params));
-                response = host.handleCommand(context.getSource(), fn, args);
+                suggestions = host.handleCommand(context.getSource(), fn, args);
             }
-            cir.setReturnValue(CompletableFuture.completedFuture(ValueConversions.toSuggestions(builder, response)));
+            cir.setReturnValue(CompletableFuture.completedFuture(ValueConversions.toSuggestions(builder, suggestions)));
         } finally { // Resources must be freed, Carpet!
             currentSection.run();
         }
@@ -62,5 +67,10 @@ public abstract class CommandArgumentMixin {
             customSuggestions = config.get("suggestions");
             ci.cancel(); // No 'suggest' / 'suggester'
         }
+    }
+
+    @Override
+    public Value lanitium$getValueFromContext(CommandContext<CommandSourceStack> context, String param) throws CommandSyntaxException {
+        return getValueFromContext(context, param);
     }
 }

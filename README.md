@@ -7,7 +7,7 @@
 
 Uses [Biscuit!](https://modrinth.com/mod/biscuit!)
 
-Better docs coming soon™
+Better docs coming soon™. Docs for now (might be outdated):
 
 # Config
 The configuration file is stored at `config/lanitium.json`.

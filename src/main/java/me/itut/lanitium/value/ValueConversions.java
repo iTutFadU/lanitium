@@ -61,14 +61,6 @@ public class ValueConversions {
         };
     }
 
-    public static Value source(CarpetContext context, CommandSourceStack source) {
-        if (source == null) return Value.NULL;
-        CarpetContext copy = (CarpetContext)context.recreate();
-        copy.variables = context.variables;
-        copy.swapSource(source);
-        return ContextValue.of(copy);
-    }
-
     public static List<Value> listFrom(Value value) {
         return switch (value) {
             case null -> List.of();
