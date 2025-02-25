@@ -9,19 +9,16 @@ import com.mojang.brigadier.suggestion.IntegerSuggestion;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import net.minecraft.commands.CommandSourceStack;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public class ValueConversions {
     public static final Value
         EYES = StringValue.of("eyes"),
         FEET = StringValue.of("feet"),
         RANGE = StringValue.of("range"),
-        LIST = StringValue.of("list"),
         TEXT = StringValue.of("text"),
         TOOLTIP = StringValue.of("tooltip"),
         VALUE = StringValue.of("value");
@@ -71,11 +68,7 @@ public class ValueConversions {
     }
 
     public static Value suggestions(Suggestions suggestions) {
-        Map<Value, Value> map = new HashMap<>(2) {{
-            put(RANGE, range(suggestions.getRange()));
-            put(LIST, ListValue.wrap(suggestions.getList().stream().map(ValueConversions::suggestion)));
-        }};
-        return MapValue.wrap(map);
+        return ListValue.wrap(suggestions.getList().stream().map(ValueConversions::suggestion));
     }
 
     public static Suggestions toSuggestions(SuggestionsBuilder builder, Value value) {
@@ -84,13 +77,6 @@ public class ValueConversions {
         return switch (value) {
             case null -> Suggestions.empty().resultNow();
             case NullValue ignored -> Suggestions.empty().resultNow();
-            case MapValue complex -> {
-                Value list = complex.get(LIST);
-                if (list.isNull()) yield Suggestions.create(command, toSuggestion(start, length, value) instanceof Suggestion suggestion ? List.of(suggestion) : List.of());
-                StringRange range = toRange(complex.get(RANGE));
-                if (range == null) yield toSuggestions(builder, list);
-                yield new Suggestions(range, listFrom(list).stream().flatMap(v -> toSuggestion(start, length, v) instanceof Suggestion suggestion ? Stream.of(suggestion) : Stream.empty()).toList());
-            }
             case AbstractListValue list -> Suggestions.create(command, list.unpack().stream().map(v -> toSuggestion(start, length, v)).toList());
             default -> Suggestions.create(command, toSuggestion(start, length, value) instanceof Suggestion suggestion ? List.of(suggestion) : List.of());
         };
