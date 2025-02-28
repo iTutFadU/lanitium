@@ -4,14 +4,10 @@ import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.exception.ProcessedThrowStatement;
-import carpet.script.exception.ThrowStatement;
 import carpet.script.value.*;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
     protected FutureValue(CarpetContext context, CompletableFuture<Value> value) {

@@ -6,13 +6,16 @@
     "mixins": [
         "CommandSourceStackMixin",
         "DedicatedServerMixin",
+        "EntityDataAccessorMixin",
         "MinecraftServerMixin",
+        "PlayerListMixin",
         "ServerGamePacketListenerImplMixin",
         "ServerStatusMixin",
         "carpet.CarpetScriptHostMixin",
         "carpet.CommandArgumentMixin",
         "carpet.EntityValueMixin",
         "carpet.ExpressionMixin",
+        "carpet.NBTSerializableValueMixin",
         "carpet.SystemInfoMixin"
     ],
     "injectors": {

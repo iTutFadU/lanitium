@@ -5,9 +5,7 @@ import carpet.script.Context;
 import carpet.script.LazyValue;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.exception.Throwables;
-import carpet.script.value.ListValue;
-import carpet.script.value.StringValue;
-import carpet.script.value.Value;
+import carpet.script.value.*;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,7 +13,7 @@ import java.util.Objects;
 import static carpet.script.exception.Throwables.THROWN_EXCEPTION_TYPE;
 import static carpet.script.exception.Throwables.register;
 
-public class Lazy extends ContextValue implements WithValue {
+public class Lazy extends ObjectValue<CarpetContext> implements WithValue {
     public static final Throwables
         LAZY_EXCEPTION = register("lazy_exception", THROWN_EXCEPTION_TYPE),
         BREAK_ERROR = register("break_error", LAZY_EXCEPTION),
@@ -26,7 +24,7 @@ public class Lazy extends ContextValue implements WithValue {
     public final LazyValue lazy;
 
     public Lazy(Context context, Context.Type type, LazyValue lazy) {
-        super((CarpetContext)context);
+        super((CarpetContext)context, (CarpetContext)context);
         this.type = type;
         this.lazy = lazy;
     }
@@ -58,14 +56,11 @@ public class Lazy extends ContextValue implements WithValue {
 
     public Value get(String what, Value... more) {
         return switch (what) {
-            case "context" -> {
-                checkArguments(what, more, 0);
-                yield this;
-            }
             case "type" -> {
                 checkArguments(what, more, 0);
                 yield StringValue.of(type.name().toLowerCase());
             }
+            case "strict" -> BooleanValue.of(value.host.strict);
             default -> throw new InternalExpressionException("Unknown lazy feature: " + what);
         };
     }
@@ -86,9 +81,9 @@ public class Lazy extends ContextValue implements WithValue {
     }
 
     @Override
-    public LazyValue with(LazyValue arg) {
+    public LazyValue with(Context c, Context.Type t, LazyValue arg) {
         Value output = arg.evalValue(value, type);
-        return (c, t) -> output;
+        return (cc, tt) -> output;
     }
 
     @Override

@@ -14,7 +14,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
-import me.itut.lanitium.internal.carpet.CommandArgumentValueFromContext;
+import me.itut.lanitium.internal.carpet.CommandArgumentInterface;
 import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -31,14 +31,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Mixin(value = CommandArgument.class, remap = false)
-public abstract class CommandArgumentMixin implements CommandArgumentValueFromContext {
+public abstract class CommandArgumentMixin implements CommandArgumentInterface {
     @Unique
     private Value customSuggestions;
 
     @Shadow
     protected abstract Value getValueFromContext(CommandContext<CommandSourceStack> context, String param) throws CommandSyntaxException;
 
-    @Inject(method = "suggest(Lcom/mojang/brigadier/context/CommandContext;Lcom/mojang/brigadier/suggestion/SuggestionsBuilder;Lcarpet/script/CarpetScriptHost;)Ljava/util/concurrent/CompletableFuture;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "suggest", at = @At("HEAD"), cancellable = true)
     private void customSuggest(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder, CarpetScriptHost host, CallbackInfoReturnable<CompletableFuture<Suggestions>> cir) throws CommandSyntaxException {
         if (customSuggestions == null) return;
         Runnable currentSection = Carpet.startProfilerSection("Scarpet command");
@@ -61,7 +61,7 @@ public abstract class CommandArgumentMixin implements CommandArgumentValueFromCo
         }
     }
 
-    @Inject(method = "configure(Ljava/util/Map;Lcarpet/script/CarpetScriptHost;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "configure", at = @At("HEAD"), cancellable = true)
     private void customConfigure(Map<String, Value> config, CarpetScriptHost host, CallbackInfo ci) {
         if (config.containsKey("suggestions")) {
             customSuggestions = config.get("suggestions");

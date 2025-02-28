@@ -1,7 +1,8 @@
 package me.itut.lanitium.value;
 
+import carpet.script.Context;
 import carpet.script.LazyValue;
 
 public interface WithValue {
-    LazyValue with(LazyValue arg);
+    LazyValue with(Context c, Context.Type t, LazyValue arg);
 }

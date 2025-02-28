@@ -17,7 +17,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import me.itut.lanitium.value.ContextValue;
+import me.itut.lanitium.value.Lazy;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.level.ServerPlayer;
@@ -90,7 +90,7 @@ public class CommandParser {
     }
 
     public static class Node {
-        public String name;
+        public final String name;
         public List<RequiredArgument> argumentList = List.of();
         public Argument argument;
         public Predicate<CommandSourceStack> requirement;
@@ -169,7 +169,7 @@ public class CommandParser {
                         CarpetScriptHost cHost = Vanilla.MinecraftServer_getScriptServer(ctx.getSource().getServer()).modules.get(commandName).retrieveOwnForExecution(ctx.getSource());
                         List<Value> args = new ArrayList<>(execute.function.getArguments().size());
                         for (RequiredArgument arg : argumentList)
-                            args.add(((CommandArgumentValueFromContext)CommandArgument.getTypeForArgument(arg.type, cHost)).lanitium$getValueFromContext(ctx, arg.surface));
+                            args.add(((CommandArgumentInterface)CommandArgument.getTypeForArgument(arg.type, cHost)).lanitium$getValueFromContext(ctx, arg.surface));
                         args.addAll(execute.args);
                         return (int)cHost.handleCommand(ctx.getSource(), execute.function, args).readInteger();
                     } finally {
@@ -184,11 +184,11 @@ public class CommandParser {
                         CarpetScriptHost cHost = Vanilla.MinecraftServer_getScriptServer(ctx.getSource().getServer()).modules.get(commandName).retrieveOwnForExecution(ctx.getSource());
                         List<Value> args = new ArrayList<>(modify.function.getArguments().size());
                         for (RequiredArgument arg : argumentList)
-                            args.add(((CommandArgumentValueFromContext)CommandArgument.getTypeForArgument(arg.type, cHost)).lanitium$getValueFromContext(ctx, arg.surface));
+                            args.add(((CommandArgumentInterface)CommandArgument.getTypeForArgument(arg.type, cHost)).lanitium$getValueFromContext(ctx, arg.surface));
                         args.addAll(modify.args);
                         return switch (cHost.handleCommand(ctx.getSource(), modify.function, args)) {
-                            case ContextValue c -> List.of(c.value.source());
-                            case AbstractListValue list -> list.unpack().stream().flatMap(v -> v instanceof ContextValue c ? Stream.of(c.value.source()) : Stream.empty()).toList();
+                            case Lazy c -> List.of(c.value.source());
+                            case AbstractListValue list -> list.unpack().stream().flatMap(v -> v instanceof Lazy c ? Stream.of(c.value.source()) : Stream.empty()).toList();
                             default -> List.of(ctx.getSource());
                         };
                     } finally {
@@ -214,7 +214,6 @@ public class CommandParser {
         }
 
         private static class CustomArgumentCommandNode<T> extends ArgumentCommandNode<CommandSourceStack, T> {
-            private final CommandNode<?>[] redirect = {null};
             private final Commands commands;
             private final List<String> path;
 
@@ -224,17 +223,13 @@ public class CommandParser {
                 this.path = path;
             }
 
-            @SuppressWarnings("unchecked")
             @Override
             public CommandNode<CommandSourceStack> getRedirect() {
-                if (redirect[0] == null)
-                    redirect[0] = commands.getDispatcher().findNode(path);
-                return (CommandNode<CommandSourceStack>)redirect[0];
+                return commands.getDispatcher().findNode(path);
             }
         }
 
         private static class CustomLiteralCommandNode extends LiteralCommandNode<CommandSourceStack> {
-            private final CommandNode<?>[] redirect = {null};
             private final Commands commands;
             private final List<String> path;
 
@@ -244,12 +239,9 @@ public class CommandParser {
                 this.path = path;
             }
 
-            @SuppressWarnings("unchecked")
             @Override
             public CommandNode<CommandSourceStack> getRedirect() {
-                if (redirect[0] == null)
-                    redirect[0] = commands.getDispatcher().findNode(path);
-                return (CommandNode<CommandSourceStack>)redirect[0];
+                return commands.getDispatcher().findNode(path);
             }
         }
     }

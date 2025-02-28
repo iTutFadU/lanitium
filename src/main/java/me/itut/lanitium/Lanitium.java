@@ -8,7 +8,6 @@ import carpet.script.annotation.ValueCaster;
 import me.itut.lanitium.config.Config;
 import me.itut.lanitium.config.ConfigManager;
 import me.itut.lanitium.value.ByteBufferValue;
-import me.itut.lanitium.value.ContextValue;
 import me.itut.lanitium.value.FutureValue;
 import me.itut.lanitium.value.Lazy;
 import me.mrnavastar.biscuit.api.Biscuit;
@@ -34,7 +33,6 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 
 		CarpetServer.manageExtension(this);
 		ValueCaster.register(Lazy.class, "lazy");
-		ValueCaster.register(ContextValue.class, "context");
 		ValueCaster.register(FutureValue.class, "future");
 		ValueCaster.register(ByteBufferValue.class, "byte_buffer");
         AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
@@ -50,8 +48,8 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 
 	private void registerCommand() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> dispatcher.register(Commands.literal("lanitium")
+			.requires(source -> source.hasPermission(2))
 			.then(Commands.literal("reload")
-				.requires(source -> source.hasPermission(2))
 				.executes(ctx -> {
 					CONFIG_MANAGER.load();
 					CONFIG = CONFIG_MANAGER.config();

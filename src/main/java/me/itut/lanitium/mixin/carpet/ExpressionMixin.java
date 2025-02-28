@@ -50,7 +50,7 @@ public abstract class ExpressionMixin {
         return result;
     }
 
-    @Inject(method = "createUserDefinedFunction(Lcarpet/script/Context;Ljava/lang/String;Lcarpet/script/Expression;Lcarpet/script/Tokenizer$Token;Ljava/util/List;Ljava/lang/String;Ljava/util/List;Lcarpet/script/LazyValue;)Lcarpet/script/value/FunctionValue;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "createUserDefinedFunction", at = @At("HEAD"), cancellable = true)
     public void createUserDefinedFunctionLazyCheck(Context context, String name, Expression expr, Tokenizer.Token token, List<String> arguments, String varArgs, List<String> outers, LazyValue code, CallbackInfoReturnable<FunctionValue> cir) {
         if (name.startsWith("LAZY#")) // Forgive me
             cir.setReturnValue(createUserDefinedLazyFunction(context, name.substring(5), expr, token, arguments, varArgs, outers, code));

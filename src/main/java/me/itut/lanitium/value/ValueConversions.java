@@ -1,6 +1,5 @@
 package me.itut.lanitium.value;
 
-import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.mojang.brigadier.Message;

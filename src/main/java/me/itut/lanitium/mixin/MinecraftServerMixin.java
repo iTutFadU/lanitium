@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerMixin {
-    @Inject(method = "getServerModName()Ljava/lang/String;", at = @At("HEAD"), cancellable = true, remap = false)
+    @Inject(method = "getServerModName", at = @At("HEAD"), cancellable = true, remap = false)
     private void customServerBrand(CallbackInfoReturnable<String> cir) {
         if (Lanitium.CONFIG.modName != null) cir.setReturnValue(Lanitium.CONFIG.modName);
     }

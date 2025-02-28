@@ -7,7 +7,6 @@ import net.minecraft.server.ServerLinks;
 
 import java.util.List;
 
-@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public class Config {
     public String modName;
     public List<ServerLinks.Entry> links;
@@ -15,6 +14,7 @@ public class Config {
     public Integer displayPlayersOnline, displayPlayersMax;
     private List<String> displayPlayersSample;
     public transient List<GameProfile> displayPlayersSampleProfiles;
+    public boolean disableJoinMessages, disableLeaveMessages;
 
     public void fillDefaults() {
         if (displayPlayersSample != null)

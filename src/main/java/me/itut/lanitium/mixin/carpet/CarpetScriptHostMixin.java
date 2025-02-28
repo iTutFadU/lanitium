@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-@SuppressWarnings("UnreachableCode")
 @Mixin(value = CarpetScriptHost.class, remap = false)
 public abstract class CarpetScriptHostMixin {
     @Shadow
@@ -32,7 +31,7 @@ public abstract class CarpetScriptHostMixin {
     @Shadow
     public abstract CarpetScriptServer scriptServer();
 
-    @Inject(method = "addAppCommands(Ljava/util/function/Consumer;)Ljava/lang/Boolean;", at = @At(value = "INVOKE", target = "Lcarpet/script/CarpetScriptHost;readCommands(Ljava/util/function/Predicate;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;"), cancellable = true)
+    @Inject(method = "addAppCommands", at = @At(value = "INVOKE", target = "Lcarpet/script/CarpetScriptHost;readCommands(Ljava/util/function/Predicate;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;"), cancellable = true)
     private void brokenNeck(Consumer<Component> notifier, CallbackInfoReturnable<Boolean> cir) throws CommandSyntaxException {
         if (!appConfig.getOrDefault(StringValue.of("brigadier"), Value.FALSE).getBoolean()) return;
 

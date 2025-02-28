@@ -4,8 +4,8 @@ import net.minecraft.server.ServerLinks;
 
 import static net.minecraft.server.ServerLinks.KnownLinkType.*;
 
-public interface ServerLinksKnownLinkTypeNames {
-    static ServerLinks.KnownLinkType from(String name) {
+public class ServerLinksKnownLinkTypeNames {
+    public static ServerLinks.KnownLinkType from(String name) {
         return switch (name) {
             case "report_bug" -> BUG_REPORT;
             case "community_guidelines" -> COMMUNITY_GUIDELINES;
@@ -21,7 +21,7 @@ public interface ServerLinksKnownLinkTypeNames {
         };
     }
 
-    static String name(ServerLinks.KnownLinkType type) {
+    public static String name(ServerLinks.KnownLinkType type) {
         return switch (type) {
             case BUG_REPORT -> "report_bug";
             case COMMUNITY_GUIDELINES -> "community_guidelines";

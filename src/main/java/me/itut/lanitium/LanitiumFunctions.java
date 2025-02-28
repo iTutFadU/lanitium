@@ -4,6 +4,7 @@ import carpet.script.Module;
 import carpet.script.*;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
+import carpet.script.argument.BlockArgument;
 import carpet.script.argument.FunctionArgument;
 import carpet.script.exception.*;
 import carpet.script.language.Operators;
@@ -13,17 +14,21 @@ import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.RootCommandNode;
-import me.itut.lanitium.internal.CommandSourceStackCustomValues;
+import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.value.*;
 import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.*;
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.ApiStatus;
@@ -36,21 +41,20 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static me.itut.lanitium.internal.carpet.SystemInfoOptionsGetter.options;
+import static me.itut.lanitium.internal.carpet.SystemInfoInterface.options;
 import static me.itut.lanitium.value.Lazy.*;
 import static me.itut.lanitium.value.ValueConversions.*;
 import static net.minecraft.Util.NIL_UUID;
 
 public class LanitiumFunctions {
     static {
-        Operators.precedence.put("with\\", 100);
-
         options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
         options.put("server_sprinting", c -> BooleanValue.of(c.server().tickRateManager().isSprinting()));
         options.put("source_anchor", c -> c.source().getAnchor() == EntityAnchorArgument.Anchor.EYES ? EYES : FEET);
+        options.put("source_permission", c -> NumericValue.of(((CommandSourceStackInterface)c.source()).lanitium$permissionLevel()));
         options.put("source_custom_values", c -> {
-            Map<Value, Value> map = ((CommandSourceStackCustomValues)c.source()).lanitium$customValues();
+            Map<Value, Value> map = ((CommandSourceStackInterface)c.source()).lanitium$customValues();
             return map != null ? MapValue.wrap(map) : Value.NULL;
         });
     }
@@ -141,10 +145,10 @@ public class LanitiumFunctions {
             Lazy lazy = new Lazy(c, t, lv);
             return (cc, tt) -> lazy;
         });
-        expression.addLazyBinaryOperator("\\", Operators.precedence.get("with\\"), true, false, type -> type, (c, t, l, r) -> {
+        expression.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
-                return with.with(r);
+                return with.with(c, t, r);
             Value right = r.evalValue(c, t);
             if (!(right instanceof ListValue args) || !args.getItems().stream().allMatch(v -> v instanceof Lazy))
                 throw new InternalExpressionException("Incorrect list of arguments. To call a function, use func\\z(...args)");
@@ -266,7 +270,7 @@ public class LanitiumFunctions {
             };
             if (customValues == null || customValues.getMap().isEmpty()) return lv.get(1);
             Context ctx = c.recreate();
-            ((CarpetContext)ctx).swapSource(((CommandSourceStackCustomValues)source).lanitium$withCustomValues(customValues.getMap()));
+            ((CarpetContext)ctx).swapSource(((CommandSourceStackInterface)source).lanitium$withCustomValues(customValues.getMap()));
             ctx.variables = c.variables;
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
@@ -321,7 +325,7 @@ public class LanitiumFunctions {
 
     @SuppressWarnings("ConstantValue")
     @ScarpetFunction(maxParams = 4)
-    public static Value lazy_call(Lazy lazy, @Param.KeyValuePairs(allowMultiparam = false) Map<String, Value> vars, Optional<ContextValue> c, Optional<String> t) {
+    public static Value lazy_call(Lazy lazy, @Param.KeyValuePairs(allowMultiparam = false) Map<String, Value> vars, Optional<Lazy> c, Optional<String> t) {
         Context context = c.map(values -> values.context).orElseGet(() -> lazy.context);
         Context.Type type;
         try {
@@ -524,6 +528,39 @@ public class LanitiumFunctions {
     }
 
     @ScarpetFunction
+    public static Value name_of_code_point(String str) {
+        if (str.isEmpty()) return Value.NULL;
+        return StringValue.of(Character.getName(str.charAt(0)));
+    }
+
+    @ScarpetFunction
+    public static Value code_point_of_name(String name) {
+        try {
+            return StringValue.of(String.valueOf(Character.codePointOf(name)));
+        } catch (IllegalArgumentException e) {
+            return Value.NULL;
+        }
+    }
+
+    @ScarpetFunction(maxParams = 2)
+    public static Value parse_signed_int(String str, Optional<Integer> radix) {
+        try {
+            return NumericValue.of(Long.parseLong(str, radix.orElse(10)));
+        } catch (NumberFormatException e) {
+            return Value.NULL;
+        }
+    }
+
+    @ScarpetFunction(maxParams = 2)
+    public static Value parse_unsigned_int(String str, Optional<Integer> radix) {
+        try {
+            return NumericValue.of(Long.parseUnsignedLong(str, radix.orElse(10)));
+        } catch (NumberFormatException e) {
+            return Value.NULL;
+        }
+    }
+
+    @ScarpetFunction
     public static Value encode_bytes(String data) {
         return ByteBufferValue.of(ByteBuffer.wrap(data.getBytes(StandardCharsets.UTF_8)));
     }
@@ -580,6 +617,17 @@ public class LanitiumFunctions {
         return FormattedTextValue.of(new TextComponentTagVisitor(indent.orElse("")).visit(nbt.getTag()));
     }
 
+    @ScarpetFunction
+    public static Value nbt_type(NBTSerializableValue nbt) {
+        return StringValue.of(nbt.getTag().getType().getName().toLowerCase());
+    }
+
+    @ScarpetFunction
+    public static Value nbt_list_type(NBTSerializableValue nbt) {
+        if (!(nbt.getTag() instanceof ListTag list)) return Value.NULL;
+        return StringValue.of(TagTypes.getType(list.getElementType()).getName().toLowerCase());
+    }
+
     @ScarpetFunction(maxParams = -1)
     public static Value byte_buffer(int... values) {
         byte[] arr = new byte[values.length];
@@ -616,6 +664,20 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public static Value allocate_byte_buffer(int capacity) {
         return ByteBufferValue.of(ByteBuffer.allocate(capacity));
+    }
+
+    @ScarpetFunction
+    public static Value possible_block_states(Context c, Value value) {
+        ServerLevel level = ((CarpetContext)c).level();
+        return ListValue.wrap(BlockArgument.findIn((CarpetContext)c, List.of(value), 0, true).block.getBlockState().getBlock().getStateDefinition().getPossibleStates().stream().map(s -> new BlockValue(s, level, (BlockPos)null)));
+    }
+
+    @ScarpetFunction
+    public static Value block_state_map(Context c, Value value) {
+        Collection<Property<?>> properties = BlockArgument.findIn((CarpetContext)c, List.of(value), 0, true).block.getBlockState().getBlock().getStateDefinition().getProperties();
+        Map<Value, Value> map = new HashMap<>(properties.size());
+        properties.forEach(p -> map.put(StringValue.of(p.getName()), ListValue.wrap(p.getPossibleValues().stream().map(v -> StringValue.of(v instanceof StringRepresentable str ? str.getSerializedName() : v.toString())))));
+        return MapValue.wrap(map);
     }
     
 //    @ScarpetFunction

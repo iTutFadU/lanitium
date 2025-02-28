@@ -5,8 +5,9 @@ import net.minecraft.commands.CommandSourceStack;
 
 import java.util.Map;
 
-public interface CommandSourceStackCustomValues {
+public interface CommandSourceStackInterface {
     Map<Value, Value> lanitium$customValues();
     void lanitium$setCustomValues(Map<Value, Value> values);
     CommandSourceStack lanitium$withCustomValues(Map<Value, Value> values);
+    int lanitium$permissionLevel();
 }

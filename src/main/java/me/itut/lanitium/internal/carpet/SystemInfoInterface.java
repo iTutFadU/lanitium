@@ -7,9 +7,9 @@ import carpet.script.value.Value;
 import java.util.Map;
 import java.util.function.Function;
 
-public interface SystemInfoOptionsGetter {
+public interface SystemInfoInterface {
     @SuppressWarnings("InstantiationOfUtilityClass")
-    Map<String, Function<CarpetContext, Value>> options = ((SystemInfoOptionsGetter)new SystemInfo()).lanitium$getOptions();
+    Map<String, Function<CarpetContext, Value>> options = ((SystemInfoInterface)new SystemInfo()).lanitium$getOptions();
 
     Map<String, Function<CarpetContext, Value>> lanitium$getOptions();
 }

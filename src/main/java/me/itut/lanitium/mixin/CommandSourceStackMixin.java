@@ -1,7 +1,7 @@
 package me.itut.lanitium.mixin;
 
 import carpet.script.value.Value;
-import me.itut.lanitium.internal.CommandSourceStackCustomValues;
+import me.itut.lanitium.internal.CommandSourceStackInterface;
 import net.minecraft.commands.CommandSourceStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Map;
 
 @Mixin(CommandSourceStack.class)
-public abstract class CommandSourceStackMixin implements CommandSourceStackCustomValues {
+public abstract class CommandSourceStackMixin implements CommandSourceStackInterface {
     @Shadow @Final
     private int permissionLevel;
 
@@ -37,26 +37,31 @@ public abstract class CommandSourceStackMixin implements CommandSourceStackCusto
     @Override
     public CommandSourceStack lanitium$withCustomValues(Map<Value, Value> values) {
         CommandSourceStack copy = permissionLevel != -1 ? withPermission(-1).withPermission(permissionLevel) : withPermission(0).withPermission(-1);
-        Map<Value, Value> customValues = ((CommandSourceStackCustomValues)copy).lanitium$customValues();
-        if (customValues == null) ((CommandSourceStackCustomValues)copy).lanitium$setCustomValues(values);
+        Map<Value, Value> customValues = ((CommandSourceStackInterface)copy).lanitium$customValues();
+        if (customValues == null) ((CommandSourceStackInterface)copy).lanitium$setCustomValues(values);
         else customValues.putAll(values);
         return copy;
     }
 
+    @Override
+    public int lanitium$permissionLevel() {
+        return permissionLevel;
+    }
+
     @Inject(method = {
-        "withSource(Lnet/minecraft/commands/CommandSource;)Lnet/minecraft/commands/CommandSourceStack;",
-        "withEntity(Lnet/minecraft/world/entity/Entity;)Lnet/minecraft/commands/CommandSourceStack;",
-        "withPosition(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/commands/CommandSourceStack;",
-        "withRotation(Lnet/minecraft/world/phys/Vec2;)Lnet/minecraft/commands/CommandSourceStack;",
+        "withSource",
+        "withEntity",
+        "withPosition",
+        "withRotation",
         "withCallback(Lnet/minecraft/commands/CommandResultCallback;)Lnet/minecraft/commands/CommandSourceStack;",
-        "withSuppressedOutput()Lnet/minecraft/commands/CommandSourceStack;",
-        "withPermission(I)Lnet/minecraft/commands/CommandSourceStack;",
-        "withMaximumPermission(I)Lnet/minecraft/commands/CommandSourceStack;",
-        "withAnchor(Lnet/minecraft/commands/arguments/EntityAnchorArgument$Anchor;)Lnet/minecraft/commands/CommandSourceStack;",
-        "withLevel(Lnet/minecraft/server/level/ServerLevel;)Lnet/minecraft/commands/CommandSourceStack;",
-        "withSigningContext(Lnet/minecraft/commands/CommandSigningContext;Lnet/minecraft/util/TaskChainer;)Lnet/minecraft/commands/CommandSourceStack;",
+        "withSuppressedOutput",
+        "withPermission",
+        "withMaximumPermission",
+        "withAnchor",
+        "withLevel",
+        "withSigningContext",
     }, at = @At("TAIL"))
     private void withCustomValues(CallbackInfoReturnable<CommandSourceStack> cir) {
-        ((CommandSourceStackCustomValues)cir.getReturnValue()).lanitium$setCustomValues(customValues);
+        ((CommandSourceStackInterface)cir.getReturnValue()).lanitium$setCustomValues(customValues);
     }
 }

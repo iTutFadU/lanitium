@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(DedicatedServer.class)
 public abstract class DedicatedServerMixin {
-    @Inject(method = "createServerLinks(Lnet/minecraft/server/dedicated/DedicatedServerSettings;)Lnet/minecraft/server/ServerLinks;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "createServerLinks", at = @At("HEAD"), cancellable = true)
     private static void customServerLinks(DedicatedServerSettings dedicatedServerSettings, CallbackInfoReturnable<ServerLinks> cir) {
         if (Lanitium.CONFIG.links != null) cir.setReturnValue(new ServerLinks(Lanitium.CONFIG.links));
     }
