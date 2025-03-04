@@ -21,13 +21,17 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.*;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -677,6 +681,20 @@ public class LanitiumFunctions {
         Collection<Property<?>> properties = BlockArgument.findIn((CarpetContext)c, List.of(value), 0, true).block.getBlockState().getBlock().getStateDefinition().getProperties();
         Map<Value, Value> map = new HashMap<>(properties.size());
         properties.forEach(p -> map.put(StringValue.of(p.getName()), ListValue.wrap(p.getPossibleValues().stream().map(v -> StringValue.of(v instanceof StringRepresentable str ? str.getSerializedName() : v.toString())))));
+        return MapValue.wrap(map);
+    }
+
+    @ScarpetFunction // https://github.com/gnembon/fabric-carpet/pull/1996
+    public static Value item_components(Context c, Value item) {
+        ItemStack stack = carpet.script.value.ValueConversions.getItemStackFromValue(item, true, ((CarpetContext)c).registryAccess());
+        DataComponentMap components = stack.getComponents().filter(t -> !t.isTransient());
+        Map<Value, Value> map = new HashMap<>(components.size());
+        components.forEach(v -> map.put(carpet.script.value.ValueConversions.of(BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(v.type())), switch (v.value()) {
+            case Boolean bool -> BooleanValue.of(bool);
+            case Number number -> NumericValue.of(number);
+            case Component component -> FormattedTextValue.of(component);
+            default -> NBTSerializableValue.of(v.encodeValue(NbtOps.INSTANCE).result().orElse(null));
+        }));
         return MapValue.wrap(map);
     }
     
