@@ -1,6 +1,5 @@
 package me.itut.lanitium;
 
-import carpet.script.Module;
 import carpet.script.*;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
@@ -15,6 +14,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.RootCommandNode;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
+import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import me.itut.lanitium.value.*;
 import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
@@ -63,29 +63,32 @@ public class LanitiumFunctions {
         });
     }
 
-    public static FunctionValue findIn(Context c, Module module, Value functionValue) {
+    public static Fluff.ILazyFunction findIn(Context c, Expression expr, Value functionValue) {
         if (functionValue.isNull()) throw new InternalExpressionException("function argument cannot be null");
         else if (!(functionValue instanceof FunctionValue fun)) {
             String name = functionValue.getString();
-            return c.host.getAssertFunction(module, name);
+            Map<String, Fluff.ILazyFunction> functions = ((ExpressionInterface)expr).lanitium$functions();
+            if (functions.containsKey(name)) return functions.get(name);
+            return c.host.getAssertFunction(expr.module, name);
         } else return fun;
     }
 
-    public static void apply(Expression expression) {
+    public static void apply(Expression expr) {
         // Carpet nasty nasty
         final Fluff.ILazyFunction call;
-        expression.addCustomFunction("call", call = new Fluff.AbstractLazyFunction(-1, "call") {
+        expr.addCustomFunction("call", call = new Fluff.AbstractLazyFunction(-1, "call") {
             @Override
             public LazyValue lazyEval(Context c, Context.Type t, Expression expr, Tokenizer.Token tok, List<LazyValue> lv) {
                 if (lv.isEmpty()) {
                     throw new InternalExpressionException("'call' expects at least function name to call");
                 } else if (t != Context.SIGNATURE) {
-                    FunctionValue fun = findIn(c, expression.module, lv.getFirst().evalValue(c));
-                    List<Value> args;
+                    Fluff.ILazyFunction fun = findIn(c, expr, lv.getFirst().evalValue(c));
+                    List<LazyValue> args;
                     if (fun instanceof LazyFunctionValue)
-                        args = LazyFunctionValue.wrapArgs(lv.subList(1, lv.size()), c, t);
-                    else args = Fluff.AbstractLazyFunction.unpackLazy(lv.subList(1, lv.size()), c, Context.NONE);
-                    return fun.callInContext(c, t, args);
+                        args = LazyFunctionValue.wrapLazyArgs(lv.subList(1, lv.size()), c, t);
+                    else
+                        args = lv.subList(1, lv.size());
+                    return fun.lazyEval(c, t, expr, tok, args);
                 } else {
                     String name = lv.getFirst().evalValue(c, Context.NONE).getString();
                     List<String> args = new ArrayList<>();
@@ -133,12 +136,12 @@ public class LanitiumFunctions {
                 return outerType == Context.SIGNATURE ? Context.LOCALIZATION : Context.NONE;
             }
         });
-        expression.addLazyFunction("z", (c, t, lv) -> {
+        expr.addLazyFunction("z", (c, t, lv) -> {
             ListValue output = ListValue.wrap(lv.stream().map(v -> new Lazy(c, t, v)));
             return (cc, tt) -> output;
         });
 
-        expression.addLazyUnaryOperator("\\", Operators.precedence.get("unary+-!..."), false, false, type -> type, (c, t, lv) -> {
+        expr.addLazyUnaryOperator("\\", Operators.precedence.get("unary+-!..."), false, false, type -> type, (c, t, lv) -> {
             if (t == Context.SIGNATURE) {
                 Value v = lv.evalValue(c, t);
                 if (v instanceof FunctionSignatureValue signature) {
@@ -149,7 +152,7 @@ public class LanitiumFunctions {
             Lazy lazy = new Lazy(c, t, lv);
             return (cc, tt) -> lazy;
         });
-        expression.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
+        expr.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
                 return with.with(c, t, r);
@@ -159,9 +162,9 @@ public class LanitiumFunctions {
             LazyValue[] values = args.getItems().stream().map(v -> (LazyValue)((Lazy)v)::eval).toArray(LazyValue[]::new), callArgs = new LazyValue[values.length + 1];
             callArgs[0] = (cc, tt) -> left;
             System.arraycopy(values, 0, callArgs, 1, values.length);
-            return call.lazyEval(c, t, expression, Tokenizer.Token.NONE, List.of(callArgs));
+            return call.lazyEval(c, t, expr, Tokenizer.Token.NONE, List.of(callArgs));
         });
-        expression.addPureLazyFunction("all_then", -1, t -> Context.VOID, (c, t, lv) -> {
+        expr.addPureLazyFunction("all_then", -1, t -> Context.VOID, (c, t, lv) -> {
             int imax = lv.size() - 1;
             Throwable error = null;
 
@@ -179,13 +182,13 @@ public class LanitiumFunctions {
                 throw e;
             return (cc, tt) -> v;
         });
-        expression.addContextFunction("thread_local", -1, (c, t, lv) -> {
+        expr.addContextFunction("thread_local", -1, (c, t, lv) -> {
             if (lv.isEmpty())
                 throw new InternalExpressionException("'thread_local' requires at least a function to call");
-            FunctionValue initial = FunctionArgument.findIn(c, expression.module, lv, 0, true, false).function;
+            FunctionValue initial = FunctionArgument.findIn(c, expr.module, lv, 0, true, false).function;
             return new ThreadLocalValue(c, initial);
         });
-        expression.addPureLazyFunction("catch_all", 1, type -> type, (c, t, lv) -> {
+        expr.addPureLazyFunction("catch_all", 1, type -> type, (c, t, lv) -> {
             try {
                 Value output = lv.getFirst().evalValue(c, t);
                 return (cc, tt) -> output;
@@ -194,7 +197,7 @@ public class LanitiumFunctions {
             }
         });
 
-        expression.addLazyFunction("as_entity", 2, (c, t, lv) -> {
+        expr.addLazyFunction("as_entity", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
             if (!(lv.getFirst().evalValue(c) instanceof EntityValue entity)) throw new InternalExpressionException("First argument to 'as_entity' must be an entity");
             if (entity.getEntity().equals(source.getEntity())) return lv.get(1);
@@ -204,7 +207,7 @@ public class LanitiumFunctions {
             final Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
-        expression.addLazyFunction("positioned", 2, (c, t, lv) -> {
+        expr.addLazyFunction("positioned", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
             if (!(lv.getFirst().evalValue(c) instanceof ListValue b)) throw new InternalExpressionException("First argument to 'positioned' must be a list");
             final List<Value> bl = b.getItems();
@@ -216,7 +219,7 @@ public class LanitiumFunctions {
             final Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
-        expression.addLazyFunction("rotated", 2, (c, t, lv) -> {
+        expr.addLazyFunction("rotated", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
             if (!(lv.getFirst().evalValue(c) instanceof ListValue b)) throw new InternalExpressionException("First argument to 'rotated' must be a list");
             final List<Value> bl = b.getItems();
@@ -228,7 +231,7 @@ public class LanitiumFunctions {
             final Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
-        expression.addLazyFunction("anchored", 2, (c, t, lv) -> {
+        expr.addLazyFunction("anchored", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
             final String name = lv.getFirst().evalValue(c).getString();
             final EntityAnchorArgument.Anchor anchor = switch (name) {
@@ -243,7 +246,7 @@ public class LanitiumFunctions {
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
-        expression.addLazyFunction("elevated", 2, (c, t, lv) -> {
+        expr.addLazyFunction("elevated", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
             final int level = NumericValue.asNumber(lv.getFirst().evalValue(c)).getInt();
             if (source.hasPermission(level)) return lv.get(1);
@@ -253,7 +256,7 @@ public class LanitiumFunctions {
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
-        expression.addLazyFunction("with_permission", 2, (c, t, lv) -> {
+        expr.addLazyFunction("with_permission", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
             final int level = NumericValue.asNumber(lv.getFirst().evalValue(c)).getInt();
             final CommandSourceStack newSource = source.withPermission(level);
@@ -264,7 +267,7 @@ public class LanitiumFunctions {
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
-        expression.addLazyFunction("with_custom_values", 2, (c, t, lv) -> {
+        expr.addLazyFunction("with_custom_values", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
             final MapValue customValues = switch (lv.getFirst().evalValue(c)) {
                 case NullValue ignored -> null;

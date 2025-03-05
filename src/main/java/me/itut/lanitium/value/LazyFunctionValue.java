@@ -20,6 +20,13 @@ public class LazyFunctionValue extends FunctionValue {
         return values.stream().map(v -> (Value)new Lazy(context, type, v)).toList();
     }
 
+    public static List<LazyValue> wrapLazyArgs(List<LazyValue> values, Context context, Context.Type type) {
+        return values.stream().map(v -> {
+            Lazy lazy = new Lazy(context, type, v);
+            return (LazyValue)(c, t) -> lazy;
+        }).toList();
+    }
+
     @Override
     public LazyValue lazyEval(Context c, Context.Type type, Expression e, Tokenizer.Token t, List<LazyValue> lazyParams) {
         return this.execute(c, type, e, t, wrapArgs(lazyParams, c, type), null);

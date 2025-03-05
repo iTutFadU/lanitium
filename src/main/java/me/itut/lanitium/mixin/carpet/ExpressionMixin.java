@@ -5,6 +5,7 @@ import carpet.script.*;
 import carpet.script.exception.ExpressionException;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.FunctionValue;
+import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import me.itut.lanitium.value.LazyFunctionValue;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,11 +20,16 @@ import java.util.List;
 import java.util.Map;
 
 @Mixin(value = Expression.class, remap = false)
-public abstract class ExpressionMixin {
+public abstract class ExpressionMixin implements ExpressionInterface {
     @Shadow(remap = false)
     public Module module;
     @Shadow(remap = false) @Final
     private Map<String, Fluff.ILazyFunction> functions;
+
+    @Override
+    public Map<String, Fluff.ILazyFunction> lanitium$functions() {
+        return functions;
+    }
 
     @Unique // A copy of Expression#createUserDefinedFunction
     private FunctionValue createUserDefinedLazyFunction(Context context, String name, Expression expr, Tokenizer.Token token, List<String> arguments, String varArgs, List<String> outers, LazyValue code) {
