@@ -1,10 +1,12 @@
 package me.itut.lanitium;
 
 import carpet.script.*;
+import carpet.script.annotation.Locator;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.argument.BlockArgument;
 import carpet.script.argument.FunctionArgument;
+import carpet.script.argument.Vector3Argument;
 import carpet.script.command.CommandArgument;
 import carpet.script.exception.*;
 import carpet.script.language.Operators;
@@ -26,19 +28,29 @@ import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.commands.arguments.StyleArgument;
 import net.minecraft.commands.arguments.item.ItemPredicateArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.ServerExplosion;
+import net.minecraft.world.level.SimpleExplosionDamageCalculator;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
@@ -347,7 +359,6 @@ public class LanitiumFunctions {
         Lanitium.COOKIE.setSecret(secret);
     }
 
-    @SuppressWarnings("ConstantValue")
     @ScarpetFunction(maxParams = 4)
     public static Value lazy_call(Lazy lazy, @Param.KeyValuePairs(allowMultiparam = false) Map<String, Value> vars, Optional<Lazy> c, Optional<String> t) {
         Context context = c.map(values -> values.context).orElseGet(() -> lazy.context);
@@ -716,6 +727,41 @@ public class LanitiumFunctions {
             default -> NBTSerializableValue.of(v.encodeValue(NbtOps.INSTANCE).result().orElse(null));
         }));
         return MapValue.wrap(map);
+    }
+
+    @ScarpetFunction(maxParams = -1)
+    public static void explode(Context c, @Locator.Vec3d Vec3 center, double radius, Map<String, Value> settings) {
+        Entity source = null;
+        if (settings.get("source") instanceof EntityValue e) source = e.getEntity();
+
+        new ServerExplosion(((CarpetContext)c).level(), source, switch (settings.getOrDefault("damage_type", Value.NULL)) {
+            case NullValue ignored -> null;
+            case Value d -> {
+                Optional<Holder.Reference<DamageType>> optionalType = ((CarpetContext)c).registry(Registries.DAMAGE_TYPE).get(ResourceLocation.tryParse(d.getString()));
+                if (optionalType.isEmpty()) yield null;
+                Holder.Reference<DamageType> type = optionalType.get();
+
+                yield switch (settings.getOrDefault("damage_source", Value.NULL)) {
+                    case NullValue ignored -> source == null
+                        ? new DamageSource(type, center)
+                        : new DamageSource(type, source);
+                    case EntityValue e -> new DamageSource(type, e.getEntity());
+                    case Value v -> new DamageSource(type, Vector3Argument.findIn(List.of(v), 0).vec);
+                };
+            }
+        }, new SimpleExplosionDamageCalculator(settings.getOrDefault("explode_blocks", Value.TRUE).getBoolean(), settings.getOrDefault("damage_entities", Value.TRUE).getBoolean(), switch (settings.getOrDefault("knockback_multiplier", Value.NULL)) {
+            case NumericValue n -> Optional.of(n.getFloat());
+            default -> Optional.empty();
+        }, Optional.ofNullable(switch (settings.getOrDefault("immune_blocks", Value.NULL)) {
+            case NullValue ignored -> null;
+            case AbstractListValue list -> HolderSet.direct(list.unpack().stream().map(v -> Holder.direct(BlockArgument.findIn(((CarpetContext)c), List.of(v), 0, true).block.getBlockState().getBlock())).toList());
+            case Value b -> HolderSet.direct(Holder.direct(BlockArgument.findIn(((CarpetContext)c), List.of(b), 0, true).block.getBlockState().getBlock()));
+        })), center, (float)radius, settings.getOrDefault("fire", Value.FALSE).getBoolean(), switch (settings.getOrDefault("block_interaction", Value.NULL).getString()) {
+            case "keep" -> Explosion.BlockInteraction.KEEP;
+            case "decay" -> Explosion.BlockInteraction.DESTROY_WITH_DECAY;
+            case "trigger" -> Explosion.BlockInteraction.TRIGGER_BLOCK;
+            default -> Explosion.BlockInteraction.DESTROY;
+        }).explode();
     }
 
     //    @ScarpetFunction
