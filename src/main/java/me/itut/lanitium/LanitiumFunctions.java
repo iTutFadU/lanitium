@@ -5,6 +5,7 @@ import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.argument.BlockArgument;
 import carpet.script.argument.FunctionArgument;
+import carpet.script.command.CommandArgument;
 import carpet.script.exception.*;
 import carpet.script.language.Operators;
 import carpet.script.value.*;
@@ -15,16 +16,22 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.RootCommandNode;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
+import me.itut.lanitium.internal.carpet.VanillaArgument;
 import me.itut.lanitium.value.*;
 import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.ComponentArgument;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
+import net.minecraft.commands.arguments.StyleArgument;
+import net.minecraft.commands.arguments.item.ItemPredicateArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
@@ -61,6 +68,16 @@ public class LanitiumFunctions {
             Map<Value, Value> map = ((CommandSourceStackInterface)c.source()).lanitium$customValues();
             return map != null ? MapValue.wrap(map) : Value.NULL;
         });
+
+        CommandArgument.builtIns.put("formatted_text", new VanillaArgument("formated_text", ComponentArgument::textComponent, (c, p) -> FormattedTextValue.of(ComponentArgument.getComponent(c, p)), param -> (ctx, builder) -> ctx.getArgument(param, ComponentArgument.class).listSuggestions(ctx, builder)));
+        CommandArgument.builtIns.put("style", new VanillaArgument("style", StyleArgument::style, (c, p) -> {
+            Style style = StyleArgument.getStyle(c, p);
+            return new SimpleFunctionValue((cc, tt) -> FormattedTextValue.of(((MutableComponent)FormattedTextValue.getTextByValue(cc.getVariable("c").evalValue(cc, tt))).withStyle(style)), List.of("c"), null);
+        }, param -> (ctx, builder) -> ctx.getArgument(param, StyleArgument.class).listSuggestions(ctx, builder)));
+        CommandArgument.builtIns.put("item_predicate", new VanillaArgument("item_predicate", ItemPredicateArgument::new, (c, p) -> {
+            ItemPredicateArgument.Result predicate = ItemPredicateArgument.getItemPredicate(c, p);
+            return new SimpleFunctionValue((cc, tt) -> BooleanValue.of(predicate.test(carpet.script.value.ValueConversions.getItemStackFromValue(cc.getVariable("i").evalValue(cc, tt), true, c.getSource().registryAccess()))), List.of("i"), null);
+        }, param -> (ctx, builder) -> ctx.getArgument(param, ItemPredicateArgument.class).listSuggestions(ctx, builder)));
     }
 
     public static Fluff.ILazyFunction findIn(Context c, Expression expr, Value functionValue) {
@@ -700,8 +717,8 @@ public class LanitiumFunctions {
         }));
         return MapValue.wrap(map);
     }
-    
-//    @ScarpetFunction
+
+    //    @ScarpetFunction
 //    public static void send_game_packet(Context c, EntityValue p, String type, Value... values) {
 //        CarpetContext context = (CarpetContext)c;
 //        ServerPlayer player = EntityValue.getPlayerByValue(context.server(), p);
