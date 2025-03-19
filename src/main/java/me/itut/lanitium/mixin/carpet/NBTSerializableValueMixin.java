@@ -4,6 +4,7 @@ import carpet.script.Context;
 import carpet.script.LazyValue;
 import carpet.script.value.*;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import me.itut.lanitium.internal.carpet.NBTSerializableValueInterface;
 import me.itut.lanitium.value.WithValue;
 import net.minecraft.commands.arguments.NbtPathArgument;
 import net.minecraft.nbt.CompoundTag;
@@ -16,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Mixin(value = NBTSerializableValue.class, remap = false)
-public abstract class NBTSerializableValueMixin implements WithValue {
+public abstract class NBTSerializableValueMixin implements NBTSerializableValueInterface, WithValue {
     @Shadow
     public abstract Tag getTag();
 
@@ -33,6 +34,16 @@ public abstract class NBTSerializableValueMixin implements WithValue {
     @Shadow
     private static NbtPathArgument.NbtPath cachePath(String arg) {
         return null;
+    }
+
+    @Shadow
+    private static Value decodeTag(Tag t) {
+        return null;
+    }
+
+    @Override
+    public Value lanitium$decodeTag(Tag tag) {
+        return decodeTag(tag);
     }
 
     @Override

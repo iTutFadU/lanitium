@@ -18,6 +18,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.RootCommandNode;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
+import me.itut.lanitium.internal.carpet.NBTSerializableValueInterface;
 import me.itut.lanitium.internal.carpet.VanillaArgument;
 import me.itut.lanitium.value.*;
 import me.itut.lanitium.value.ValueConversions;
@@ -31,6 +32,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.*;
@@ -715,18 +718,29 @@ public class LanitiumFunctions {
         return MapValue.wrap(map);
     }
 
-    @ScarpetFunction // https://github.com/gnembon/fabric-carpet/pull/1996
-    public static Value item_components(Context c, Value item) {
+    @ScarpetFunction(maxParams = 2) // https://github.com/gnembon/fabric-carpet/pull/1996
+    public static Value item_components(Context c, Value item, Optional<String> component) {
         ItemStack stack = carpet.script.value.ValueConversions.getItemStackFromValue(item, true, ((CarpetContext)c).registryAccess());
         DataComponentMap components = stack.getComponents().filter(t -> !t.isTransient());
-        Map<Value, Value> map = new HashMap<>(components.size());
-        components.forEach(v -> map.put(carpet.script.value.ValueConversions.of(BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(v.type())), switch (v.value()) {
+        if (component.isPresent()) {
+            ResourceLocation name = ResourceLocation.tryParse(component.get());
+            if (name == null) return Value.NULL;
+            Optional<Holder.Reference<DataComponentType<?>>> type = BuiltInRegistries.DATA_COMPONENT_TYPE.get(name);
+            if (type.isEmpty()) return Value.NULL;
+            return encodeItemComponent(components.getTyped(type.get().value()));
+        }
+        return ListValue.wrap(components.stream().map(v -> carpet.script.value.ValueConversions.of(BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(v.type()))));
+    }
+
+    private static Value encodeItemComponent(TypedDataComponent<?> v) {
+        if (v == null) return Value.NULL;
+        return switch (v.value()) {
             case Boolean bool -> BooleanValue.of(bool);
             case Number number -> NumericValue.of(number);
+            case String str -> StringValue.of(str);
             case Component component -> FormattedTextValue.of(component);
-            default -> NBTSerializableValue.of(v.encodeValue(NbtOps.INSTANCE).result().orElse(null));
-        }));
-        return MapValue.wrap(map);
+            default -> NBTSerializableValueInterface.decodeTag(v.encodeValue(NbtOps.INSTANCE).result().orElse(null));
+        };
     }
 
     @ScarpetFunction(maxParams = -1)
