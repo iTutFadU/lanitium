@@ -64,6 +64,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -104,6 +105,29 @@ public class LanitiumFunctions {
             return c.host.getAssertFunction(expr.module, name);
         } else return fun;
     }
+
+    private static final Value
+        RESULT = StringValue.of("result"),
+        ERROR = StringValue.of("error"),
+        TYPE = StringValue.of("type"),
+        VALUE = StringValue.of("value"),
+        TRACE = StringValue.of("trace"),
+        INTERNAL = StringValue.of("internal"),
+        CLASS = StringValue.of("class"),
+        MESSAGE = StringValue.of("message"),
+        STACK = StringValue.of("stack"),
+        LOCALS = StringValue.of("locals"),
+        TOKEN = StringValue.of("token"),
+        CLASS_LOADER = StringValue.of("class_loader"),
+        MODULE = StringValue.of("module"),
+        MODULE_VERSION = StringValue.of("module_version"),
+        METHOD = StringValue.of("method"),
+        FILE = StringValue.of("file"),
+        LINE = StringValue.of("line"),
+        NATIVE = StringValue.of("native"),
+        CAUSE = StringValue.of("cause"),
+        SUPPRESSED = StringValue.of("suppressed"),
+        THROW = StringValue.of("throw");
 
     public static void apply(Expression expr) {
         // Carpet nasty nasty
@@ -228,6 +252,58 @@ public class LanitiumFunctions {
                 return LazyValue.NULL;
             }
         });
+        expr.addPureLazyFunction("catch", 1, type -> type, (c, t, lv) -> {
+            Value output;
+            try {
+                output = MapValue.wrap(new HashMap<>() {{
+                    put(RESULT, lv.getFirst().evalValue(c, t));
+                }});
+            } catch (ProcessedThrowStatement e) {
+                output = MapValue.wrap(Map.of(
+                    ERROR, MapValue.wrap(Map.of(
+                        TYPE, StringValue.of(e.thrownExceptionType.getId()),
+                        VALUE, e.data,
+                        TRACE, MapValue.wrap(Map.of(
+                            STACK, ListValue.wrap(e.stack.stream().map(f -> ListValue.of(
+                                StringValue.of(f.getModule().name()),
+                                StringValue.of(f.getString()),
+                                NumericValue.of(f.getToken().lineno + 1),
+                                NumericValue.of(f.getToken().linepos + 1)
+                            ))),
+                            LOCALS, MapValue.wrap(e.context.variables.entrySet().stream().collect(Collectors.toMap(
+                                s -> StringValue.of(s.getKey()),
+                                s -> s.getValue().evalValue(e.context)
+                            ))),
+                            TOKEN, ListValue.of(
+                                StringValue.of(e.token.surface),
+                                NumericValue.of(e.token.lineno + 1),
+                                NumericValue.of(e.token.linepos + 1)
+                            )
+                        ))
+                    ))
+                ));
+            } catch (ExitStatement passthrough) {
+                throw passthrough;
+            } catch (Throwable e) {
+                output = MapValue.wrap(Map.of(
+                    ERROR, MapValue.wrap(Map.of(
+                        TYPE, INTERNAL,
+                        VALUE, StringValue.of(e.getMessage()),
+                        TRACE, MapValue.wrap(Map.of(
+                            STACK, ListValue.of(),
+                            LOCALS, Value.NULL,
+                            TOKEN, ListValue.of(StringValue.EMPTY, Value.ONE, Value.ONE)
+                        )),
+                        INTERNAL, internalExceptionMap(e),
+                        THROW, new SimpleFunctionValue((cc, tt) -> {
+                            throw e;
+                        }, List.of(), null)
+                    ))
+                ));
+            }
+            Value finalOutput = output;
+            return (cc, tt) -> finalOutput;
+        });
 
         expr.addLazyFunction("as_entity", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
@@ -314,6 +390,31 @@ public class LanitiumFunctions {
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
+    }
+
+    private static Value internalExceptionMap(Throwable e) {
+        return MapValue.wrap(new HashMap<>() {{
+            put(MESSAGE, StringValue.of(e.getMessage()));
+            put(STACK, ListValue.wrap(Arrays.stream(e.getStackTrace()).map(v -> MapValue.wrap(new HashMap<>() {{
+                if (v.getClassLoaderName() instanceof String classLoaderName)
+                    put(CLASS_LOADER, StringValue.of(classLoaderName));
+                if (v.getModuleName() instanceof String moduleName)
+                    put(MODULE, StringValue.of(moduleName));
+                if (v.getModuleVersion() instanceof String moduleVersion)
+                    put(MODULE_VERSION, StringValue.of(moduleVersion));
+                put(CLASS, StringValue.of(v.getClassName()));
+                put(METHOD, StringValue.of(v.getMethodName()));
+                if (v.getFileName() instanceof String fileName)
+                    put(FILE, StringValue.of(fileName));
+                put(LINE, NumericValue.of(v.getLineNumber()));
+                if (v.isNativeMethod())
+                    put(NATIVE, Value.TRUE);
+            }}))));
+            if (e.getCause() instanceof Throwable cause)
+                put(CAUSE, internalExceptionMap(cause));
+            if (e.getSuppressed().length > 0)
+                put(SUPPRESSED, ListValue.wrap(Arrays.stream(e.getSuppressed()).map(LanitiumFunctions::internalExceptionMap)));
+        }});
     }
 
     // TODO: Revisit cookies
