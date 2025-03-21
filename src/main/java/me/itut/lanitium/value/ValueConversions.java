@@ -14,14 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 public class ValueConversions {
-    public static final Value
-        EYES = StringValue.of("eyes"),
-        FEET = StringValue.of("feet"),
-        RANGE = StringValue.of("range"),
-        TEXT = StringValue.of("text"),
-        TOOLTIP = StringValue.of("tooltip"),
-        VALUE = StringValue.of("value");
-
     public static Value range(StringRange range) {
         return range != null ? ListValue.of(NumericValue.of(range.getStart()), NumericValue.of(range.getEnd())) : Value.NULL;
     }
@@ -82,13 +74,13 @@ public class ValueConversions {
     }
 
     public static Value suggestion(Suggestion suggestion) {
-        Map<Value, Value> map = new HashMap<>(4) {{
-            put(RANGE, range(suggestion.getRange()));
-            put(TEXT, StringValue.of(suggestion.getText()));
+        Map<Value, Value> map = new HashMap<>() {{
+            put(Constants.RANGE, range(suggestion.getRange()));
+            put(Constants.TEXT, StringValue.of(suggestion.getText()));
             if (suggestion.getTooltip() instanceof Message tooltip)
-                put(TOOLTIP, new SimpleFunctionValue((cc, tt) -> StringValue.of(tooltip.getString()), List.of(), null));
+                put(Constants.TOOLTIP, SimpleFunctionValue.of(() -> StringValue.of(tooltip.getString())));
             if (suggestion instanceof IntegerSuggestion integerSuggestion)
-                put(VALUE, NumericValue.of(integerSuggestion.getValue()));
+                put(Constants.VALUE, NumericValue.of(integerSuggestion.getValue()));
         }};
         return MapValue.wrap(map);
     }
@@ -99,11 +91,11 @@ public class ValueConversions {
             case NullValue ignored -> null;
             case NumericValue number -> new IntegerSuggestion(StringRange.between(start, start + length), number.getInt());
             case MapValue complex -> {
-                StringRange rawRange = toRange(complex.get(RANGE)), range = rawRange != null ? StringRange.between(start + rawRange.getStart(), start + rawRange.getEnd()) : StringRange.between(start, start + length);
-                Message tooltip = complex.has(TOOLTIP) ? FormattedTextValue.getTextByValue(complex.get(TOOLTIP)) : null;
-                if (complex.has(VALUE))
-                    yield new IntegerSuggestion(range, NumericValue.asNumber(complex.get(VALUE)).getInt(), tooltip);
-                yield new Suggestion(range, complex.get(TEXT).getString(), tooltip);
+                StringRange rawRange = toRange(complex.get(Constants.RANGE)), range = rawRange != null ? StringRange.between(start + rawRange.getStart(), start + rawRange.getEnd()) : StringRange.between(start, start + length);
+                Message tooltip = complex.has(Constants.TOOLTIP) ? FormattedTextValue.getTextByValue(complex.get(Constants.TOOLTIP)) : null;
+                if (complex.has(Constants.VALUE))
+                    yield new IntegerSuggestion(range, NumericValue.asNumber(complex.get(Constants.VALUE)).getInt(), tooltip);
+                yield new Suggestion(range, complex.get(Constants.TEXT).getString(), tooltip);
             }
             default -> new Suggestion(StringRange.between(start, start + length), value.getString());
         };

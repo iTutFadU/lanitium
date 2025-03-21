@@ -2,10 +2,8 @@ package me.itut.lanitium;
 
 import carpet.script.*;
 import carpet.script.annotation.Locator;
-import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.argument.BlockArgument;
-import carpet.script.argument.FunctionArgument;
 import carpet.script.argument.Vector3Argument;
 import carpet.script.command.CommandArgument;
 import carpet.script.exception.*;
@@ -69,8 +67,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static me.itut.lanitium.internal.carpet.SystemInfoInterface.options;
-import static me.itut.lanitium.value.Lazy.*;
-import static me.itut.lanitium.value.ValueConversions.*;
 import static net.minecraft.Util.NIL_UUID;
 
 public class LanitiumFunctions {
@@ -78,21 +74,22 @@ public class LanitiumFunctions {
         options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
         options.put("server_sprinting", c -> BooleanValue.of(c.server().tickRateManager().isSprinting()));
-        options.put("source_anchor", c -> c.source().getAnchor() == EntityAnchorArgument.Anchor.EYES ? EYES : FEET);
+        options.put("source_anchor", c -> c.source().getAnchor() == EntityAnchorArgument.Anchor.EYES ? Constants.EYES : Constants.FEET);
         options.put("source_permission", c -> NumericValue.of(((CommandSourceStackInterface)c.source()).lanitium$permissionLevel()));
         options.put("source_custom_values", c -> {
             Map<Value, Value> map = ((CommandSourceStackInterface)c.source()).lanitium$customValues();
             return map != null ? MapValue.wrap(map) : Value.NULL;
         });
+        options.put("source", SourceValue::of);
 
         CommandArgument.builtIns.put("formatted_text", new VanillaArgument("formated_text", ComponentArgument::textComponent, (c, p) -> FormattedTextValue.of(ComponentArgument.getComponent(c, p)), param -> (ctx, builder) -> ctx.getArgument(param, ComponentArgument.class).listSuggestions(ctx, builder)));
         CommandArgument.builtIns.put("style", new VanillaArgument("style", StyleArgument::style, (c, p) -> {
             Style style = StyleArgument.getStyle(c, p);
-            return new SimpleFunctionValue((cc, tt) -> FormattedTextValue.of(((MutableComponent)FormattedTextValue.getTextByValue(cc.getVariable("c").evalValue(cc, tt))).withStyle(style)), List.of("c"), null);
+            return SimpleFunctionValue.of(cc -> FormattedTextValue.of(((MutableComponent)FormattedTextValue.getTextByValue(cc)).withStyle(style)));
         }, param -> (ctx, builder) -> ctx.getArgument(param, StyleArgument.class).listSuggestions(ctx, builder)));
         CommandArgument.builtIns.put("item_predicate", new VanillaArgument("item_predicate", ItemPredicateArgument::new, (c, p) -> {
             ItemPredicateArgument.Result predicate = ItemPredicateArgument.getItemPredicate(c, p);
-            return new SimpleFunctionValue((cc, tt) -> BooleanValue.of(predicate.test(carpet.script.value.ValueConversions.getItemStackFromValue(cc.getVariable("i").evalValue(cc, tt), true, c.getSource().registryAccess()))), List.of("i"), null);
+            return SimpleFunctionValue.of(i -> BooleanValue.of(predicate.test(carpet.script.value.ValueConversions.getItemStackFromValue(i, true, c.getSource().registryAccess()))));
         }, param -> (ctx, builder) -> ctx.getArgument(param, ItemPredicateArgument.class).listSuggestions(ctx, builder)));
     }
 
@@ -106,28 +103,31 @@ public class LanitiumFunctions {
         } else return fun;
     }
 
-    private static final Value
-        RESULT = StringValue.of("result"),
-        ERROR = StringValue.of("error"),
-        TYPE = StringValue.of("type"),
-        VALUE = StringValue.of("value"),
-        TRACE = StringValue.of("trace"),
-        INTERNAL = StringValue.of("internal"),
-        CLASS = StringValue.of("class"),
-        MESSAGE = StringValue.of("message"),
-        STACK = StringValue.of("stack"),
-        LOCALS = StringValue.of("locals"),
-        TOKEN = StringValue.of("token"),
-        CLASS_LOADER = StringValue.of("class_loader"),
-        MODULE = StringValue.of("module"),
-        MODULE_VERSION = StringValue.of("module_version"),
-        METHOD = StringValue.of("method"),
-        FILE = StringValue.of("file"),
-        LINE = StringValue.of("line"),
-        NATIVE = StringValue.of("native"),
-        CAUSE = StringValue.of("cause"),
-        SUPPRESSED = StringValue.of("suppressed"),
-        THROW = StringValue.of("throw");
+    private static Value internalExceptionMap(Throwable e) {
+        return MapValue.wrap(new HashMap<>() {{
+            put(Constants.CLASS, StringValue.of(e.getClass().getName()));
+            put(Constants.MESSAGE, StringValue.of(e.getMessage()));
+            put(Constants.STACK, ListValue.wrap(Arrays.stream(e.getStackTrace()).map(v -> MapValue.wrap(new HashMap<>() {{
+                if (v.getClassLoaderName() instanceof String classLoaderName)
+                    put(Constants.CLASS_LOADER, StringValue.of(classLoaderName));
+                if (v.getModuleName() instanceof String moduleName)
+                    put(Constants.MODULE, StringValue.of(moduleName));
+                if (v.getModuleVersion() instanceof String moduleVersion)
+                    put(Constants.MODULE_VERSION, StringValue.of(moduleVersion));
+                put(Constants.CLASS, StringValue.of(v.getClassName()));
+                put(Constants.METHOD, StringValue.of(v.getMethodName()));
+                if (v.getFileName() instanceof String fileName)
+                    put(Constants.FILE, StringValue.of(fileName));
+                put(Constants.LINE, NumericValue.of(v.getLineNumber()));
+                if (v.isNativeMethod())
+                    put(Constants.NATIVE, Value.TRUE);
+            }}))));
+            if (e.getCause() instanceof Throwable cause)
+                put(Constants.CAUSE, internalExceptionMap(cause));
+            if (e.getSuppressed().length > 0)
+                put(Constants.SUPPRESSED, ListValue.wrap(Arrays.stream(e.getSuppressed()).map(LanitiumFunctions::internalExceptionMap)));
+        }});
+    }
 
     public static void apply(Expression expr) {
         // Carpet nasty nasty
@@ -139,16 +139,13 @@ public class LanitiumFunctions {
                     throw new InternalExpressionException("'call' expects at least function name to call");
                 } else if (t != Context.SIGNATURE) {
                     Fluff.ILazyFunction fun = findIn(c, expr, lv.getFirst().evalValue(c));
-                    List<LazyValue> args;
-                    if (fun instanceof LazyFunctionValue)
-                        args = LazyFunctionValue.wrapLazyArgs(lv.subList(1, lv.size()), c, t);
-                    else
-                        args = lv.subList(1, lv.size());
-                    return fun.lazyEval(c, t, expr, tok, args);
+                    return fun.lazyEval(c, t, expr, tok, lv.subList(1, lv.size()));
                 } else {
                     String name = lv.getFirst().evalValue(c, Context.NONE).getString();
                     List<String> args = new ArrayList<>();
-                    List<String> globals = new ArrayList<>();
+                    List<String> globals = "fn".equals(name)
+                        ? new ArrayList<>(c.variables.keySet().stream().toList())
+                        : new ArrayList<>();
                     String varArgs = null;
 
                     for (int i = 1; i < lv.size(); ++i) {
@@ -172,6 +169,8 @@ public class LanitiumFunctions {
                         }
                     }
 
+                    globals.remove(varArgs);
+                    globals.removeAll(args);
                     Value output = new FunctionSignatureValue(name, args, varArgs, globals);
                     return (cc, tt) -> output;
                 }
@@ -192,35 +191,20 @@ public class LanitiumFunctions {
                 return outerType == Context.SIGNATURE ? Context.LOCALIZATION : Context.NONE;
             }
         });
-        expr.addLazyFunction("z", (c, t, lv) -> {
-            ListValue output = ListValue.wrap(lv.stream().map(v -> new Lazy(c, t, v)));
-            return (cc, tt) -> output;
-        });
 
-        expr.addLazyUnaryOperator("\\", Operators.precedence.get("unary+-!..."), false, false, type -> type, (c, t, lv) -> {
-            if (t == Context.SIGNATURE) {
-                Value v = lv.evalValue(c, t);
-                if (v instanceof FunctionSignatureValue signature) {
-                    LazyFunctionSignatureValue lazy = LazyFunctionSignatureValue.of(signature);
-                    return (cc, tt) -> lazy;
-                }
-            }
-            Lazy lazy = new Lazy(c, t, lv);
-            return (cc, tt) -> lazy;
-        });
         expr.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
                 return with.with(c, t, r);
             Value right = r.evalValue(c, t);
-            if (!(right instanceof ListValue args) || !args.getItems().stream().allMatch(v -> v instanceof Lazy))
-                throw new InternalExpressionException("Incorrect list of arguments. To call a function, use func\\z(...args)");
-            LazyValue[] values = args.getItems().stream().map(v -> (LazyValue)((Lazy)v)::eval).toArray(LazyValue[]::new), callArgs = new LazyValue[values.length + 1];
-            callArgs[0] = (cc, tt) -> left;
+            if (!(right instanceof ListValue args))
+                throw new InternalExpressionException("'\\' must have a list on the RHS");
+            Value[] values = args.getItems().toArray(Value[]::new), callArgs = new Value[values.length + 1];
+            callArgs[0] = left;
             System.arraycopy(values, 0, callArgs, 1, values.length);
-            return call.lazyEval(c, t, expr, Tokenizer.Token.NONE, List.of(callArgs));
+            return call.lazyEval(c, t, expr, Tokenizer.Token.NONE, Arrays.stream(callArgs).map(v -> (LazyValue)(cc, tt) -> v).toList());
         });
-        expr.addPureLazyFunction("all_then", -1, t -> Context.VOID, (c, t, lv) -> {
+        expr.addLazyFunction("all_then", -1, (c, t, lv) -> {
             int imax = lv.size() - 1;
             Throwable error = null;
 
@@ -238,13 +222,7 @@ public class LanitiumFunctions {
                 throw e;
             return (cc, tt) -> v;
         });
-        expr.addContextFunction("thread_local", -1, (c, t, lv) -> {
-            if (lv.isEmpty())
-                throw new InternalExpressionException("'thread_local' requires at least a function to call");
-            FunctionValue initial = FunctionArgument.findIn(c, expr.module, lv, 0, true, false).function;
-            return new ThreadLocalValue(c, initial);
-        });
-        expr.addPureLazyFunction("catch_all", 1, type -> type, (c, t, lv) -> {
+        expr.addLazyFunction("catch_all", 1, (c, t, lv) -> {
             try {
                 Value output = lv.getFirst().evalValue(c, t);
                 return (cc, tt) -> output;
@@ -252,29 +230,29 @@ public class LanitiumFunctions {
                 return LazyValue.NULL;
             }
         });
-        expr.addPureLazyFunction("catch", 1, type -> type, (c, t, lv) -> {
+        expr.addLazyFunction("catch", 1, (c, t, lv) -> {
             Value output;
             try {
                 output = MapValue.wrap(new HashMap<>() {{
-                    put(RESULT, lv.getFirst().evalValue(c, t));
+                    put(Constants.RESULT, lv.getFirst().evalValue(c, t));
                 }});
             } catch (ProcessedThrowStatement e) {
                 output = MapValue.wrap(Map.of(
-                    ERROR, MapValue.wrap(Map.of(
-                        TYPE, StringValue.of(e.thrownExceptionType.getId()),
-                        VALUE, e.data,
-                        TRACE, MapValue.wrap(Map.of(
-                            STACK, ListValue.wrap(e.stack.stream().map(f -> ListValue.of(
+                    Constants.ERROR, MapValue.wrap(Map.of(
+                        Constants.TYPE, StringValue.of(e.thrownExceptionType.getId()),
+                        Constants.VALUE, e.data,
+                        Constants.TRACE, MapValue.wrap(Map.of(
+                            Constants.STACK, ListValue.wrap(e.stack.stream().map(f -> ListValue.of(
                                 StringValue.of(f.getModule().name()),
                                 StringValue.of(f.getString()),
                                 NumericValue.of(f.getToken().lineno + 1),
                                 NumericValue.of(f.getToken().linepos + 1)
                             ))),
-                            LOCALS, MapValue.wrap(e.context.variables.entrySet().stream().collect(Collectors.toMap(
+                            Constants.LOCALS, MapValue.wrap(e.context.variables.entrySet().stream().collect(Collectors.toMap(
                                 s -> StringValue.of(s.getKey()),
                                 s -> s.getValue().evalValue(e.context)
                             ))),
-                            TOKEN, ListValue.of(
+                            Constants.TOKEN, ListValue.of(
                                 StringValue.of(e.token.surface),
                                 NumericValue.of(e.token.lineno + 1),
                                 NumericValue.of(e.token.linepos + 1)
@@ -286,18 +264,18 @@ public class LanitiumFunctions {
                 throw passthrough;
             } catch (Throwable e) {
                 output = MapValue.wrap(Map.of(
-                    ERROR, MapValue.wrap(Map.of(
-                        TYPE, INTERNAL,
-                        VALUE, StringValue.of(e.getMessage()),
-                        TRACE, MapValue.wrap(Map.of(
-                            STACK, ListValue.of(),
-                            LOCALS, Value.NULL,
-                            TOKEN, ListValue.of(StringValue.EMPTY, Value.ONE, Value.ONE)
+                    Constants.ERROR, MapValue.wrap(Map.of(
+                        Constants.TYPE, Constants.INTERNAL,
+                        Constants.VALUE, StringValue.of(e.getMessage()),
+                        Constants.TRACE, MapValue.wrap(Map.of(
+                            Constants.STACK, ListValue.of(),
+                            Constants.LOCALS, Value.NULL,
+                            Constants.TOKEN, ListValue.of(StringValue.EMPTY, Value.ONE, Value.ONE)
                         )),
-                        INTERNAL, internalExceptionMap(e),
-                        THROW, new SimpleFunctionValue((cc, tt) -> {
+                        Constants.INTERNAL, internalExceptionMap(e),
+                        Constants.THROW, SimpleFunctionValue.of(() -> {
                             throw e;
-                        }, List.of(), null)
+                        })
                     ))
                 ));
             }
@@ -390,31 +368,15 @@ public class LanitiumFunctions {
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
-    }
-
-    private static Value internalExceptionMap(Throwable e) {
-        return MapValue.wrap(new HashMap<>() {{
-            put(MESSAGE, StringValue.of(e.getMessage()));
-            put(STACK, ListValue.wrap(Arrays.stream(e.getStackTrace()).map(v -> MapValue.wrap(new HashMap<>() {{
-                if (v.getClassLoaderName() instanceof String classLoaderName)
-                    put(CLASS_LOADER, StringValue.of(classLoaderName));
-                if (v.getModuleName() instanceof String moduleName)
-                    put(MODULE, StringValue.of(moduleName));
-                if (v.getModuleVersion() instanceof String moduleVersion)
-                    put(MODULE_VERSION, StringValue.of(moduleVersion));
-                put(CLASS, StringValue.of(v.getClassName()));
-                put(METHOD, StringValue.of(v.getMethodName()));
-                if (v.getFileName() instanceof String fileName)
-                    put(FILE, StringValue.of(fileName));
-                put(LINE, NumericValue.of(v.getLineNumber()));
-                if (v.isNativeMethod())
-                    put(NATIVE, Value.TRUE);
-            }}))));
-            if (e.getCause() instanceof Throwable cause)
-                put(CAUSE, internalExceptionMap(cause));
-            if (e.getSuppressed().length > 0)
-                put(SUPPRESSED, ListValue.wrap(Arrays.stream(e.getSuppressed()).map(LanitiumFunctions::internalExceptionMap)));
-        }});
+        expr.addLazyFunction("with_source", 2, (c, t, lv) -> {
+            final CommandSourceStack source = SourceValue.from(lv.getFirst().evalValue(c));
+            if (source == null) throw new InternalExpressionException("Source cannot be null");
+            Context ctx = c.recreate();
+            ((CarpetContext)ctx).swapSource(source);
+            ctx.variables = c.variables;
+            Value output = lv.get(1).evalValue(ctx);
+            return (cc, tt) -> output;
+        });
     }
 
     // TODO: Revisit cookies
@@ -463,52 +425,6 @@ public class LanitiumFunctions {
         Lanitium.COOKIE.setSecret(secret);
     }
 
-    @ScarpetFunction(maxParams = 4)
-    public static Value lazy_call(Lazy lazy, @Param.KeyValuePairs(allowMultiparam = false) Map<String, Value> vars, Optional<Lazy> c, Optional<String> t) {
-        Context context = c.map(values -> values.context).orElseGet(() -> lazy.context);
-        Context.Type type;
-        try {
-            type = t.map(s -> Context.Type.valueOf(s.toUpperCase())).orElseGet(() -> lazy.type);
-        } catch (IllegalArgumentException ignored) {
-            throw new InternalExpressionException("Unknown context type: " + t.get());
-        }
-
-        LazyValue initialLazy = context.getVariable("@");
-        context.setVariable("@", (cc, tt) -> lazy.reboundedTo("@"));
-        Map<String, LazyValue> originals = new HashMap<>();
-        for (Map.Entry<String, Value> entry : vars.entrySet()) {
-            String key = entry.getKey();
-            originals.put(key, context.getVariable(key));
-            Value value = entry.getValue();
-            context.setVariable(key, (cc, tt) -> value.reboundedTo(key));
-        }
-
-        try {
-            return lazy.lazy.evalValue(context, type);
-        } catch (BreakStatement e) {
-            throw new ThrowStatement(e.retval != null ? e.retval : NULL, BREAK_ERROR);
-        } catch (ContinueStatement e) {
-            throw new ThrowStatement(e.retval != null ? e.retval : NULL, CONTINUE_ERROR);
-        } catch (ReturnStatement e) {
-            throw new ThrowStatement(e.retval != null ? e.retval : NULL, RETURN_ERROR);
-        } finally {
-            for (Map.Entry<String, LazyValue> entry : originals.entrySet())
-                if (entry.getValue() != null)
-                    context.setVariable(entry.getKey(), entry.getValue());
-                else
-                    context.delVariable(entry.getKey());
-            if (initialLazy != null)
-                context.setVariable("@", initialLazy);
-            else
-                context.delVariable("@");
-        }
-    }
-
-    @ScarpetFunction
-    public static void strict(Context c, boolean value) {
-        c.host.strict = value;
-    }
-
     public static class CustomIterator extends LazyListValue {
         private final Context context;
         private final FunctionValue hasNext, next, reset;
@@ -555,6 +471,11 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public static Value symbol() {
         return new Symbol();
+    }
+
+    @ScarpetFunction
+    public static Value thread_local(Context c, FunctionValue initial) {
+        return new ThreadLocalValue(c, initial);
     }
 
     @ScarpetFunction(maxParams = 1)

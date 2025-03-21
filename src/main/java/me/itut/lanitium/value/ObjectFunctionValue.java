@@ -4,6 +4,7 @@ import carpet.script.CarpetContext;
 import carpet.script.LazyValue;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
+import me.itut.lanitium.internal.carpet.FunctionValueInterface;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.Tag;
 
@@ -14,8 +15,8 @@ public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
     public final CarpetContext context;
     public final T value;
     
-    protected ObjectFunctionValue(CarpetContext context, T value, LazyValue body, List<String> args, String varArgs) {
-        super(body, args, varArgs);
+    protected ObjectFunctionValue(CarpetContext context, T value, SimpleFunctionValue fn) {
+        super(((FunctionValueInterface)fn).lanitium$body(), ((FunctionValueInterface)fn).lanitium$args(), ((FunctionValueInterface)fn).lanitium$varArgs());
         this.context = context;
         this.value = value;
     }

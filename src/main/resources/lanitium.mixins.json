@@ -15,6 +15,7 @@
         "carpet.CommandArgumentMixin",
         "carpet.EntityValueMixin",
         "carpet.ExpressionMixin",
+        "carpet.FunctionValueMixin",
         "carpet.NBTSerializableValueMixin",
         "carpet.SystemInfoMixin"
     ],

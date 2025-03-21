@@ -17,7 +17,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import me.itut.lanitium.value.Lazy;
+import me.itut.lanitium.value.SourceValue;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.level.ServerPlayer;
@@ -187,8 +187,8 @@ public class CommandParser {
                             args.add(((CommandArgumentInterface)CommandArgument.getTypeForArgument(arg.type, cHost)).lanitium$getValueFromContext(ctx, arg.surface));
                         args.addAll(modify.args);
                         return switch (cHost.handleCommand(ctx.getSource(), modify.function, args)) {
-                            case Lazy c -> List.of(c.value.source());
-                            case AbstractListValue list -> list.unpack().stream().flatMap(v -> v instanceof Lazy c ? Stream.of(c.value.source()) : Stream.empty()).toList();
+                            case SourceValue s -> List.of(s.value);
+                            case AbstractListValue list -> list.unpack().stream().flatMap(v -> v instanceof SourceValue s ? Stream.of(s.value) : Stream.empty()).toList();
                             default -> List.of(ctx.getSource());
                         };
                     } finally {

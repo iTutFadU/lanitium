@@ -16,7 +16,6 @@ import me.itut.lanitium.config.Config;
 import me.itut.lanitium.config.ConfigManager;
 import me.itut.lanitium.value.ByteBufferValue;
 import me.itut.lanitium.value.FutureValue;
-import me.itut.lanitium.value.Lazy;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -48,18 +47,12 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 		CONFIG = CONFIG_MANAGER.config();
 
 		CarpetServer.manageExtension(this);
-		ValueCaster.register(Lazy.class, "lazy");
 		ValueCaster.register(FutureValue.class, "future");
 		ValueCaster.register(ByteBufferValue.class, "byte_buffer");
         AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
 
 		registerCommands();
         LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());
-	}
-
-	@Override
-	public void scarpetApi(CarpetExpression expression) {
-        LanitiumFunctions.apply(expression.getExpr());
 	}
 
 	private void registerCommands() {
