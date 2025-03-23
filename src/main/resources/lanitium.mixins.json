@@ -17,7 +17,10 @@
         "carpet.ExpressionMixin",
         "carpet.FunctionValueMixin",
         "carpet.NBTSerializableValueMixin",
-        "carpet.SystemInfoMixin"
+        "carpet.SystemInfoMixin",
+        "carpet.TokenizerMixin",
+        "carpet.TokenMixin",
+        "carpet.TokenTypeMixin"
     ],
     "injectors": {
         "defaultRequire": 1

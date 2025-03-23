@@ -2,7 +2,6 @@ package me.itut.lanitium.mixin.carpet;
 
 import carpet.script.Module;
 import carpet.script.*;
-import me.itut.lanitium.LanitiumFunctions;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,11 +23,6 @@ public abstract class ExpressionMixin implements ExpressionInterface {
     @Override
     public Map<String, Fluff.ILazyFunction> lanitium$functions() {
         return functions;
-    }
-
-    @Inject(method = "<init>", at = @At("TAIL")) // operators
-    private void injectLanitium(String expression, CallbackInfo ci) {
-        LanitiumFunctions.apply((Expression)(Object)this);
     }
 
     @Redirect(method = "createUserDefinedFunction", at = @At(value = "INVOKE", target = "Ljava/lang/String;equals(Ljava/lang/Object;)Z"))

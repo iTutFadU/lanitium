@@ -55,6 +55,11 @@ public class Lanitium implements ModInitializer, CarpetExtension {
         LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());
 	}
 
+	@Override
+	public void scarpetApi(CarpetExpression expr) {
+		LanitiumFunctions.apply(expr.getExpr());
+	}
+
 	private void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("lanitium")
