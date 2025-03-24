@@ -13,7 +13,6 @@ import carpet.utils.CommandHelper;
 import com.google.gson.JsonParseException;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.tree.RootCommandNode;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import me.itut.lanitium.internal.carpet.NBTSerializableValueInterface;
@@ -21,7 +20,6 @@ import me.itut.lanitium.internal.carpet.VanillaArgument;
 import me.itut.lanitium.value.*;
 import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.ComponentArgument;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.commands.arguments.StyleArgument;
@@ -38,7 +36,6 @@ import net.minecraft.nbt.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
@@ -55,7 +52,6 @@ import net.minecraft.world.level.SimpleExplosionDamageCalculator;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
-import org.jetbrains.annotations.ApiStatus;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -199,6 +195,7 @@ public class LanitiumFunctions {
             }
         });
 
+        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, false, type -> type, (c, t, l, r) -> l);
         expr.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
@@ -568,17 +565,7 @@ public class LanitiumFunctions {
         }));
     }
 
-    @ApiStatus.Experimental
-    @ScarpetFunction(maxParams = -1)
-    public static void send_empty_commands(Context c, ServerPlayer... players) {
-        MinecraftServer server = ((CarpetContext)c).server();
-        RootCommandNode<SharedSuggestionProvider> empty = new RootCommandNode<>();
-        server.schedule(new TickTask(server.getTickCount(), () -> {
-            for (ServerPlayer player : players) player.connection.send(new ClientboundCommandsPacket(empty));
-        }));
-    }
-
-    @ScarpetFunction
+    @ScarpetFunction // system_info('source_permission') >= level
     public static Value has_permission(Context c, int level) {
         return BooleanValue.of(((CarpetContext)c).source().hasPermission(level));
     }
@@ -601,7 +588,7 @@ public class LanitiumFunctions {
     }
 
     @ScarpetFunction
-    public static Value code_point_of_name(String name) {
+    public static Value code_point_by_name(String name) {
         try {
             return StringValue.of(String.valueOf(Character.codePointOf(name)));
         } catch (IllegalArgumentException e) {
