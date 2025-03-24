@@ -130,6 +130,13 @@ public class LanitiumFunctions {
     }
 
     public static void apply(Expression expr) {
+        expr.addMathematicalUnaryFunction("atanh", d -> 0.5 * Math.log((1 + d) / (1 - d)));
+        expr.addMathematicalUnaryFunction("acoth", d -> 0.5 * Math.log((d + 1) / (d - 1)));
+        expr.addMathematicalUnaryFunction("asec", d -> Math.toDegrees(Math.acos(1.0 / d)));
+        expr.addMathematicalUnaryFunction("acsc", d -> Math.toDegrees(Math.asin(1.0 / d)));
+        expr.addMathematicalUnaryFunction("asech", d -> Math.log(1.0 / d + Math.sqrt(1.0 / Math.pow(d, 2) - 1)));
+        expr.addMathematicalUnaryFunction("acsch", d -> Math.log(1.0 / d + Math.sqrt(1.0 / Math.pow(d, 2) + 1)));
+
         // Carpet nasty nasty
         final Fluff.ILazyFunction call;
         expr.addCustomFunction("call", call = new Fluff.AbstractLazyFunction(-1, "call") {
