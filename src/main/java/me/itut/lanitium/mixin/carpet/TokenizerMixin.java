@@ -9,11 +9,15 @@ import me.itut.lanitium.internal.carpet.TokenTypeInterface;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 @Mixin(value = Tokenizer.class, remap = false)
 public abstract class TokenizerMixin {
@@ -28,6 +32,69 @@ public abstract class TokenizerMixin {
     @Shadow @Final private Context context;
     @Shadow @Final private boolean comments;
     @Shadow @Final private boolean newLinesMarkers;
+
+    @Unique
+    private void escapeCode(Tokenizer.Token token) {
+        char nextChar = peekNextChar();
+        switch (nextChar) {
+            case 'n' -> token.append('\n');
+            case 't' -> token.append('\t');
+            case 'r' -> token.append('\r');
+            case 'f' -> token.append('\f');
+            case 'b' -> token.append('\b');
+            case 's' -> token.append(' ');
+            case '\\', '\'' -> token.append(nextChar);
+            default -> {
+                if (nextChar == 'x' && pos + 2 < input.length() && input.charAt(pos + 1) != '+') try {
+                    token.append((char)Integer.parseUnsignedInt(input, pos + 1, pos + 3, 16));
+                    pos += 2;
+                    linepos += 2;
+                    break;
+                } catch (NumberFormatException ignored) {}
+                else if (nextChar == 'u' && pos + 4 < input.length() && input.charAt(pos + 1) != '+') try {
+                    token.append((char)Integer.parseUnsignedInt(input, pos + 1, pos + 5, 16));
+                    pos += 4;
+                    linepos += 4;
+                    break;
+                } catch (NumberFormatException ignored) {}
+                else if (nextChar == 'U' && pos + 8 < input.length() && input.charAt(pos + 1) != '+') try {
+                    token.append(Character.toString(Integer.parseUnsignedInt(input, pos + 1, pos + 9, 16)));
+                    pos += 8;
+                    linepos += 8;
+                    break;
+                } catch (NumberFormatException ignored) {}
+                else N: if (nextChar == 'N' && pos + 3 < input.length() && input.charAt(pos + 1) == '{') try {
+                        int start = pos + 2, end;
+                        for (int i = start ;; i++) {
+                            if (i == input.length()) break N;
+                            char c = input.charAt(i);
+                            if (c == '}') {
+                                end = i;
+                                break;
+                            } if (c != ' ' && c != '_' && c != '-' && !Character.isDigit(c) && !Character.isLetter(c)) break N;
+                        }
+                        token.append(Character.toString(Character.codePointOf(input.substring(start, end))));
+                        linepos += end - pos;
+                        pos = end;
+                        return;
+                    } catch (IllegalArgumentException ignored) {}
+                pos++;
+                linepos++;
+                return;
+            }
+        }
+        pos += 2;
+        linepos += 2;
+    }
+
+    @Unique
+    private int dedent(String input, int start, int end, String indent) {
+        int len = Math.min(end - start, indent.length());
+        for (int i = 0; i < len; i++)
+            if (input.charAt(start + i) != indent.charAt(i))
+                return i;
+        return len;
+    }
 
     @Inject(method = "next()Lcarpet/script/Tokenizer$Token;", at = @At("HEAD"), cancellable = true)
     private void customSyntax(CallbackInfoReturnable<Tokenizer.Token> cir) {
@@ -51,14 +118,20 @@ public abstract class TokenizerMixin {
         token.linepos = linepos;
 
         if (Character.isDigit(ch) || (ch == '.' && Character.isDigit(peekNextChar()))) {
-            boolean hex = false, bin = false;
+            boolean hex = false, bin = false, dec = false;
             if (ch == '0')
                 if (peekNextChar() == 'x' || peekNextChar() == 'X') hex = true;
                 else if (peekNextChar() == 'b' || peekNextChar() == 'B') bin = true;
+                else dec = true;
 
-            while (ch == '_' || ch >= '0' && ch <= '9' || hex && (ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F' || ch == 'x' || ch == 'X') || bin && (ch == 'b' || ch == 'B') || (
-                Character.isDigit(ch) || ch == '.' || ch == 'e' || ch == 'E' || (ch == '-' || ch == '+') && token.length() > 0 && ('e' == token.charAt(token.length() - 1) || 'E' == token.charAt(token.length() - 1))
-            ) && pos < input.length()) {
+            while (ch == '_' || Character.isDigit(ch)
+                || hex && (ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F' || ch == 'x' || ch == 'X')
+                || bin && (ch == 'b' || ch == 'B')
+                || dec && (ch == '.' || ch == 'e' || ch == 'E'
+                        || (ch == '-' || ch == '+') && token.length() > 0
+                        && ('e' == token.charAt(token.length() - 1) || 'E' == token.charAt(token.length() - 1))
+                )
+            ) {
                 if (input.charAt(pos++) != '_') token.append(input.charAt(pos - 1));
                 linepos++;
                 ch = pos == input.length() ? 0 : input.charAt(pos);
@@ -76,38 +149,168 @@ public abstract class TokenizerMixin {
                 throw new ExpressionException(context, expression, token, "Program truncated");
             }
             ch = input.charAt(pos);
-            while (ch != '\'') {
-                if (ch == '\\') {
-                    char nextChar = peekNextChar();
-                    if (nextChar == 'n') {
-                        token.append('\n');
-                    } else if (nextChar == 't') {
-                        token.append('\t');
-                    } else if (nextChar == 'r') {
-                        token.append('\r');
-                    } else if (nextChar == '\\' || nextChar == '\'') {
-                        token.append(nextChar);
-                    } else {
-                        pos--;
-                        linepos--;
+            m: if (ch == '\'' && pos + 1 < input.length() && input.charAt(pos + 1) == '\'') {
+                pos += 2;
+                linepos += 2;
+                if (pos == input.length() && expression != null && context != null) {
+                    throw new ExpressionException(context, expression, token, "Program truncated");
+                }
+                ch = input.charAt(pos);
+                w: while (ch != '\n') {
+                    if (++pos == input.length() && expression != null && context != null) {
+                        throw new ExpressionException(context, expression, token, "Program truncated");
                     }
-                    pos += 2;
-                    linepos += 2;
-                } else {
-                    token.append(input.charAt(pos++));
                     linepos++;
+                    ch = input.charAt(pos);
+                    if (ch == '\'' && pos + 2 < input.length() && input.charAt(pos + 1) == '\'' && input.charAt(pos + 2) == '\'') {
+                        pos += 2;
+                        linepos += 2;
+                        break m;
+                    } else if (comments && ch == '/' && pos + 1 < input.length()) {
+                        switch (input.charAt(pos + 1)) {
+                            case '/':
+                                pos += 2;
+                                if (pos == input.length() && expression != null && context != null) {
+                                    throw new ExpressionException(context, expression, token, "Program truncated");
+                                }
+                                ch = input.charAt(pos);
+                                while (ch != '\n') {
+                                    if (++pos == input.length() && expression != null && context != null) {
+                                        throw new ExpressionException(context, expression, token, "Program truncated");
+                                    }
+                                    ch = input.charAt(pos);
+                                }
+                                break w;
+                            case '*':
+                                if (++pos == input.length() && expression != null && context != null) {
+                                    throw new ExpressionException(context, expression, token, "Program truncated");
+                                }
+                                linepos++;
+                                while (true) {
+                                    if (++pos == input.length() && expression != null && context != null) {
+                                        throw new ExpressionException(context, expression, token, "Program truncated");
+                                    }
+                                    ch = input.charAt(pos);
+                                    if (ch == '\n') {
+                                        lineno++;
+                                        linepos = 0;
+                                    } else if (ch == '*' && pos + 1 < input.length() && input.charAt(pos + 1) == '/') {
+                                        pos += 2;
+                                        linepos += 2;
+                                        break;
+                                    } else linepos++;
+                                }
+                                continue;
+                        }
+                    } else if (Character.isWhitespace(ch)) continue;
+                    if (expression != null && context != null) {
+                        throw new ExpressionException(context, expression, token, "Only comments are allowed here");
+                    }
+                }
+
+                record LineRange(int start, int end) {}
+
+                List<LineRange> lines = new ArrayList<>();
+                int indentStart;
+                w: while (true) {
+                    if (++pos == input.length() && expression != null && context != null) {
+                        throw new ExpressionException(context, expression, token, "Program truncated");
+                    }
+                    lineno++;
+                    linepos = 0;
+                    int start = pos;
+                    ch = input.charAt(pos);
+                    while (Character.isWhitespace(ch)) {
+                        if (ch == '\n') {
+                            lines.add(new LineRange(start, pos));
+                            continue w;
+                        }
+                        if (++pos == input.length() && expression != null && context != null) {
+                            throw new ExpressionException(context, expression, token, "Program truncated");
+                        }
+                        linepos++;
+                        ch = input.charAt(pos);
+                    }
+
+                    if (ch == '\'' && pos + 2 < input.length() && input.charAt(pos + 1) == '\'' && input.charAt(pos + 2) == '\'') {
+                        indentStart = start;
+                        break;
+                    }
+
+                    while (pos < input.length()) {
+                        ch = input.charAt(pos++);
+                        if (ch == '\n') {
+                            lines.add(new LineRange(start, pos));
+                            break;
+                        } else if (ch == '\\') escapeCode(token);
+                        linepos++;
+                    }
+
+                    if (expression != null && context != null) {
+                        throw new ExpressionException(context, expression, token, "Program truncated");
+                    }
+                }
+
+                String indent = input.substring(indentStart, pos);
+                for (Iterator<LineRange> it = lines.iterator(); it.hasNext();) {
+                    LineRange line = it.next();
+                    token.append(input.substring(line.start + dedent(input, line.start, line.end, indent)));
+                    if (it.hasNext()) token.append('\n');
+                }
+                pos += 2;
+                linepos += 2;
+            } else while (ch != '\'') {
+                if (ch == '\\') escapeCode(token); else {
+                    token.append(ch);
                     if (ch == '\n') {
                         lineno++;
                         linepos = 0;
-                    }
+                    } else linepos++;
                 }
-                if (pos == input.length() && expression != null && context != null) {
-                    throw new ExpressionException(context, this.expression, token, "Program truncated");
+                if (++pos == input.length() && expression != null && context != null) {
+                    throw new ExpressionException(context, expression, token, "Program truncated");
                 }
                 ch = input.charAt(pos);
             }
             pos++;
             linepos++;
+        } else if (ch == '#') {
+            int count = pos;
+            while (ch == '#') {
+                if (++pos == input.length() && expression != null && context != null) {
+                    throw new ExpressionException(context, expression, token, "Program truncated");
+                }
+                linepos++;
+                ch = input.charAt(pos);
+            }
+            count = pos - count;
+
+            if (ch != '\'' && expression != null && context != null) {
+                throw new ExpressionException(context, expression, token, "Only a string can be raw");
+            }
+
+            s: while (true) {
+                if (++pos == input.length() && expression != null && context != null) {
+                    throw new ExpressionException(context, expression, token, "Program truncated");
+                }
+                ch = input.charAt(pos);
+                token.append(ch);
+                if (ch == '\n') {
+                    lineno++;
+                    linepos = 0;
+                } else linepos++;
+                if (ch == '\'')
+                    if (pos + count >= input.length() && expression != null && context != null) {
+                        throw new ExpressionException(context, expression, token, "Program truncated");
+                    } else {
+                        for (int i = 0; i < count; i++)
+                            if (input.charAt(i) != '#')
+                                continue s;
+                        break;
+                    }
+            }
+            pos += count + 1;
+            linepos += count + 1;
         } else if (Character.isLetter(ch) || ch == '_') {
             while ((Character.isLetter(ch) || Character.isDigit(ch) || ch == '_') && pos < input.length()) {
                 token.append(input.charAt(pos++));
@@ -144,7 +347,7 @@ public abstract class TokenizerMixin {
                 (ch == ')' || ch == ',' || ch == ']' || ch == '}') &&
                 !previousToken.surface.equalsIgnoreCase(";")
             ) {
-                throw new ExpressionException(context, this.expression, previousToken,
+                throw new ExpressionException(context, expression, previousToken,
                     "Can't have operator " + previousToken.surface + " at the end of a subexpression");
             }
         } else {
@@ -154,7 +357,8 @@ public abstract class TokenizerMixin {
             ch = input.charAt(pos);
             int validOperatorSeenUntil = -1;
             while (!Character.isLetter(ch) && !Character.isDigit(ch) && ch != '_'
-                && !Character.isWhitespace(ch) && ch != '(' && ch != ')' && ch != ','
+                && !Character.isWhitespace(ch) && ch != ','
+                && ch != '(' && ch != ')' && ch != '[' && ch != ']' && ch != '{' && ch != '}'
                 && pos < input.length()) {
                 greedyMatch.append(ch);
                 if (comments && "/*".contentEquals(greedyMatch)) {
@@ -247,7 +451,7 @@ public abstract class TokenizerMixin {
                 prevType == TokenTypeInterface.STRINGPARAM
             )
         ) {
-            throw new ExpressionException(context, this.expression, previousToken, "'" + token.surface + "' is not allowed after '" + previousToken.surface + "'");
+            throw new ExpressionException(context, expression, previousToken, "'" + token.surface + "' is not allowed after '" + previousToken.surface + "'");
         }
         cir.setReturnValue(previousToken = token);
     }
