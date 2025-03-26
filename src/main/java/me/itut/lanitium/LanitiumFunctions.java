@@ -486,7 +486,7 @@ public class LanitiumFunctions {
                 try {
                     return it[0].next();
                 } catch (NoSuchElementException e) {
-                    throw new ThrowStatement(internalExceptionMap(e), ITERATION_END);
+                    throw new ThrowStatement(e.getMessage(), ITERATION_END);
                 }
             }),
             SimpleFunctionValue.run(() -> {
