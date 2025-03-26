@@ -429,6 +429,8 @@ public class LanitiumFunctions {
         Lanitium.COOKIE.setSecret(secret);
     }
 
+    private static final Throwables ITERATION_END = Throwables.register("iteration_end", Throwables.THROWN_EXCEPTION_TYPE);
+
     public static class CustomIterator extends LazyListValue {
         private final Context context;
         private final FunctionValue hasNext, next, reset;
@@ -452,7 +454,9 @@ public class LanitiumFunctions {
             try {
                 return next.callInContext(context, Context.NONE, List.of(state)).evalValue(context);
             } catch (ProcessedThrowStatement e) {
-                throw new NoSuchElementException(e.getMessage());
+                if (e.thrownExceptionType == ITERATION_END)
+                    throw new NoSuchElementException(e.getMessage());
+                else throw e;
             }
         }
 
@@ -470,6 +474,28 @@ public class LanitiumFunctions {
     @ScarpetFunction
     public static Value iterator(Context c, FunctionValue hasNext, FunctionValue next, FunctionValue reset, Value state) {
         return new CustomIterator(c, hasNext, next, reset, state);
+    }
+
+    @ScarpetFunction
+    public static Value iterate(AbstractListValue list) {
+        @SuppressWarnings("unchecked")
+        Iterator<Value>[] it = new Iterator[]{list.iterator()};
+        return ListValue.of(
+            SimpleFunctionValue.of(() -> BooleanValue.of(it[0].hasNext())),
+            SimpleFunctionValue.of(() -> {
+                try {
+                    return it[0].next();
+                } catch (NoSuchElementException e) {
+                    throw new ThrowStatement(internalExceptionMap(e), ITERATION_END);
+                }
+            }),
+            SimpleFunctionValue.run(() -> {
+                synchronized (list) {
+                    list.fatality();
+                    it[0] = list.iterator();
+                }
+            })
+        );
     }
 
     @ScarpetFunction
