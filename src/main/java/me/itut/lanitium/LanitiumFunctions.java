@@ -564,12 +564,31 @@ public class LanitiumFunctions {
         };
     }
 
+    /*
+    b = [];     ┌>( a )─┐
+    a = [b];    │       │
+    b += a;     └─( b )<┘
+
+    e = [];     ┌────>( c )──────┐
+    d = [e];    │                │
+    c = [d];    └─( e )<──( d )<─┘
+    e += c;
+
+    g = [];     ┌>( f )─┐
+    f = [g];    │       │
+    g += f;     └─( g )<┘
+
+    safe_equal(a, b) => true
+    safe_equal(a, c) => false
+    safe_equal(a, f) => true
+    safe_equal(c, e) => true
+    */
     @ScarpetFunction
     public static Value safe_equal(Value a, Value b) {
-        return BooleanValue.of(safeEqual(a, b, Collections.newSetFromMap(new IdentityHashMap<>())));
+        return BooleanValue.of(safeEqual(a, b, new IdentityHashMap<>(), new IdentityHashMap<>(), new int[1]));
     }
 
-    public static boolean safeEqual(Value a, Value b, Set<Object> traversed) {
+    public static boolean safeEqual(Value a, Value b, IdentityHashMap<Object, Integer> ta, IdentityHashMap<Object, Integer> tb, int[] counter) {
         if (a == b) return true;
         if (a instanceof ListValue != b instanceof ListValue
          || a instanceof MapValue != b instanceof MapValue)
@@ -578,38 +597,38 @@ public class LanitiumFunctions {
             case ListValue v -> {
                 List<Value> la = v.getItems(), lb = ((ListValue)b).getItems();
                 if (la == lb) yield true;
-                if (traversed.contains(la)) yield traversed.contains(lb);
-                if (traversed.contains(lb)) yield false;
+                if (ta.containsKey(la)) yield ta.get(la).equals(tb.get(lb));
+                if (tb.containsKey(lb)) yield false;
                 if (la.size() != lb.size()) yield false;
                 if (la.isEmpty()) yield true;
-                traversed.add(la);
-                traversed.add(lb);
+                ta.put(la, counter[0]);
+                tb.put(lb, counter[0]++);
                 for (Iterator<Value> ita = la.iterator(), itb = lb.iterator(); ita.hasNext();) {
                     Value ea = ita.next(), eb = itb.next();
-                    if (!safeEqual(ea, eb, traversed)) yield false;
+                    if (!safeEqual(ea, eb, ta, tb, counter)) yield false;
                 }
-                traversed.remove(la);
-                traversed.remove(lb);
+                ta.remove(la);
+                tb.remove(lb);
                 yield true;
             }
             case MapValue v -> {
                 Map<Value, Value> ma = v.getMap(), mb = ((MapValue)b).getMap();
                 if (ma == mb) yield true;
-                if (traversed.contains(ma)) yield traversed.contains(mb);
-                if (traversed.contains(mb)) yield false;
+                if (ta.containsKey(ma)) yield ta.get(ma).equals(tb.get(mb));
+                if (tb.containsKey(mb)) yield false;
                 if (ma.size() != mb.size()) yield false;
                 if (ma.isEmpty()) yield true;
-                traversed.add(ma);
-                traversed.add(mb);
+                ta.put(ma, counter[0]);
+                tb.put(mb, counter[0]++);
                 LinkedList<Map.Entry<Value, Value>> entries = new LinkedList<>(mb.entrySet().stream().toList());
-                for (Map.Entry<Value, Value> ea : ma.entrySet()) {
+                for (Map.Entry<Value, Value> ea : ma.entrySet()) { // O((n^2+n)/2) worst case
                     Value ka = ea.getKey(), va = ea.getValue();
                     @SuppressWarnings("unchecked")
                     Map.Entry<Value, Value>[] entry = new Map.Entry[] {null};
                     try {
                         entries.removeIf(eb -> {
-                            if (entry[0] != null || !safeEqual(ka, eb.getKey(), traversed)) return false;
-                            if (!safeEqual(va, eb.getValue(), traversed)) throw new SafeNotEqualException();
+                            if (entry[0] != null || !safeEqual(ka, eb.getKey(), ta, tb, counter)) return false;
+                            if (!safeEqual(va, eb.getValue(), ta, tb, counter)) throw new SafeNotEqualException();
                             entry[0] = eb;
                             return true;
                         });
@@ -619,8 +638,8 @@ public class LanitiumFunctions {
                     if (entry[0] == null) yield false;
                 }
                 assert entries.isEmpty();
-                traversed.remove(ma);
-                traversed.remove(mb);
+                ta.remove(ma);
+                tb.remove(mb);
                 yield true;
             }
             default -> a.equals(b);
