@@ -58,6 +58,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BinaryOperator;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -195,7 +197,7 @@ public class LanitiumFunctions {
             }
         });
 
-        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, false, type -> type, (c, t, l, r) -> l);
+        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l);
         expr.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
@@ -429,7 +431,7 @@ public class LanitiumFunctions {
         Lanitium.COOKIE.setSecret(secret);
     }
 
-    private static final Throwables ITERATION_END = Throwables.register("iteration_end", Throwables.THROWN_EXCEPTION_TYPE);
+    public static final Throwables ITERATION_END = Throwables.register("iteration_end", Throwables.THROWN_EXCEPTION_TYPE);
 
     public static class CustomIterator extends LazyListValue {
         private final Context context;
@@ -500,7 +502,176 @@ public class LanitiumFunctions {
 
     @ScarpetFunction
     public static Value symbol() {
-        return new Symbol();
+        return new Symbol(new Object());
+    }
+
+    @ScarpetFunction
+    public static Value identity_hash(Value v) {
+        return NumericValue.of(System.identityHashCode(v));
+    }
+
+    @ScarpetFunction
+    public static Value is_self_referential(Value container) {
+        return BooleanValue.of(isSelfReferential(container, Collections.newSetFromMap(new IdentityHashMap<>())));
+    }
+
+    public static boolean isSelfReferential(Value container, Set<Value> found) {
+        if (found.contains(container))
+            return true;
+        return switch (container) {
+            case ListValue list -> {
+                found.add(container);
+                if (list.getItems().stream().anyMatch(found::contains)) yield true;
+                found.remove(container);
+                yield false;
+            }
+            case MapValue map -> {
+                found.add(container);
+                if (map.getMap().entrySet().stream().anyMatch(e -> found.contains(e.getValue()) || found.contains(e.getKey()))) yield true;
+                found.remove(container);
+                yield false;
+            }
+            default -> false;
+        };
+    }
+
+    @ScarpetFunction
+    public static Value safe_str(Value container) {
+        return StringValue.of(safeString(container, Collections.newSetFromMap(new IdentityHashMap<>())));
+    }
+
+    public static String safeString(Value container, Set<Value> traversed) {
+        if (traversed.contains(container))
+            return container instanceof MapValue ? "{...}" : "[...]";
+        return switch (container) {
+            case ListValue l -> {
+                traversed.add(l);
+                try {
+                    yield "[" + l.getItems().stream().map(e -> safeString(e, traversed)).collect(Collectors.joining(", ")) + "]";
+                } finally {
+                    traversed.remove(l);
+                }
+            }
+            case MapValue m -> {
+                traversed.add(m);
+                try {
+                    yield "{" + m.getMap().entrySet().stream().map(e -> safeString(e.getKey(), traversed) + ": " + safeString(e.getValue(), traversed)).collect(Collectors.joining(", ")) + "}";
+                } finally {
+                    traversed.remove(m);
+                }
+            }
+            default -> container.getString();
+        };
+    }
+
+    @ScarpetFunction
+    public static Value safe_copy(Value container) {
+        return safeCopy(container, new IdentityHashMap<>());
+    }
+
+    private static Value safeCopy(Value container, IdentityHashMap<Value, Value> copied) {
+        if (copied.containsKey(container)) return copied.get(container);
+        return switch (container) {
+            case ListValue l -> {
+                List<Value> list = new ArrayList<>(l.length());
+                ListValue copy = ListValue.wrap(list);
+                copied.put(l, copy);
+                list.addAll(l.getItems().stream().map(e -> safeCopy(e, copied)).toList());
+                copied.remove(l);
+                yield copy;
+            }
+            case MapValue m -> {
+                Map<Value, Value> map = HashMap.newHashMap(m.length());
+                MapValue copy = MapValue.wrap(map);
+                copied.put(m, copy);
+                map.putAll(m.getMap().entrySet().stream().collect(Collectors.toMap(
+                    e -> safeCopy(e.getKey(), copied),
+                    e -> safeCopy(e.getValue(), copied)
+                )));
+                copied.remove(m);
+                yield copy;
+            }
+            default -> container.deepcopy();
+        };
+    }
+
+    /*
+    map_elem = (fn(e) -> e + 1);
+    map_key = (fn(k, v) -> k + 2);
+    map_value = (fn(k, v) -> v + 3);
+    safe_deep_map('str', map_elem, map_key, map_value) => 'str'
+    safe_deep_map(['str'], map_elem, map_key, map_value) => ['str1']
+    safe_deep_map({'a' -> 'b'}, map_elem, map_key, map_value) => {'a2' -> 'b3'}
+
+    loop_inner = [];
+    loop_outer = [loop_inner];
+    loop_inner += loop_outer;
+    print(loop_outer) => 'Your thoughts are too deep'
+    print(safe_str(loop_outer)) => '[[[...]]]'
+
+    loop_inner = {};
+    loop_list = [loop_inner];
+    loop_outer = {'a' -> loop_inner, 'b' -> loop_list};
+    loop_inner:'c' = loop_outer;
+    loop_inner:'d' = loop_list;
+    print(safe_str(loop_outer)) => '{a: {c: {...}, d: [{...}]}, b: [{c: {...}, d: [...]}]}'
+
+    { ─────────────────────────────────────────────────────────────┬─( outer )
+        a: { ────────────────────────────────────┬─( inner )       │
+            c: {...}, <-( outer )                │                 │
+                                                 │                 │
+            d: [ ───────────────────┬─( list )   │                 │
+                {...} <-( inner )   │            │                 │
+            ] ──────────────────────┘            │                 │
+        }, ──────────────────────────────────────┘                 │
+                                                                   │
+        b: [ ─────────────────────────────────────────┬─( list )   │
+            { ──────────────────────────┬─( inner )   │            │
+                c: {...}, <-( outer )   │             │            │
+                                        │             │            │
+                d: [...] <-( list )     │             │            │
+            } ──────────────────────────┘             │            │
+        ] ────────────────────────────────────────────┘            │
+    } ─────────────────────────────────────────────────────────────┘
+    */
+    @ScarpetFunction(maxParams = 5)
+    public static Value safe_deep_map(Context c, Context.Type t, Value container, FunctionValue lf, FunctionValue kf, FunctionValue vf, Optional<FunctionValue> ref) {
+        return safeDeepMap(container,
+            v -> lf.callInContext(c, t, List.of(v)).evalValue(c, t),
+            (k, v) -> kf.callInContext(c, t, List.of(k, v)).evalValue(c, t),
+            (k, v) -> vf.callInContext(c, t, List.of(k, v)).evalValue(c, t),
+            ref.map(f -> (BinaryOperator<Value>)(a, b) -> f.callInContext(c, t, List.of(a, b)).evalValue(c, t)).orElse((a, b) -> b),
+            new IdentityHashMap<>());
+    }
+
+    private static Value safeDeepMap(Value container, UnaryOperator<Value> lf, BinaryOperator<Value> kf, BinaryOperator<Value> vf, BinaryOperator<Value> ref, IdentityHashMap<Value, Value> mapped) {
+        return switch (container) {
+            case ListValue l -> {
+                if (mapped.containsKey(l)) yield ref.apply(l, mapped.get(l));
+                List<Value> list = new ArrayList<>(l.length());
+                ListValue copy = ListValue.wrap(list);
+                mapped.put(l, copy);
+                list.addAll(l.getItems().stream().map(v -> lf.apply(safeDeepMap(v, lf, kf, vf, ref, mapped))).toList());
+                mapped.remove(l);
+                yield copy;
+            }
+            case MapValue m -> {
+                if (mapped.containsKey(m)) yield ref.apply(m, mapped.get(m));
+                Map<Value, Value> map = HashMap.newHashMap(m.length());
+                MapValue copy = MapValue.wrap(map);
+                mapped.put(m, copy);
+                map.putAll(m.getMap().entrySet().stream().map(e -> new AbstractMap.SimpleEntry<>(
+                    safeDeepMap(e.getKey(), lf, kf, vf, ref, mapped),
+                    safeDeepMap(e.getValue(), lf, kf, vf, ref, mapped)
+                )).collect(Collectors.toMap(
+                    e -> kf.apply(e.getKey(), e.getValue()),
+                    e -> vf.apply(e.getKey(), e.getValue())
+                )));
+                mapped.remove(m);
+                yield copy;
+            }
+            default -> container;
+        };
     }
 
     @ScarpetFunction

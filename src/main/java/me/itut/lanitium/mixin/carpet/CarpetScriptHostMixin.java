@@ -23,13 +23,10 @@ import java.util.function.Consumer;
 
 @Mixin(value = CarpetScriptHost.class, remap = false)
 public abstract class CarpetScriptHostMixin {
-    @Shadow
-    public Map<Value, Value> appConfig;
-    @Shadow
-    boolean hasCommand;
+    @Shadow public Map<Value, Value> appConfig;
+    @Shadow boolean hasCommand;
 
-    @Shadow
-    public abstract CarpetScriptServer scriptServer();
+    @Shadow public abstract CarpetScriptServer scriptServer();
 
     @Inject(method = "addAppCommands", at = @At(value = "INVOKE", target = "Lcarpet/script/CarpetScriptHost;readCommands(Ljava/util/function/Predicate;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;"), cancellable = true)
     private void brokenNeck(Consumer<Component> notifier, CallbackInfoReturnable<Boolean> cir) throws CommandSyntaxException {

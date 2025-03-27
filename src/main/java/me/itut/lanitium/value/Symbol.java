@@ -7,7 +7,11 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
 public class Symbol extends Value {
-    private final Object symbol = new Object();
+    private final Object symbol;
+
+    public Symbol(Object symbol) {
+        this.symbol = symbol;
+    }
 
     @Override
     public String getString() {

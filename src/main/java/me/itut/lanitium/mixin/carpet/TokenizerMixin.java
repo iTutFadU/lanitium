@@ -4,6 +4,7 @@ import carpet.script.Context;
 import carpet.script.Expression;
 import carpet.script.Tokenizer;
 import carpet.script.exception.ExpressionException;
+import com.mojang.brigadier.context.StringRange;
 import me.itut.lanitium.internal.carpet.TokenInterface;
 import me.itut.lanitium.internal.carpet.TokenTypeInterface;
 import org.spongepowered.asm.mixin.Final;
@@ -208,9 +209,7 @@ public abstract class TokenizerMixin {
                     }
                 }
 
-                record LineRange(int start, int end) {}
-
-                List<LineRange> lines = new ArrayList<>();
+                List<StringRange> lines = new ArrayList<>();
                 int indentStart;
                 w: while (true) {
                     if (++pos == input.length() && expression != null && context != null) {
@@ -222,7 +221,7 @@ public abstract class TokenizerMixin {
                     ch = input.charAt(pos);
                     while (Character.isWhitespace(ch)) {
                         if (ch == '\n') {
-                            lines.add(new LineRange(start, pos));
+                            lines.add(StringRange.between(start, pos));
                             continue w;
                         }
                         if (++pos == input.length() && expression != null && context != null) {
@@ -240,7 +239,7 @@ public abstract class TokenizerMixin {
                     while (pos < input.length()) {
                         ch = input.charAt(pos++);
                         if (ch == '\n') {
-                            lines.add(new LineRange(start, pos));
+                            lines.add(StringRange.between(start, pos));
                             break;
                         } else if (ch == '\\') escapeCode(token);
                         linepos++;
@@ -252,9 +251,9 @@ public abstract class TokenizerMixin {
                 }
 
                 String indent = input.substring(indentStart, pos);
-                for (Iterator<LineRange> it = lines.iterator(); it.hasNext();) {
-                    LineRange line = it.next();
-                    token.append(input.substring(line.start + dedent(input, line.start, line.end, indent)));
+                for (Iterator<StringRange> it = lines.iterator(); it.hasNext();) {
+                    StringRange line = it.next();
+                    token.append(input.substring(line.getStart() + dedent(input, line.getStart(), line.getEnd(), indent)));
                     if (it.hasNext()) token.append('\n');
                 }
                 pos += 2;

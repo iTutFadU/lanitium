@@ -173,17 +173,17 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
 
     @Override
     public Iterator<Value> iterator() {
-        final ByteBuffer iter = buffer.asReadOnlyBuffer().rewind();
+        final ByteBuffer it = buffer.asReadOnlyBuffer().rewind();
         return new Iterator<>() {
             @Override
             public boolean hasNext() {
-                return iter.hasRemaining();
+                return it.hasRemaining();
             }
 
             @Override
             public Value next() {
                 if (!hasNext()) throw new NoSuchElementException();
-                return NumericValue.of(iter.get());
+                return NumericValue.of(it.get());
             }
         };
     }
