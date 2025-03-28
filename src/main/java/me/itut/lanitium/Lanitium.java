@@ -4,7 +4,9 @@ import carpet.CarpetExtension;
 import carpet.CarpetServer;
 import carpet.script.CarpetExpression;
 import carpet.script.annotation.AnnotationParser;
-import carpet.script.annotation.ValueCaster;
+import carpet.script.annotation.SimpleTypeConverter;
+import carpet.script.exception.InternalExpressionException;
+import carpet.script.value.Value;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -14,8 +16,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import me.itut.lanitium.config.Config;
 import me.itut.lanitium.config.ConfigManager;
+import me.itut.lanitium.function.*;
 import me.itut.lanitium.value.ByteBufferValue;
-import me.itut.lanitium.value.FutureValue;
 import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -33,6 +35,7 @@ import net.minecraft.server.players.ServerOpListEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.util.Collection;
 
 public class Lanitium implements ModInitializer, CarpetExtension {
@@ -43,13 +46,24 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 
 	@Override
 	public void onInitialize() {
-		CONFIG_MANAGER.load();
-		CONFIG = CONFIG_MANAGER.config();
+		CONFIG = CONFIG_MANAGER.load();
 
 		CarpetServer.manageExtension(this);
-		ValueCaster.register(FutureValue.class, "future");
-		ValueCaster.register(ByteBufferValue.class, "byte_buffer");
-        AnnotationParser.parseFunctionClass(LanitiumFunctions.class);
+
+		SimpleTypeConverter.registerType(Value.class, ByteBuffer.class, v -> {
+			try {
+				return ByteBufferValue.from(v);
+			} catch (InternalExpressionException ignored) {
+				return null;
+			}
+		}, "byte buffer");
+
+        AnnotationParser.parseFunctionClass(Apply.class);
+        AnnotationParser.parseFunctionClass(DataStructures.class);
+        AnnotationParser.parseFunctionClass(Encoding.class);
+        AnnotationParser.parseFunctionClass(Protocol.class);
+        AnnotationParser.parseFunctionClass(Server.class);
+        AnnotationParser.parseFunctionClass(Symbols.class);
 
 		registerCommands();
         LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());
@@ -57,7 +71,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 
 	@Override
 	public void scarpetApi(CarpetExpression expr) {
-		LanitiumFunctions.apply(expr.getExpr());
+		Apply.apply(expr.getExpr());
 	}
 
 	private void registerCommands() {
@@ -66,8 +80,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 				.requires(source -> source.hasPermission(2))
 				.then(Commands.literal("reload")
 					.executes(ctx -> {
-						CONFIG_MANAGER.load();
-						CONFIG = CONFIG_MANAGER.config();
+						CONFIG = CONFIG_MANAGER.load();
 						ctx.getSource().sendSuccess(() -> Component.literal("Lanitium configuration reloaded"), true);
 						return 1;
 					})

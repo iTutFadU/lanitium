@@ -5,7 +5,7 @@ import net.minecraft.nbt.Tag;
 import java.util.Map;
 
 public class LanitiumCookie {
-    static final LanitiumCookie EMPTY = new LanitiumCookie();
+    public static final LanitiumCookie EMPTY = new LanitiumCookie();
 
     public final Map<String, Tag> cookie;
 

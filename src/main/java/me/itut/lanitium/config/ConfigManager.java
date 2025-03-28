@@ -25,7 +25,7 @@ public class ConfigManager {
         return config;
     }
 
-    public void load() {
+    public Config load() {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(configFile)));
             config = GSON.fromJson(reader, Config.class);
@@ -35,6 +35,7 @@ public class ConfigManager {
             config.fillDefaults();
             save();
         }
+        return config;
     }
 
     public void save() {
