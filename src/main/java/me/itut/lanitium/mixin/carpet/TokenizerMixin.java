@@ -16,9 +16,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Mixin(value = Tokenizer.class, remap = false)
 public abstract class TokenizerMixin {
@@ -28,11 +28,15 @@ public abstract class TokenizerMixin {
     @Shadow private int linepos;
     @Shadow private int lineno;
     @Shadow protected abstract char peekNextChar();
-    @Shadow protected abstract boolean isHexDigit(char ch);
     @Shadow @Final private Expression expression;
     @Shadow @Final private Context context;
     @Shadow @Final private boolean comments;
     @Shadow @Final private boolean newLinesMarkers;
+
+    @Shadow
+    private static boolean isSemicolon(Tokenizer.Token tok) {
+        return false;
+    }
 
     @Unique
     private void escapeCode(Tokenizer.Token token) {
@@ -329,7 +333,7 @@ public abstract class TokenizerMixin {
                 pos--;
                 linepos--;
             }
-            TokenInterface.setType(token, ch == '(' ? TokenTypeInterface.FUNCTION : TokenTypeInterface.VARIABLE);
+            TokenInterface.setType(token, ch == '(' || ch == '{' || ch == '\'' || ch == '#' ? TokenTypeInterface.FUNCTION : TokenTypeInterface.VARIABLE);
         } else if (ch == '(' || ch == ')' || ch == ',' || ch == '{' || ch == '}' || ch == '[' || ch == ']') {
             TokenInterface.setType(token, switch (ch) {
                 case '(' -> TokenTypeInterface.OPEN_PAREN;
@@ -438,11 +442,9 @@ public abstract class TokenizerMixin {
                 type == TokenTypeInterface.HEX_LITERAL ||
                 type == TokenTypeInterface.VARIABLE ||
                 type == TokenTypeInterface.STRINGPARAM ||
-                type == TokenTypeInterface.MARKER && (previousToken.surface.equals("{") || previousToken.surface.equals("[")) ||
                 type == TokenTypeInterface.FUNCTION
             ) && (
                 prevType == TokenTypeInterface.VARIABLE ||
-                prevType == TokenTypeInterface.FUNCTION ||
                 prevType == TokenTypeInterface.LITERAL ||
                 prevType == TokenTypeInterface.CLOSE_PAREN ||
                 prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("}") || previousToken.surface.equals("]")) ||
@@ -453,5 +455,87 @@ public abstract class TokenizerMixin {
             throw new ExpressionException(context, expression, previousToken, "'" + token.surface + "' is not allowed after '" + previousToken.surface + "'");
         }
         cir.setReturnValue(previousToken = token);
+    }
+
+    @Inject(method = "postProcess", at = @At("HEAD"), cancellable = true)
+    private void postProcess(CallbackInfoReturnable<List<Tokenizer.Token>> cir) {
+        Iterable<Tokenizer.Token> iterable = () -> (Tokenizer)(Object)this;
+        List<Tokenizer.Token> originalTokens = StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
+        List<Tokenizer.Token> cleanedTokens = new ArrayList<>();
+        Tokenizer.Token last = null;
+        Stack<Integer> bracketStack = new Stack<>();
+        while (!originalTokens.isEmpty()) {
+            Tokenizer.Token current = originalTokens.removeLast();
+            TokenTypeInterface currentType = ((TokenInterface)current).lanitium$type();
+            if (currentType == TokenTypeInterface.MARKER && current.surface.startsWith("/"))
+                continue;
+            // skipping comments
+            TokenTypeInterface lastType = last != null ? ((TokenInterface)last).lanitium$type() : null;
+            if (!isSemicolon(current)
+                || (last != null && lastType != TokenTypeInterface.CLOSE_PAREN && lastType != TokenTypeInterface.COMMA && !isSemicolon(last))) {
+                if (isSemicolon(current)) {
+                    current.surface = ";";
+                    ((TokenInterface)current).lanitium$setType(TokenTypeInterface.OPERATOR);
+                }
+
+                if (currentType == TokenTypeInterface.OPEN_PAREN) {
+                    if (!bracketStack.isEmpty()) bracketStack.pop();
+                } else if (currentType == TokenTypeInterface.CLOSE_PAREN) {
+                    bracketStack.push(cleanedTokens.size());
+                } else if (currentType == TokenTypeInterface.MARKER) switch (current.surface) {
+                    case "{" -> {
+                        cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
+                        ((TokenInterface)current).lanitium$morph(TokenTypeInterface.FUNCTION, "m");
+
+                        if (bracketStack.isEmpty()) break;
+                        int bracket = bracketStack.pop();
+
+                        if (!originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.FUNCTION) {
+                            cleanedTokens.add(bracket + 1, cleanedTokens.get(bracket));
+                            cleanedTokens.add(current);
+                            cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
+                            last = current;
+                            continue;
+                        }
+                    }
+                    case "[" -> {
+                        cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
+
+                        if (!bracketStack.isEmpty()) bracketStack.pop();
+
+                        if (!originalTokens.isEmpty()) {
+                            Tokenizer.Token prev = originalTokens.getLast();
+                            TokenTypeInterface prevType = ((TokenInterface)prev).lanitium$type();
+                            if (prevType == TokenTypeInterface.VARIABLE
+                             || prevType == TokenTypeInterface.LITERAL
+                             || prevType == TokenTypeInterface.HEX_LITERAL
+                             || prevType == TokenTypeInterface.STRINGPARAM
+                             || prevType == TokenTypeInterface.CLOSE_PAREN
+                             || prevType == TokenTypeInterface.MARKER
+                             && prev.surface.equals("]") || prev.surface.equals("}")) {
+                                ((TokenInterface)current).lanitium$morph(TokenTypeInterface.OPERATOR, ":");
+                                break;
+                            }
+                        }
+                        ((TokenInterface)current).lanitium$morph(TokenTypeInterface.FUNCTION, "l");
+                    }
+                    case "}", "]" -> {
+                        ((TokenInterface)current).lanitium$morph(TokenTypeInterface.CLOSE_PAREN, ")");
+                        bracketStack.push(cleanedTokens.size());
+                    }
+                } else if (currentType == TokenTypeInterface.STRINGPARAM && !originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.FUNCTION) {
+                    cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.CLOSE_PAREN, ")"));
+                    cleanedTokens.add(current);
+                    cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
+                    last = current;
+                    continue;
+                }
+                cleanedTokens.add(current);
+            }
+            if (currentType != TokenTypeInterface.MARKER || !current.surface.equals("$"))
+                last = current;
+        }
+        Collections.reverse(cleanedTokens);
+        cir.setReturnValue(cleanedTokens);
     }
 }

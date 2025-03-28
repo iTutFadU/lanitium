@@ -2,6 +2,7 @@ package me.itut.lanitium;
 
 import carpet.script.*;
 import carpet.script.annotation.Locator;
+import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.argument.BlockArgument;
 import carpet.script.argument.Vector3Argument;
@@ -15,6 +16,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
+import me.itut.lanitium.internal.carpet.FunctionValueInterface;
 import me.itut.lanitium.internal.carpet.NBTSerializableValueInterface;
 import me.itut.lanitium.internal.carpet.VanillaArgument;
 import me.itut.lanitium.value.*;
@@ -203,9 +205,13 @@ public class LanitiumFunctions {
             if (left instanceof WithValue with)
                 return with.with(c, t, r);
             Value right = r.evalValue(c, t);
-            if (!(right instanceof ListValue args))
-                throw new InternalExpressionException("'\\' must have a list on the RHS");
-            Value[] values = args.getItems().toArray(Value[]::new), callArgs = new Value[values.length + 1];
+
+            Value[] values;
+            if (right instanceof ListValue args) values = args.getItems().toArray(Value[]::new);
+            else if (right instanceof StringValue || right instanceof MapValue) values = new Value[]{right};
+            else throw new InternalExpressionException("'\\' must have a list, a string, or a map on the RHS");
+
+            Value[] callArgs = new Value[values.length + 1];
             callArgs[0] = left;
             System.arraycopy(values, 0, callArgs, 1, values.length);
             return call.lazyEval(c, t, expr, Tokenizer.Token.NONE, Arrays.stream(callArgs).map(v -> (LazyValue)(cc, tt) -> v).toList());
@@ -768,6 +774,19 @@ public class LanitiumFunctions {
         return new ThreadLocalValue(c, initial);
     }
 
+    @ScarpetFunction(maxParams = -1)
+    public static Value inject(FunctionValue fn, @Param.KeyValuePairs Map<String, Value> vars) {
+        Value clone = fn.deepcopy();
+        ((FunctionValueInterface)clone).lanitium$inject(vars.entrySet().stream().collect(Collectors.toMap(
+            Map.Entry::getKey,
+            e -> {
+                Value bound = e.getValue().reboundedTo(e.getKey());
+                return (c, t) -> bound;
+            }
+        )));
+        return clone;
+    }
+
     @ScarpetFunction(maxParams = 1)
     public static void display_server_motd(Optional<Value> motd) {
         Lanitium.CONFIG.displayMotd = motd.map(FormattedTextValue::getTextByValue).orElse(null);
@@ -898,6 +917,11 @@ public class LanitiumFunctions {
         } catch (NumberFormatException e) {
             return Value.NULL;
         }
+    }
+
+    @ScarpetFunction
+    public static Value to_nbt(Context c, Value v) {
+        return NBTSerializableValue.of(v.toTag(true, ((CarpetContext)c).registryAccess()));
     }
 
     @ScarpetFunction

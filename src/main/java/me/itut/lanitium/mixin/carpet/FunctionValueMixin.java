@@ -8,13 +8,16 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Mixin(value = FunctionValue.class, remap = false)
 public abstract class FunctionValueMixin implements FunctionValueInterface {
     @Shadow @Final private LazyValue body;
     @Shadow @Final private List<String> args;
     @Shadow @Final private String varArgs;
+    @Shadow @Nullable private Map<String, LazyValue> outerState;
 
     @Override
     public LazyValue lanitium$body() {
@@ -29,5 +32,13 @@ public abstract class FunctionValueMixin implements FunctionValueInterface {
     @Override
     public @Nullable String lanitium$varArgs() {
         return varArgs;
+    }
+
+    @Override
+    public void lanitium$inject(Map<String, LazyValue> state) {
+        if (outerState != null)
+            outerState.putAll(state);
+        else
+            outerState = new HashMap<>(state);
     }
 }
