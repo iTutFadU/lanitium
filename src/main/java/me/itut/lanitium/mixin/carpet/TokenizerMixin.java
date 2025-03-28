@@ -48,7 +48,6 @@ public abstract class TokenizerMixin {
             case 'f' -> token.append('\f');
             case 'b' -> token.append('\b');
             case 's' -> token.append(' ');
-            case '\\', '\'' -> token.append(nextChar);
             default -> {
                 if (nextChar == 'x' && pos + 2 < input.length() && input.charAt(pos + 1) != '+') try {
                     token.append((char)Integer.parseUnsignedInt(input, pos + 1, pos + 3, 16));
@@ -69,27 +68,25 @@ public abstract class TokenizerMixin {
                     break;
                 } catch (NumberFormatException ignored) {}
                 else N: if (nextChar == 'N' && pos + 3 < input.length() && input.charAt(pos + 1) == '{') try {
-                        int start = pos + 2, end;
-                        for (int i = start ;; i++) {
-                            if (i == input.length()) break N;
-                            char c = input.charAt(i);
-                            if (c == '}') {
-                                end = i;
-                                break;
-                            } if (c != ' ' && c != '_' && c != '-' && !Character.isDigit(c) && !Character.isLetter(c)) break N;
-                        }
-                        token.append(Character.toString(Character.codePointOf(input.substring(start, end))));
-                        linepos += end - pos;
-                        pos = end;
-                        return;
-                    } catch (IllegalArgumentException ignored) {}
-                pos++;
-                linepos++;
-                return;
+                    int start = pos + 2, end;
+                    for (int i = start ;; i++) {
+                        if (i == input.length()) break N;
+                        char c = input.charAt(i);
+                        if (c == '}') {
+                            end = i;
+                            break;
+                        } if (c != ' ' && c != '_' && c != '-' && !Character.isDigit(c) && !Character.isLetter(c)) break N;
+                    }
+                    token.append(Character.toString(Character.codePointOf(input.substring(start, end))));
+                    linepos += end - pos;
+                    pos = end;
+                    break;
+                } catch (IllegalArgumentException ignored) {}
+                token.append(nextChar);
             }
         }
-        pos += 2;
-        linepos += 2;
+        pos++;
+        linepos++;
     }
 
     @Unique
@@ -209,7 +206,7 @@ public abstract class TokenizerMixin {
                         }
                     } else if (Character.isWhitespace(ch)) continue;
                     if (expression != null && context != null) {
-                        throw new ExpressionException(context, expression, token, "Only comments are allowed here");
+                        throw new ExpressionException(context, expression, token, "Only comments are allowed on the starting line of multiline strings");
                     }
                 }
 
@@ -242,11 +239,11 @@ public abstract class TokenizerMixin {
 
                     while (pos < input.length()) {
                         ch = input.charAt(pos++);
+                        linepos++;
                         if (ch == '\n') {
                             lines.add(StringRange.between(start, pos));
                             break;
                         } else if (ch == '\\') escapeCode(token);
-                        linepos++;
                     }
 
                     if (expression != null && context != null) {
