@@ -49,26 +49,26 @@ public abstract class TokenizerMixin {
             case 'b' -> token.append('\b');
             case 's' -> token.append(' ');
             default -> {
-                if (nextChar == 'x' && pos + 2 < input.length() && input.charAt(pos + 1) != '+') try {
-                    token.append((char)Integer.parseUnsignedInt(input, pos + 1, pos + 3, 16));
+                if (nextChar == 'x' && pos + 3 < input.length() && input.charAt(pos + 2) != '+') try {
+                    token.append((char)Integer.parseUnsignedInt(input, pos + 2, pos + 4, 16));
                     pos += 2;
                     linepos += 2;
                     break;
                 } catch (NumberFormatException ignored) {}
-                else if (nextChar == 'u' && pos + 4 < input.length() && input.charAt(pos + 1) != '+') try {
-                    token.append((char)Integer.parseUnsignedInt(input, pos + 1, pos + 5, 16));
+                else if (nextChar == 'u' && pos + 5 < input.length() && input.charAt(pos + 2) != '+') try {
+                    token.append((char)Integer.parseUnsignedInt(input, pos + 2, pos + 6, 16));
                     pos += 4;
                     linepos += 4;
                     break;
                 } catch (NumberFormatException ignored) {}
-                else if (nextChar == 'U' && pos + 8 < input.length() && input.charAt(pos + 1) != '+') try {
-                    token.append(Character.toString(Integer.parseUnsignedInt(input, pos + 1, pos + 9, 16)));
+                else if (nextChar == 'U' && pos + 9 < input.length() && input.charAt(pos + 2) != '+') try {
+                    token.append(Character.toString(Integer.parseUnsignedInt(input, pos + 2, pos + 10, 16)));
                     pos += 8;
                     linepos += 8;
                     break;
                 } catch (NumberFormatException ignored) {}
-                else N: if (nextChar == 'N' && pos + 3 < input.length() && input.charAt(pos + 1) == '{') try {
-                    int start = pos + 2, end;
+                else N: if (nextChar == 'N' && pos + 4 < input.length() && input.charAt(pos + 2) == '{') try {
+                    int start = pos + 3, end;
                     for (int i = start ;; i++) {
                         if (i == input.length()) break N;
                         char c = input.charAt(i);
@@ -125,6 +125,7 @@ public abstract class TokenizerMixin {
                 if (peekNextChar() == 'x' || peekNextChar() == 'X') hex = true;
                 else if (peekNextChar() == 'b' || peekNextChar() == 'B') bin = true;
                 else dec = true;
+            else dec = true;
 
             while (ch == '_' || Character.isDigit(ch)
                 || hex && (ch >= 'a' && ch <= 'f' || ch >= 'A' && ch <= 'F' || ch == 'x' || ch == 'X')
