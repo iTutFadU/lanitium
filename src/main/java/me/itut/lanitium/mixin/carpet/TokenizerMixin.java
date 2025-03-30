@@ -75,12 +75,13 @@ public abstract class TokenizerMixin {
                         if (c == '}') {
                             end = i;
                             break;
-                        } if (c != ' ' && c != '_' && c != '-' && !Character.isDigit(c) && !Character.isLetter(c)) break N;
+                        }
+                        if (c != ' ' && c != '_' && c != '-' && !Character.isDigit(c) && !Character.isLetter(c)) break N;
                     }
                     token.append(Character.toString(Character.codePointOf(input.substring(start, end))));
                     linepos += end - pos;
                     pos = end;
-                    break;
+                    return;
                 } catch (IllegalArgumentException ignored) {}
                 token.append(nextChar);
             }
@@ -239,12 +240,13 @@ public abstract class TokenizerMixin {
                     }
 
                     while (pos < input.length()) {
-                        ch = input.charAt(pos++);
-                        linepos++;
+                        ch = input.charAt(pos);
                         if (ch == '\n') {
                             lines.add(StringRange.between(start, pos));
                             break;
                         } else if (ch == '\\') escapeCode(token);
+                        pos++;
+                        linepos++;
                     }
 
                     if (expression != null && context != null) {

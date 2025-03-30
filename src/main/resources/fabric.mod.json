@@ -26,9 +26,16 @@
 	"accessWidener": "lanitium.accesswidener",
 	"depends": {
 		"fabricloader": ">=0.16.9",
-		"minecraft": "^1.21.4",
+		"minecraft": "1.21.4",
 		"java": ">=21",
 		"fabric-api": "*",
 		"carpet": "*"
+	},
+	"custom": {
+		"modmenu": {
+			"links": {
+				"modmenu.wiki": "https://github.com/iTutFadU/lanitium/wiki"
+			}
+		}
 	}
 }

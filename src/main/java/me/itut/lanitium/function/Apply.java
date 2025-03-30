@@ -187,7 +187,7 @@ public class Apply {
             }
         });
 
-        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l);
+//        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l); // TODO: Add types to syntax
         expr.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
@@ -204,7 +204,7 @@ public class Apply {
             System.arraycopy(values, 0, callArgs, 1, values.length);
             return call.lazyEval(c, t, expr, Tokenizer.Token.NONE, Arrays.stream(callArgs).map(v -> (LazyValue)(cc, tt) -> v).toList());
         });
-        expr.addLazyFunction("all_then", -1, (c, t, lv) -> {
+        expr.addLazyFunction("do_all", -1, (c, t, lv) -> {
             int imax = lv.size() - 1;
             Throwable error = null;
 
