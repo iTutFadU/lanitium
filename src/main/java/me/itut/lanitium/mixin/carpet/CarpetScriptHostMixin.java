@@ -29,7 +29,7 @@ public abstract class CarpetScriptHostMixin {
     @Shadow public abstract CarpetScriptServer scriptServer();
 
     @Inject(method = "addAppCommands", at = @At(value = "INVOKE", target = "Lcarpet/script/CarpetScriptHost;readCommands(Ljava/util/function/Predicate;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;"), cancellable = true)
-    private void brokenNeck(Consumer<Component> notifier, CallbackInfoReturnable<Boolean> cir) throws CommandSyntaxException {
+    private void brigadierCommand(Consumer<Component> notifier, CallbackInfoReturnable<Boolean> cir) throws CommandSyntaxException {
         if (!appConfig.getOrDefault(StringValue.of("brigadier"), Value.FALSE).getBoolean()) return;
 
         cir.setReturnValue(false);

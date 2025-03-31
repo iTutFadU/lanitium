@@ -4,7 +4,6 @@ import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.exception.ProcessedThrowStatement;
-import carpet.script.exception.Throwables;
 import carpet.script.value.*;
 import me.itut.lanitium.value.ByteBufferValue;
 import me.itut.lanitium.value.FutureValue;
@@ -17,8 +16,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 
 public class DataStructures {
-    public static final Throwables ITERATION_END = Throwables.register("iteration_end", Throwables.THROWN_EXCEPTION_TYPE);
-
     public static class CustomIterator extends LazyListValue {
         private final Context context;
         private final FunctionValue hasNext, next, reset;
@@ -42,7 +39,7 @@ public class DataStructures {
             try {
                 return next.callInContext(context, Context.NONE, List.of(state)).evalValue(context);
             } catch (ProcessedThrowStatement e) {
-                if (e.thrownExceptionType == ITERATION_END)
+                if (e.thrownExceptionType == Apply.ITERATION_END)
                     throw new NoSuchElementException(e.getMessage());
                 else throw e;
             }

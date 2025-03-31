@@ -58,6 +58,8 @@ import java.util.stream.Collectors;
 import static me.itut.lanitium.internal.carpet.SystemInfoInterface.options;
 
 public class Apply {
+    public static final Throwables ITERATION_END = Throwables.register("iteration_end", Throwables.THROWN_EXCEPTION_TYPE);
+
     static {
         options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
@@ -402,7 +404,7 @@ public class Apply {
                 try {
                     return it[0].next();
                 } catch (NoSuchElementException e) {
-                    throw new ThrowStatement(e.getMessage(), DataStructures.ITERATION_END);
+                    throw new ThrowStatement(e.getMessage(), ITERATION_END);
                 }
             }),
             SimpleFunctionValue.run(() -> {

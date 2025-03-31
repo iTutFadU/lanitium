@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 public class CommandParser {
     public static CommandNode<CommandSourceStack> parseCommand(CarpetScriptHost host, Map<String, Value> branches, Map<String, Value> requirements) throws CommandSyntaxException {
-        return Node.construct(host, branches, requirements).brainfuck(host);
+        return Node.construct(host, branches, requirements).createCommand(host);
     }
 
     public static Predicate<CommandSourceStack> parseRequirement(CarpetScriptHost host, Value value) throws CommandSyntaxException {
@@ -154,7 +154,7 @@ public class CommandParser {
             children.clear();
         }
 
-        public CommandNode<CommandSourceStack> brainfuck(CarpetScriptHost host) throws CommandSyntaxException {
+        public CommandNode<CommandSourceStack> createCommand(CarpetScriptHost host) throws CommandSyntaxException {
             CommandNode<CommandSourceStack> node;
             String commandName = host.getName();
             Command<CommandSourceStack> command = null;
@@ -209,7 +209,7 @@ public class CommandParser {
             } else
                 node = new LiteralCommandNode<>(name, command, requirement, null, null, false);
 
-            for (Node child : children.values()) node.addChild(child.brainfuck(host));
+            for (Node child : children.values()) node.addChild(child.createCommand(host));
             return node;
         }
 
