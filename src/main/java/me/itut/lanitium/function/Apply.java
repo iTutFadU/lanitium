@@ -1,6 +1,7 @@
 package me.itut.lanitium.function;
 
 import carpet.script.*;
+import carpet.script.Module;
 import carpet.script.annotation.Locator;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
@@ -13,10 +14,7 @@ import carpet.script.value.*;
 import com.google.gson.JsonParseException;
 import me.itut.lanitium.Emoticons;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
-import me.itut.lanitium.internal.carpet.ExpressionInterface;
-import me.itut.lanitium.internal.carpet.FunctionValueInterface;
-import me.itut.lanitium.internal.carpet.NBTSerializableValueInterface;
-import me.itut.lanitium.internal.carpet.VanillaArgument;
+import me.itut.lanitium.internal.carpet.*;
 import me.itut.lanitium.value.Constants;
 import me.itut.lanitium.value.SimpleFunctionValue;
 import me.itut.lanitium.value.SourceValue;
@@ -51,9 +49,11 @@ import net.minecraft.world.level.SimpleExplosionDamageCalculator;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static me.itut.lanitium.internal.carpet.SystemInfoInterface.options;
 
@@ -382,6 +382,14 @@ public class Apply {
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
+
+        expr.addContextFunction("define_as", 2, (c, t, lv) -> {
+            String name = lv.getFirst().getString();
+            if (!(lv.get(1) instanceof FunctionValue fn))
+                throw new InternalExpressionException("Second argument to 'define_as' must be a function");
+            c.host.addUserDefinedFunction(c, expr.module, name, fn);
+            return fn;
+        });
     }
 
     @ScarpetFunction
@@ -427,6 +435,32 @@ public class Apply {
             }
         )));
         return clone;
+    }
+
+    @ScarpetFunction
+    public static Value func(Context c, String name) {
+        return c.host.getFunction(name) instanceof FunctionValue fn ? fn : Value.NULL;
+    }
+
+    @ScarpetFunction(maxParams = -1)
+    public static Value import_dynamic(Context c, String module, String... args) {
+        c.host.importModule(c, module.toLowerCase(Locale.ROOT));
+        Module source = ((ScriptHostInterface)c.host).lanitium$modules().get(module);
+        ScriptHost.ModuleData sourceData = ((ScriptHostInterface)c.host).lanitium$moduleData().get(source);
+        if (sourceData == null) {
+            throw new InternalExpressionException("Cannot import from module that is not imported");
+        }
+
+        return MapValue.wrap(Arrays.stream(args).flatMap(arg ->
+            sourceData.globalFunctions.containsKey(arg) ? Stream.of(Pair.of(arg, sourceData.globalFunctions.get(arg)))
+          : sourceData.globalVariables.containsKey(arg) ? Stream.of(Pair.of(arg, sourceData.globalVariables.get(arg).evalValue(c)))
+          : Stream.empty()
+        ).collect(Collectors.toMap(pair -> StringValue.of(pair.getLeft()), Pair::getRight)));
+    }
+
+    @ScarpetFunction
+    public static void unload_module(Context c, String module) {
+        ((ScriptHostInterface)c.host).lanitium$moduleData().remove(((ScriptHostInterface)c.host).lanitium$modules().remove(module));
     }
 
     @ScarpetFunction

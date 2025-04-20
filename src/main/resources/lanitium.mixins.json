@@ -17,6 +17,7 @@
         "carpet.ExpressionMixin",
         "carpet.FunctionValueMixin",
         "carpet.NBTSerializableValueMixin",
+        "carpet.ScriptHostMixin",
         "carpet.SystemInfoMixin",
         "carpet.TokenizerMixin",
         "carpet.TokenMixin",
