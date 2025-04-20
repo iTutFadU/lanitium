@@ -278,15 +278,15 @@ public abstract class TokenizerMixin {
             pos++;
             linepos++;
         } else if (ch == '#') {
-            int count = pos;
+            int count = 0;
             while (ch == '#') {
+                count++;
                 if (++pos == input.length() && expression != null && context != null) {
                     throw new ExpressionException(context, expression, token, "Program truncated");
                 }
                 linepos++;
                 ch = input.charAt(pos);
             }
-            count = pos - count;
 
             if (ch != '\'' && expression != null && context != null) {
                 throw new ExpressionException(context, expression, token, "Only a string can be raw");
@@ -306,8 +306,8 @@ public abstract class TokenizerMixin {
                     if (pos + count >= input.length() && expression != null && context != null) {
                         throw new ExpressionException(context, expression, token, "Program truncated");
                     } else {
-                        for (int i = 0; i < count; i++)
-                            if (input.charAt(i) != '#')
+                        for (int i = 1; i <= count; i++)
+                            if (input.charAt(pos + i) != '#')
                                 continue s;
                         break;
                     }
