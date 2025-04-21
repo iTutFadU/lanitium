@@ -19,6 +19,7 @@ import me.itut.lanitium.value.Constants;
 import me.itut.lanitium.value.SimpleFunctionValue;
 import me.itut.lanitium.value.SourceValue;
 import me.itut.lanitium.value.WithValue;
+import me.itut.lanitium.value.pattern.*;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.ComponentArgument;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
@@ -283,6 +284,9 @@ public class Apply {
             }
             Value finalOutput = output;
             return (cc, tt) -> finalOutput;
+        });
+        expr.addImpureUnaryFunction("panic", v -> {
+            throw new InternalExpressionException(v.getString());
         });
 
         expr.addLazyFunction("as_entity", 2, (c, t, lv) -> {

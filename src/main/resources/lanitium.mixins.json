@@ -21,7 +21,8 @@
         "carpet.SystemInfoMixin",
         "carpet.TokenizerMixin",
         "carpet.TokenMixin",
-        "carpet.TokenTypeMixin"
+        "carpet.TokenTypeMixin",
+        "carpet.UndefValueMixin"
     ],
     "injectors": {
         "defaultRequire": 1

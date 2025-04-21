@@ -15,10 +15,13 @@ import java.util.Map;
 
 @Mixin(value = Expression.class, remap = false)
 public abstract class ExpressionMixin implements ExpressionInterface {
-    @Shadow(remap = false)
-    public Module module;
-    @Shadow(remap = false) @Final
-    private Map<String, Fluff.ILazyFunction> functions;
+    @Shadow @Final private Map<String, Fluff.ILazyOperator> operators;
+    @Shadow @Final private Map<String, Fluff.ILazyFunction> functions;
+
+    @Override
+    public Map<String, Fluff.ILazyOperator> lanitium$operators() {
+        return operators;
+    }
 
     @Override
     public Map<String, Fluff.ILazyFunction> lanitium$functions() {
