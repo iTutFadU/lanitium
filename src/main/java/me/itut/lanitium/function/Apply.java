@@ -189,12 +189,13 @@ public class Apply {
             }
         });
 
-        expr.addLazyBinaryOperatorWithDelegation(".", Operators.precedence.get("attribute~:"), true, true, (c, t, e, tok, l, r) -> {
+        expr.addLazyBinaryOperatorWithDelegation(".", Operators.precedence.get("attribute~:"), true, false, (c, t, e, tok, l, r) -> {
             throw new InternalExpressionException("H O W");
         });
+        // a.b(c, d) => call_method(a, 'b', c, d) => call(a.__meta().b, a, c, d)
         expr.addFunctionWithDelegation("call_method", -1, false, false, (c, t, e, tok, lv) -> {
             if (lv.size() < 2)
-                throw new InternalExpressionException("'call_method' expects at least a map to call a method on and the method name");
+                throw new InternalExpressionException("'call_method' expects at least a map and the method to call on that map");
             if (!(lv.getFirst() instanceof MapValue self))
                 return Value.NULL;
             Value methodName = lv.get(1);
@@ -202,18 +203,26 @@ public class Apply {
             Value method;
             if (meta == null || (method = meta.get(methodName)) == null)
                 method = MapValueInterface.defaultMetaMethods.get(methodName);
-            if (method == null)
-                throw new InternalExpressionException("Method not found: " + methodName.getString());
             if (!(method instanceof FunctionValue fun))
-                throw new InternalExpressionException("Meta field is not a method: " + methodName.getString());
+                throw new InternalExpressionException("Method " + methodName.getString() + " not found for type " + self.getTypeString());
             List<Value> args = new ArrayList<>(lv.size() - 1);
             args.add(self);
             args.addAll(lv.subList(2, lv.size()));
             return fun.execute(c, t, e, tok, args, null).evalValue(c, t);
         });
 
+        // now leftAssoc
+        expr.addLazyBinaryOperator("||", Operators.precedence.get("or||"), true, true, t -> Context.BOOLEAN, (c, t, l, r) -> {
+            Value v = l.evalValue(c, Context.BOOLEAN);
+            return v.getBoolean() ? (cc, tt) -> v : r;
+        });
+        expr.addLazyBinaryOperator(/* or_default */ "??", Operators.precedence.get("or||"), true, true, t -> Context.NONE, (c, t, l, r) -> {
+            Value v = l.evalValue(c);
+            return v.isNull() ? r : (cc, tt) -> v;
+        });
+
 //        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l); // TODO: Add types to syntax
-        expr.addLazyBinaryOperator("\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
+        expr.addLazyBinaryOperator(/* with */ "\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
                 return with.with(c, t, r);

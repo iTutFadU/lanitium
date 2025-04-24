@@ -33,11 +33,16 @@ public abstract class ExpressionMixin implements ExpressionInterface {
     @Redirect(method = "RPNToParseTree", at = @At(value = "NEW", target = "(Lcarpet/script/LazyValue;Ljava/util/List;Lcarpet/script/Tokenizer$Token;)Lcarpet/script/Expression$ExpressionNode;"))
     private Expression.ExpressionNode checkMethodCall(LazyValue op, List<Expression.ExpressionNode> args, Tokenizer.Token token) {
         if (((TokenInterface)token).lanitium$type() == TokenTypeInterface.OPERATOR && ".".equals(token.surface)) {
-            List<LazyValue> params = new ArrayList<>(2 + args.getLast().args.size());
-            params.add(args.getFirst().op);
-            params.add(LazyValue.ofConstant(StringValue.of(args.getLast().token.surface)));
-            params.addAll(args.getLast().args.stream().map(v -> v.op).toList());
-            return new Expression.ExpressionNode((c, t) -> functions.get("call_method").lazyEval(c, t, (Expression)(Object)this, token, params).evalValue(c, t), args, token);
+            Expression.ExpressionNode self = args.getFirst(), call = args.getLast();
+            args = new ArrayList<>(1 + call.args.size());
+            args.add(self);
+            args.addAll(call.args);
+            Expression.ExpressionNode method = call.args.getFirst();
+            String name = method.token.surface.substring(1);
+            method.op = LazyValue.ofConstant(new StringValue(name));
+            method.token.surface = name;
+            List<LazyValue> params = args.stream().map(v -> v.op).toList();
+            return new Expression.ExpressionNode((c, t) -> functions.get("call_method").lazyEval(c, t, (Expression)(Object)this, token, params).evalValue(c, t), args, ((TokenInterface)token).lanitium$morphedInto(TokenTypeInterface.FUNCTION, "call_method"));
         }
         return new Expression.ExpressionNode(op, args, token);
     }

@@ -51,12 +51,11 @@ public interface MapValueInterface {
 
     Map<Value, Value> defaultMetaMethods = Collections.unmodifiableMap(new HashMap<>() {{
         put(Constants.__META, new SimpleFunctionValue(1, 1, (c, t, e, tok, lv) -> {
-            Value none = t == Context.LVALUE ? new LContainerValue(null, null) : Value.NULL;
-            if (!(lv.getFirst() instanceof MapValue self)) return none;
-            Map<Value, Value> meta = ((MapValueInterface)self).lanitium$meta();
-            if (meta == null) return none;
-            if (t == Context.LVALUE) return new LContainerValue(new LMetaValue(self), null);
-            return MapValue.wrap(meta);
+            if (!(lv.getFirst() instanceof MapValue self))
+                return t == Context.LVALUE ? new LContainerValue(null, null) : Value.NULL;
+            return t == Context.LVALUE
+                ? new LContainerValue(new LMetaValue(self), null)
+                : MapValue.wrap(((MapValueInterface)self).lanitium$meta());
         }));
     }});
 

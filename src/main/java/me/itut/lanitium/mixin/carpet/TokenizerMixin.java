@@ -547,9 +547,11 @@ public abstract class TokenizerMixin {
                     cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
                     last = current;
                     continue;
-                } else if (currentType == TokenTypeInterface.VARIABLE && !originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.OPERATOR && originalTokens.getLast().surface.equals(".")) {
-                    originalTokens.getLast().surface = ":";
-                    TokenInterface.setType(current, TokenTypeInterface.STRINGPARAM);
+                } else if (!originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.OPERATOR && originalTokens.getLast().surface.equals(".")) {
+                    if (currentType == TokenTypeInterface.VARIABLE) {
+                        originalTokens.getLast().surface = ":";
+                        TokenInterface.setType(current, TokenTypeInterface.STRINGPARAM);
+                    } else current.surface = '.' + current.surface;
                 }
                 cleanedTokens.add(current);
             }

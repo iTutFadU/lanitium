@@ -122,7 +122,7 @@ public class Patterns {
         });
 
         expr.addLazyBinaryOperatorWithDelegation("=", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
-            Value pattern = l.evalValue(c, t);
+            Value pattern = l.evalValue(c, Context.LVALUE);
             if (t == Context.LVALUE) {
                 DefaultPatternValue.checkPattern(e, tok, c, pattern);
                 Value ret = new DefaultPatternValue(e, tok, pattern, r);
@@ -145,7 +145,7 @@ public class Patterns {
         });
 
         expr.addLazyBinaryOperatorWithDelegation("+=", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
-            Value pattern = l.evalValue(c, t);
+            Value pattern = l.evalValue(c, Context.LVALUE);
             if (t == Context.LVALUE) {
                 DefaultPatternValue.checkPattern(e, tok, c, pattern);
                 Value ret = new DefaultPatternValue(e, tok, pattern, r);
