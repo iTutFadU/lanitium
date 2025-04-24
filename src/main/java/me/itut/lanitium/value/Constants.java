@@ -30,4 +30,6 @@ public class Constants {
     public static final Value RANGE = StringValue.of("range");
     public static final Value TEXT = StringValue.of("text");
     public static final Value TOOLTIP = StringValue.of("tooltip");
+    public static final Value __META = StringValue.of("__meta");
+    public static final Value __TYPE = StringValue.of("__type");
 }

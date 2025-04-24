@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 
 public class Patterns {
     public static void apply(Expression expr) {
-
         expr.addLazyBinaryOperatorWithDelegation("&&", Operators.precedence.get("and&&"), false, true, (c, t, e, tok, l, r) -> {
             if (t == Context.LVALUE) {
                 Value p = l.evalValue(c, t);

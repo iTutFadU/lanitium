@@ -78,7 +78,7 @@ public class ValueConversions {
             put(Constants.RANGE, range(suggestion.getRange()));
             put(Constants.TEXT, StringValue.of(suggestion.getText()));
             if (suggestion.getTooltip() instanceof Message tooltip)
-                put(Constants.TOOLTIP, SimpleFunctionValue.of(() -> StringValue.of(tooltip.getString())));
+                put(Constants.TOOLTIP, new SimpleFunctionValue(0, 0, (c, t, e, tok, lv) -> StringValue.of(tooltip.getString())));
             if (suggestion instanceof IntegerSuggestion integerSuggestion)
                 put(Constants.VALUE, NumericValue.of(integerSuggestion.getValue()));
         }};

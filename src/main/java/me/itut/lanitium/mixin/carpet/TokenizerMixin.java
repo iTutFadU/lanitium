@@ -348,11 +348,22 @@ public abstract class TokenizerMixin {
             if (expression != null && context != null && previousToken != null &&
                 ((TokenInterface)previousToken).lanitium$type() == TokenTypeInterface.OPERATOR &&
                 (ch == ')' || ch == ',' || ch == ']' || ch == '}') &&
-                !previousToken.surface.equalsIgnoreCase(";")
+                !previousToken.surface.equals(";")
             ) {
                 throw new ExpressionException(context, expression, previousToken,
                     "Can't have operator " + previousToken.surface + " at the end of a subexpression");
             }
+        } else if (ch == '.') {
+            token.surface = ".";
+            TokenInterface.setType(token, TokenTypeInterface.OPERATOR);
+            TokenTypeInterface prevType = previousToken != null ? ((TokenInterface)previousToken).lanitium$type() : null;
+            if (prevType == null || prevType == TokenTypeInterface.OPERATOR
+                || prevType == TokenTypeInterface.OPEN_PAREN || prevType == TokenTypeInterface.COMMA
+                || prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("{") || previousToken.surface.equals("["))) {
+                throw new ExpressionException(context, expression, token, "Member access must come after a value");
+            }
+            pos++;
+            linepos++;
         } else {
             StringBuilder greedyMatch = new StringBuilder();
             int initialPos = pos;
@@ -380,7 +391,7 @@ public abstract class TokenizerMixin {
                         }
                         linepos++;
                     }
-                    token.append("/" + greedyMatch);
+                    token.append(greedyMatch.toString());
                     TokenInterface.setType(token, TokenTypeInterface.MARKER);
                     cir.setReturnValue(token);
                     return;
@@ -436,23 +447,30 @@ public abstract class TokenizerMixin {
                            prevType = previousToken != null
                                ? ((TokenInterface)previousToken).lanitium$type()
                                : null;
-        if (expression != null && context != null && previousToken != null &&
+        if (expression != null && context != null && previousToken != null && (
             (
                 type == TokenTypeInterface.LITERAL ||
                 type == TokenTypeInterface.HEX_LITERAL ||
                 type == TokenTypeInterface.VARIABLE ||
                 type == TokenTypeInterface.STRINGPARAM ||
-                type == TokenTypeInterface.FUNCTION
+                type == TokenTypeInterface.FUNCTION ||
+                type == TokenTypeInterface.OPEN_PAREN ||
+                type == TokenTypeInterface.MARKER && token.surface.equals("{")
             ) && (
-                prevType == TokenTypeInterface.VARIABLE ||
                 prevType == TokenTypeInterface.LITERAL ||
-                prevType == TokenTypeInterface.CLOSE_PAREN ||
-                prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("}") || previousToken.surface.equals("]")) ||
                 prevType == TokenTypeInterface.HEX_LITERAL ||
-                prevType == TokenTypeInterface.STRINGPARAM
+                prevType == TokenTypeInterface.VARIABLE ||
+                prevType == TokenTypeInterface.STRINGPARAM ||
+                prevType == TokenTypeInterface.CLOSE_PAREN ||
+                prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("}") || previousToken.surface.equals("]"))
+            ) || (
+                type != TokenTypeInterface.VARIABLE &&
+                type != TokenTypeInterface.FUNCTION &&
+                prevType == TokenTypeInterface.OPERATOR &&
+                previousToken.surface.equals(".")
             )
-        ) {
-            throw new ExpressionException(context, expression, previousToken, "'" + token.surface + "' is not allowed after '" + previousToken.surface + "'");
+        )) {
+            throw new ExpressionException(context, expression, previousToken, '\'' + token.surface + "' is not allowed after '" + previousToken.surface + '\'');
         }
         cir.setReturnValue(previousToken = token);
     }
@@ -467,7 +485,7 @@ public abstract class TokenizerMixin {
         while (!originalTokens.isEmpty()) {
             Tokenizer.Token current = originalTokens.removeLast();
             TokenTypeInterface currentType = ((TokenInterface)current).lanitium$type();
-            if (currentType == TokenTypeInterface.MARKER && current.surface.startsWith("/"))
+            if (currentType == TokenTypeInterface.MARKER && current.surface.charAt(0) == '/')
                 continue;
             // skipping comments
             TokenTypeInterface lastType = last != null ? ((TokenInterface)last).lanitium$type() : null;
@@ -529,6 +547,9 @@ public abstract class TokenizerMixin {
                     cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
                     last = current;
                     continue;
+                } else if (currentType == TokenTypeInterface.VARIABLE && !originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.OPERATOR && originalTokens.getLast().surface.equals(".")) {
+                    originalTokens.getLast().surface = ":";
+                    TokenInterface.setType(current, TokenTypeInterface.STRINGPARAM);
                 }
                 cleanedTokens.add(current);
             }

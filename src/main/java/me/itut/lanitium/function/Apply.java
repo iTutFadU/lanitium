@@ -75,11 +75,11 @@ public class Apply {
         CommandArgument.builtIns.put("formatted_text", new VanillaArgument("formated_text", ComponentArgument::textComponent, (c, p) -> FormattedTextValue.of(ComponentArgument.getComponent(c, p)), param -> (ctx, builder) -> ctx.getArgument(param, ComponentArgument.class).listSuggestions(ctx, builder)));
         CommandArgument.builtIns.put("style", new VanillaArgument("style", StyleArgument::style, (c, p) -> {
             Style style = StyleArgument.getStyle(c, p);
-            return SimpleFunctionValue.of(cc -> FormattedTextValue.of(((MutableComponent)FormattedTextValue.getTextByValue(cc)).withStyle(style)));
+            return new SimpleFunctionValue(1, 1, (cc, tt, e, tok, lv) -> FormattedTextValue.of(((MutableComponent)FormattedTextValue.getTextByValue(lv.getFirst())).withStyle(style)));
         }, param -> (ctx, builder) -> ctx.getArgument(param, StyleArgument.class).listSuggestions(ctx, builder)));
         CommandArgument.builtIns.put("item_predicate", new VanillaArgument("item_predicate", ItemPredicateArgument::new, (c, p) -> {
             ItemPredicateArgument.Result predicate = ItemPredicateArgument.getItemPredicate(c, p);
-            return SimpleFunctionValue.of(i -> BooleanValue.of(predicate.test(ValueConversions.getItemStackFromValue(i, true, c.getSource().registryAccess()))));
+            return new SimpleFunctionValue(1, 1, (cc, tt, e, tok, lv) -> BooleanValue.of(predicate.test(ValueConversions.getItemStackFromValue(lv.getFirst(), true, c.getSource().registryAccess()))));
         }, param -> (ctx, builder) -> ctx.getArgument(param, ItemPredicateArgument.class).listSuggestions(ctx, builder)));
     }
 
@@ -148,7 +148,7 @@ public class Apply {
                     for (int i = 1; i < lv.size(); ++i) {
                         Value v = lv.get(i).evalValue(c, Context.LOCALIZATION);
                         if (!v.isBound()) {
-                            throw new InternalExpressionException("Only variables can be used in function signature, not  " + v.getString());
+                            throw new InternalExpressionException("Only variables can be used in function signature, not " + v.getString());
                         }
 
                         if (v instanceof FunctionAnnotationValue fav) {
@@ -168,7 +168,7 @@ public class Apply {
 
                     globals.remove(varArgs);
                     globals.removeAll(args);
-                    Value output = new FunctionSignatureValue(name, args, varArgs, globals);
+                    Value output = new FunctionSignatureValue("fn".equals(name) ? "_" : name, args, varArgs, globals);
                     return (cc, tt) -> output;
                 }
             }
@@ -187,6 +187,29 @@ public class Apply {
             public Context.Type staticType(Context.Type outerType) {
                 return outerType == Context.SIGNATURE ? Context.LOCALIZATION : Context.NONE;
             }
+        });
+
+        expr.addLazyBinaryOperatorWithDelegation(".", Operators.precedence.get("attribute~:"), true, true, (c, t, e, tok, l, r) -> {
+            throw new InternalExpressionException("H O W");
+        });
+        expr.addFunctionWithDelegation("call_method", -1, false, false, (c, t, e, tok, lv) -> {
+            if (lv.size() < 2)
+                throw new InternalExpressionException("'call_method' expects at least a map to call a method on and the method name");
+            if (!(lv.getFirst() instanceof MapValue self))
+                return Value.NULL;
+            Value methodName = lv.get(1);
+            Map<Value, Value> meta = ((MapValueInterface)self).lanitium$meta();
+            Value method;
+            if (meta == null || (method = meta.get(methodName)) == null)
+                method = MapValueInterface.defaultMetaMethods.get(methodName);
+            if (method == null)
+                throw new InternalExpressionException("Method not found: " + methodName.getString());
+            if (!(method instanceof FunctionValue fun))
+                throw new InternalExpressionException("Meta field is not a method: " + methodName.getString());
+            List<Value> args = new ArrayList<>(lv.size() - 1);
+            args.add(self);
+            args.addAll(lv.subList(2, lv.size()));
+            return fun.execute(c, t, e, tok, args, null).evalValue(c, t);
         });
 
 //        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l); // TODO: Add types to syntax
@@ -275,7 +298,7 @@ public class Apply {
                             Constants.TOKEN, ListValue.of(StringValue.EMPTY, Value.ONE, Value.ONE)
                         )),
                         Constants.INTERNAL, internalExceptionMap(e),
-                        Constants.THROW, SimpleFunctionValue.of(() -> {
+                        Constants.THROW, new SimpleFunctionValue(0, 0, (cc, tt, ee, tok, args) -> {
                             throw e;
                         })
                     ))
@@ -410,15 +433,15 @@ public class Apply {
         @SuppressWarnings("unchecked")
         Iterator<Value>[] it = new Iterator[]{list.iterator()};
         return ListValue.of(
-            SimpleFunctionValue.of(() -> BooleanValue.of(it[0].hasNext())),
-            SimpleFunctionValue.of(() -> {
+            new SimpleFunctionValue(0, 0, (c, t, e, tok, lv) -> BooleanValue.of(it[0].hasNext())),
+            new SimpleFunctionValue(0, 0, (c, t, e, tok, lv) -> {
                 try {
                     return it[0].next();
-                } catch (NoSuchElementException e) {
-                    throw new ThrowStatement(e.getMessage(), ITERATION_END);
+                } catch (NoSuchElementException nse) {
+                    throw new ThrowStatement(nse.getMessage(), ITERATION_END);
                 }
             }),
-            SimpleFunctionValue.run(() -> {
+            SimpleFunctionValue.runnable(0, 0, (c, t, e, tok, lv) -> {
                 synchronized (list) {
                     list.fatality();
                     it[0] = list.iterator();

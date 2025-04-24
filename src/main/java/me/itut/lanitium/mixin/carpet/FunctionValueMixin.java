@@ -18,6 +18,7 @@ public abstract class FunctionValueMixin implements FunctionValueInterface {
     @Shadow @Final private List<String> args;
     @Shadow @Final private String varArgs;
     @Shadow @Nullable private Map<String, LazyValue> outerState;
+    @Shadow private long variant;
 
     @Override
     public LazyValue lanitium$body() {
@@ -40,5 +41,10 @@ public abstract class FunctionValueMixin implements FunctionValueInterface {
             outerState.putAll(state);
         else
             outerState = new HashMap<>(state);
+    }
+
+    @Override
+    public void lanitium$setVariant(long variant) {
+        this.variant = variant;
     }
 }

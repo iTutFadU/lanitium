@@ -11,4 +11,5 @@ public interface FunctionValueInterface {
     List<String> lanitium$args();
     @Nullable String lanitium$varArgs();
     void lanitium$inject(Map<String, LazyValue> state);
+    void lanitium$setVariant(long variant);
 }

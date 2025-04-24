@@ -1,15 +1,14 @@
 package me.itut.lanitium.value;
 
-import carpet.script.Expression;
-import carpet.script.Fluff;
-import carpet.script.LazyValue;
+import carpet.script.*;
+import carpet.script.exception.ExpressionException;
+import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.FunctionValue;
-import carpet.script.value.ListValue;
+import carpet.script.value.ThreadValue;
 import carpet.script.value.Value;
+import me.itut.lanitium.internal.Magic;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.*;
 
 public class SimpleFunctionValue extends FunctionValue {
     @FunctionalInterface
@@ -32,150 +31,39 @@ public class SimpleFunctionValue extends FunctionValue {
         void accept(A a, B b, C c, D d, E e, F f);
     }
 
-    public SimpleFunctionValue(LazyValue body, List<String> args, String varArgs) {
-        super(Expression.none, null, "_", body, args, varArgs, null);
+    public final int minParams, maxParams;
+    public final Fluff.QuinnFunction<Context, Context.Type, Expression, Tokenizer.Token, List<Value>, Value> body;
+
+    public SimpleFunctionValue(int minParams, int maxParams, Fluff.QuinnFunction<Context, Context.Type, Expression, Tokenizer.Token, List<Value>, Value> body) {
+        super(Expression.none, null, "_", null, List.of(), null, null);
+        this.minParams = minParams;
+        this.maxParams = maxParams;
+        this.body = body;
     }
 
-    public static SimpleFunctionValue of(Supplier<Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.get(), List.of(), null);
-    }
-
-    public static SimpleFunctionValue of(UnaryOperator<Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t)), List.of("_1"), null);
-    }
-
-    public static SimpleFunctionValue of(BinaryOperator<Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t)), List.of("_1", "_2"), null);
-    }
-
-    public static SimpleFunctionValue of(Fluff.TriFunction<Value, Value, Value, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), c.getVariable("_3").evalValue(c, t)), List.of("_1", "_2", "_3"), null);
-    }
-
-    public static SimpleFunctionValue of(Fluff.QuadFunction<Value, Value, Value, Value, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), c.getVariable("_3").evalValue(c, t), c.getVariable("_4").evalValue(c, t)), List.of("_1", "_2", "_3", "_4"), null);
-    }
-
-    public static SimpleFunctionValue of(Fluff.QuinnFunction<Value, Value, Value, Value, Value, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), c.getVariable("_3").evalValue(c, t), c.getVariable("_4").evalValue(c, t), c.getVariable("_5").evalValue(c, t)), List.of("_1", "_2", "_3", "_4", "_5"), null);
-    }
-
-    public static SimpleFunctionValue of(Fluff.SexFunction<Value, Value, Value, Value, Value, Value, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), c.getVariable("_3").evalValue(c, t), c.getVariable("_4").evalValue(c, t), c.getVariable("_5").evalValue(c, t), c.getVariable("_6").evalValue(c, t)), List.of("_1", "_2", "_3", "_4", "_5", "_6"), null);
-    }
-
-    public static SimpleFunctionValue ofVarargs(Function<List<Value>, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(((ListValue)c.getVariable("_v").evalValue(c, t)).getItems()), List.of(), "_v");
-    }
-
-    public static SimpleFunctionValue ofVarargs(BiFunction<Value, List<Value>, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), ((ListValue)c.getVariable("_v").evalValue(c, t)).getItems()), List.of("_1"), "_v");
-    }
-
-    public static SimpleFunctionValue ofVarargs(Fluff.TriFunction<Value, Value, List<Value>, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), ((ListValue)c.getVariable("_v").evalValue(c, t)).getItems()), List.of("_1", "_2"), "_v");
-    }
-
-    public static SimpleFunctionValue ofVarargs(Fluff.QuadFunction<Value, Value, Value, List<Value>, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), c.getVariable("_3").evalValue(c, t), ((ListValue)c.getVariable("_v").evalValue(c, t)).getItems()), List.of("_1", "_2", "_3"), "_v");
-    }
-
-    public static SimpleFunctionValue ofVarargs(Fluff.QuinnFunction<Value, Value, Value, Value, List<Value>, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), c.getVariable("_3").evalValue(c, t), c.getVariable("_4").evalValue(c, t), ((ListValue)c.getVariable("_v").evalValue(c, t)).getItems()), List.of("_1", "_2", "_3", "_4"), "_v");
-    }
-
-    public static SimpleFunctionValue ofVarargs(Fluff.SexFunction<Value, Value, Value, Value, Value, List<Value>, Value> fn) {
-        return new SimpleFunctionValue((c, t) -> fn.apply(c.getVariable("_1").evalValue(c, t), c.getVariable("_2").evalValue(c, t), c.getVariable("_3").evalValue(c, t), c.getVariable("_4").evalValue(c, t), c.getVariable("_5").evalValue(c, t), ((ListValue)c.getVariable("_v").evalValue(c, t)).getItems()), List.of("_1", "_2", "_3", "_4", "_5"), "_v");
-    }
-
-    public static SimpleFunctionValue run(Runnable fn) {
-        return of(() -> {
-            fn.run();
+    public static SimpleFunctionValue runnable(int minParams, int maxParams, QuinnConsumer<Context, Context.Type, Expression, Tokenizer.Token, List<Value>> body) {
+        return new SimpleFunctionValue(minParams, maxParams, (c, t, e, tok, lv) -> {
+            body.accept(c, t, e, tok, lv);
             return Value.NULL;
         });
     }
 
-    public static SimpleFunctionValue run(Consumer<Value> fn) {
-        return of(a -> {
-            fn.accept(a);
-            return Value.NULL;
-        });
+    @Override
+    public LazyValue execute(Context c, Context.Type type, Expression e, Tokenizer.Token t, List<Value> args, ThreadValue freshNewCallingThread) {
+        if (args.size() < minParams || maxParams >= 0 && args.size() > maxParams)
+            throw new ExpressionException(c, e, t, "Incorrect number of arguments for function. Should be %s, not %d".formatted(maxParams < 0 ? "at least " + minParams : minParams < maxParams ? "from " + minParams + " to " + maxParams : minParams, args.size()));
+
+        Value ret = body.apply(c, type, e, t, args);
+        return (cc, tt) -> ret;
     }
 
-    public static SimpleFunctionValue run(BiConsumer<Value, Value> fn) {
-        return of((a, b) -> {
-            fn.accept(a, b);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue run(TriConsumer<Value, Value, Value> fn) {
-        return of((a, b, c) -> {
-            fn.accept(a, b, c);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue run(QuadConsumer<Value, Value, Value, Value> fn) {
-        return of((a, b, c, d) -> {
-            fn.accept(a, b, c, d);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue run(QuinnConsumer<Value, Value, Value, Value, Value> fn) {
-        return of((a, b, c, d, e) -> {
-            fn.accept(a, b, c, d, e);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue run(SexConsumer<Value, Value, Value, Value, Value, Value> fn) {
-        return of((a, b, c, d, e, f) -> {
-            fn.accept(a, b, c, d, e, f);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue runVarargs(Consumer<List<Value>> fn) {
-        return ofVarargs(a -> {
-            fn.accept(a);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue runVarargs(BiConsumer<Value, List<Value>> fn) {
-        return ofVarargs((a, b) -> {
-            fn.accept(a, b);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue runVarargs(TriConsumer<Value, Value, List<Value>> fn) {
-        return ofVarargs((a, b, c) -> {
-            fn.accept(a, b, c);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue runVarargs(QuadConsumer<Value, Value, Value, List<Value>> fn) {
-        return ofVarargs((a, b, c, d) -> {
-            fn.accept(a, b, c, d);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue runVarargs(QuinnConsumer<Value, Value, Value, Value, List<Value>> fn) {
-        return ofVarargs((a, b, c, d, e) -> {
-            fn.accept(a, b, c, d, e);
-            return Value.NULL;
-        });
-    }
-
-    public static SimpleFunctionValue runVarargs(SexConsumer<Value, Value, Value, Value, Value, List<Value>> fn) {
-        return ofVarargs((a, b, c, d, e, f) -> {
-            fn.accept(a, b, c, d, e, f);
-            return Value.NULL;
-        });
+    @Override
+    protected Value clone() {
+        try {
+            return (SimpleFunctionValue)Magic.cloneObject(this);
+        } catch (CloneNotSupportedException e) {
+            // should never happen
+            throw new InternalExpressionException("Cannot make a copy of value: " + this);
+        }
     }
 }

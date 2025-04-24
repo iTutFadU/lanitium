@@ -1,14 +1,11 @@
 package me.itut.lanitium.value;
 
 import carpet.script.CarpetContext;
-import carpet.script.LazyValue;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
-import me.itut.lanitium.internal.carpet.FunctionValueInterface;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.Tag;
 
-import java.util.List;
 import java.util.Objects;
 
 public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
@@ -16,7 +13,7 @@ public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
     public final T value;
     
     protected ObjectFunctionValue(CarpetContext context, T value, SimpleFunctionValue fn) {
-        super(((FunctionValueInterface)fn).lanitium$body(), ((FunctionValueInterface)fn).lanitium$args(), ((FunctionValueInterface)fn).lanitium$varArgs());
+        super(fn.minParams, fn.maxParams, fn.body);
         this.context = context;
         this.value = value;
     }
