@@ -128,6 +128,13 @@ public class Patterns {
                 Value ret = new DefaultPatternValue(e, tok, pattern, r);
                 return (cc, tt) -> ret;
             }
+
+            if (pattern.isBound()) {
+                Value rebounded = r.evalValue(c).reboundedTo(pattern.boundVariable);
+                e.setAnyVariable(c, rebounded.boundVariable, (cc, tt) -> rebounded);
+                return (cc, tt) -> rebounded;
+            }
+
             Patterns.checkAssignmentPattern(e, tok, c, pattern);
             Value assign = r.evalValue(c);
             Patterns.AssignmentOperation operation = Patterns.assignPattern(e, tok, c, pattern, assign);
@@ -136,9 +143,8 @@ public class Patterns {
                     if (container.container() != null)
                         container.container().put(container.address(), mutation.rvalue);
                 } else {
-                    assert mutation.lvalue.isBound();
                     Value rebounded = mutation.rvalue.reboundedTo(mutation.lvalue.boundVariable);
-                    e.setAnyVariable(c, mutation.lvalue.boundVariable, (cc, tt) -> rebounded);
+                    e.setAnyVariable(c, rebounded.boundVariable, (cc, tt) -> rebounded);
                 }
             });
             return (cc, tt) -> assign;
@@ -149,6 +155,18 @@ public class Patterns {
             if (t == Context.LVALUE) {
                 DefaultPatternValue.checkPattern(e, tok, c, pattern);
                 Value ret = new DefaultPatternValue(e, tok, pattern, r);
+                return (cc, tt) -> ret;
+            }
+
+            if (pattern.isBound()) {
+                Value ret;
+                if (pattern instanceof ListValue || pattern instanceof MapValue) {
+                    ((AbstractListValue)pattern).append(r.evalValue(c));
+                    ret = pattern;
+                } else {
+                    ret = pattern.add(r.evalValue(c)).bindTo(pattern.boundVariable);
+                    e.setAnyVariable(c, ret.boundVariable, (cc, tt) -> ret);
+                }
                 return (cc, tt) -> ret;
             }
 
@@ -168,7 +186,6 @@ public class Patterns {
                     if (mutation.lvalue instanceof ListValue || mutation.lvalue instanceof MapValue)
                         ((AbstractListValue)mutation.lvalue).append(mutation.rvalue);
                     else {
-                        assert mutation.lvalue.isBound();
                         Value bound = mutation.lvalue.add(mutation.rvalue).bindTo(mutation.lvalue.boundVariable);
                         e.setAnyVariable(c, bound.boundVariable, (cc, tt) -> bound);
                     }
@@ -193,7 +210,6 @@ public class Patterns {
                     ((AbstractListValue)mutation.lvalue).append(mutation.rvalue);
                     return mutation.lvalue;
                 }
-                assert mutation.lvalue.isBound();
                 Value bound = mutation.lvalue.add(mutation.rvalue).bindTo(mutation.lvalue.boundVariable);
                 e.setAnyVariable(c, bound.boundVariable, (cc, tt) -> bound);
                 return bound;
@@ -207,6 +223,14 @@ public class Patterns {
             Value rl = r.evalValue(c, Context.LVALUE);
             checkAssignmentPattern(e, tok, c, rl);
 
+            if (ll.isBound() && rl.isBound()) {
+                Value rv = ll.reboundedTo(rl.boundVariable);
+                Value lv = rl.reboundedTo(ll.boundVariable);
+                e.setAnyVariable(c, lv.boundVariable, (cc, tt) -> lv);
+                e.setAnyVariable(c, rv.boundVariable, (cc, tt) -> rv);
+                return (cc, tt) -> rv;
+            }
+
             Value rv = r.evalValue(c); // ehhh
             AssignmentOperation assignLeft = assignPattern(e, tok, c, ll, rv);
             Value lv = l.evalValue(c); // ehhh
@@ -217,9 +241,8 @@ public class Patterns {
                     if (container.container() != null)
                         container.container().put(container.address(), mutation.rvalue);
                 } else {
-                    assert mutation.lvalue.isBound();
                     Value rebounded = mutation.rvalue.reboundedTo(mutation.lvalue.boundVariable);
-                    e.setAnyVariable(c, mutation.lvalue.boundVariable, (cc, tt) -> rebounded);
+                    e.setAnyVariable(c, rebounded.boundVariable, (cc, tt) -> rebounded);
                 }
             });
 
@@ -228,9 +251,8 @@ public class Patterns {
                     if (container.container() != null)
                         container.container().put(container.address(), mutation.rvalue);
                 } else {
-                    assert mutation.lvalue.isBound();
                     Value rebounded = mutation.rvalue.reboundedTo(mutation.lvalue.boundVariable);
-                    e.setAnyVariable(c, mutation.lvalue.boundVariable, (cc, tt) -> rebounded);
+                    e.setAnyVariable(c, rebounded.boundVariable, (cc, tt) -> rebounded);
                 }
             });
 
