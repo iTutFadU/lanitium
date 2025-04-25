@@ -5,6 +5,7 @@ import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
 import java.util.List;
@@ -62,6 +63,7 @@ public abstract class ObjectValue<T> extends Value {
 
     @Override
     public Tag toTag(boolean force, RegistryAccess regs) {
+        if (force) return StringTag.valueOf(getString());
         throw new NBTSerializableValue.IncompatibleTypeException(this);
     }
 

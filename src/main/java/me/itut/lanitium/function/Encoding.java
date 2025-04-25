@@ -3,6 +3,7 @@ package me.itut.lanitium.function;
 import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.annotation.ScarpetFunction;
+import carpet.script.exception.InternalExpressionException;
 import carpet.script.exception.ThrowStatement;
 import carpet.script.exception.Throwables;
 import carpet.script.value.*;
@@ -12,6 +13,7 @@ import net.minecraft.nbt.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 
 public class Encoding {
@@ -26,10 +28,14 @@ public class Encoding {
         return StringValue.of(String.valueOf((char)i));
     }
 
-    @ScarpetFunction
-    public static Value name_of_code_point(String str) {
+    @ScarpetFunction(maxParams = 2)
+    public static Value name_of_code_point(String str, Optional<Long> index) {
         if (str.isEmpty()) return Value.NULL;
-        return StringValue.of(Character.getName(str.charAt(0)));
+        try {
+            return StringValue.of(Character.getName(str.codePointAt(index.map(v -> ListValue.normalizeIndex(v, str.length())).orElse(0))));
+        } catch (IndexOutOfBoundsException e) {
+            return Value.NULL;
+        }
     }
 
     @ScarpetFunction
@@ -62,6 +68,82 @@ public class Encoding {
     @ScarpetFunction
     public static Value to_nbt(Context c, Value v) {
         return NBTSerializableValue.of(v.toTag(true, ((CarpetContext)c).registryAccess()));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_byte(int v) {
+        return NBTSerializableValue.of(ByteTag.valueOf((byte)v));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_short(int v) {
+        return NBTSerializableValue.of(ShortTag.valueOf((short)v));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_int(int v) {
+        return NBTSerializableValue.of(IntTag.valueOf(v));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_long(long v) {
+        return NBTSerializableValue.of(LongTag.valueOf(v));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_float(double v) {
+        return NBTSerializableValue.of(FloatTag.valueOf((float)v));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_double(double v) {
+        return NBTSerializableValue.of(DoubleTag.valueOf(v));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_string(String v) {
+        return NBTSerializableValue.of(StringTag.valueOf(v));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_byte_array(AbstractListValue list) {
+        if (list instanceof ByteBufferValue b)
+            return NBTSerializableValue.of(new ByteArrayTag(b.buffer.array()));
+        List<Value> values = list.unpack();
+        byte[] bytes = new byte[values.size()];
+        int i = 0;
+        for (Value v : values) {
+            if (!(v instanceof NumericValue n))
+                throw new InternalExpressionException("'nbt_byte_array' requires a list of numbers as its argument");
+            bytes[i++] = (byte)n.getInt();
+        }
+        return NBTSerializableValue.of(new ByteArrayTag(bytes));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_int_array(AbstractListValue list) {
+        List<Value> values = list.unpack();
+        int[] ints = new int[values.size()];
+        int i = 0;
+        for (Value v : values) {
+            if (!(v instanceof NumericValue n))
+                throw new InternalExpressionException("'nbt_int_array' requires a list of numbers as its argument");
+            ints[i++] = n.getInt();
+        }
+        return NBTSerializableValue.of(new IntArrayTag(ints));
+    }
+
+    @ScarpetFunction
+    public static Value nbt_long_array(AbstractListValue list) {
+        List<Value> values = list.unpack();
+        long[] longs = new long[values.size()];
+        int i = 0;
+        for (Value v : values) {
+            if (!(v instanceof NumericValue n))
+                throw new InternalExpressionException("'nbt_long_array' requires a list of numbers as its argument");
+            longs[i++] = n.getLong();
+        }
+        return NBTSerializableValue.of(new LongArrayTag(longs));
     }
 
     @ScarpetFunction

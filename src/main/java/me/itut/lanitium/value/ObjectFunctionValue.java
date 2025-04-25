@@ -4,6 +4,7 @@ import carpet.script.CarpetContext;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
 import java.util.Objects;
@@ -44,6 +45,7 @@ public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
 
     @Override
     public Tag toTag(boolean force, RegistryAccess regs) {
+        if (force) return StringTag.valueOf(getString());
         throw new NBTSerializableValue.IncompatibleTypeException(this);
     }
 

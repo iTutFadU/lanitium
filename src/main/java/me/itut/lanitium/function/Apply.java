@@ -438,6 +438,11 @@ public class Apply {
     }
 
     @ScarpetFunction
+    public static Value is_nan(double v) {
+        return BooleanValue.of(Double.isNaN(v));
+    }
+
+    @ScarpetFunction
     public static Value iterate(AbstractListValue list) {
         @SuppressWarnings("unchecked")
         Iterator<Value>[] it = new Iterator[]{list.iterator()};
