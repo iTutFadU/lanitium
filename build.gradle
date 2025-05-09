@@ -10,10 +10,6 @@ base {
 	archivesName = project.archives_base_name
 }
 
-loom {
-	accessWidenerPath = file("src/main/resources/lanitium.accesswidener")
-}
-
 repositories {
 	maven {
 		url 'https://masa.dy.fi/maven'

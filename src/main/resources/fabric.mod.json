@@ -23,7 +23,6 @@
 	"mixins": [
 		"lanitium.mixins.json"
 	],
-	"accessWidener": "lanitium.accesswidener",
 	"depends": {
 		"fabricloader": ">=0.16.9",
 		"minecraft": "1.21.4",
@@ -33,7 +32,15 @@
 	},
 	"custom": {
 		"modmenu": {
+            "parent": {
+	            "id": "lanitium-bundle",
+	            "name": "Lanitium Bundle",
+	            "description": "A bundle of wool",
+	            "icon": "assets/lanitium-bundle/icon.png"
+            },
 			"links": {
+				"modmenu.modrinth": "https://modrinth.com/mod/lanitium",
+				"modmenu.discord": "https://discord.gg/sy78EJ5hXE",
 				"modmenu.wiki": "https://github.com/iTutFadU/lanitium/wiki"
 			}
 		}
