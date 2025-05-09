@@ -353,7 +353,7 @@ public abstract class TokenizerMixin {
                 throw new ExpressionException(context, expression, previousToken,
                     "Can't have operator " + previousToken.surface + " at the end of a subexpression");
             }
-        } else if (ch == '.') {
+        } else if (ch == '.' && peekNextChar() != '.') {
             token.surface = ".";
             TokenInterface.setType(token, TokenTypeInterface.OPERATOR);
             TokenTypeInterface prevType = previousToken != null ? ((TokenInterface)previousToken).lanitium$type() : null;
