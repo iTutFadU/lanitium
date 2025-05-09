@@ -25,7 +25,7 @@ public class MapPatternValue extends FrameworkValue {
         this.minSize = minSize;
     }
 
-    @Contract(mutates = "param4") // vars[0] - rest, vars[1] - minSize
+    @Contract(mutates = "param5") // vars[0] - rest, vars[1] - minSize
     public static void checkPattern(Expression expression, Tokenizer.Token token, Context context, Value pattern, int[] vars, int index, boolean inEntry, boolean optional) throws ExpressionException {
         switch (pattern) {
             case LContainerValue ignored -> {
