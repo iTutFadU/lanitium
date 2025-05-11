@@ -181,9 +181,7 @@ public class Patterns {
                             ((AbstractListValue)element).append(mutation.rvalue);
                         else
                             container.container().put(container.address(), element.add(mutation.rvalue));
-                    }
-
-                    if (mutation.lvalue instanceof ListValue || mutation.lvalue instanceof MapValue)
+                    } else if (mutation.lvalue instanceof ListValue || mutation.lvalue instanceof MapValue)
                         ((AbstractListValue)mutation.lvalue).append(mutation.rvalue);
                     else {
                         Value bound = mutation.lvalue.add(mutation.rvalue).bindTo(mutation.lvalue.boundVariable);
