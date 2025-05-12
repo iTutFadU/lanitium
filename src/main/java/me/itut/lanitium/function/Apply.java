@@ -12,6 +12,7 @@ import carpet.script.exception.*;
 import carpet.script.language.Operators;
 import carpet.script.value.*;
 import com.google.gson.JsonParseException;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import me.itut.lanitium.Emoticons;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.*;
@@ -33,9 +34,7 @@ import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.StringRepresentable;
@@ -52,6 +51,7 @@ import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -65,14 +65,14 @@ public class Apply {
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
         options.put("server_sprinting", c -> BooleanValue.of(c.server().tickRateManager().isSprinting()));
         options.put("source_anchor", c -> c.source().getAnchor() == EntityAnchorArgument.Anchor.EYES ? Constants.EYES : Constants.FEET);
-        options.put("source_permission", c -> NumericValue.of(((CommandSourceStackInterface)c.source()).lanitium$permissionLevel()));
+        options.put("source_permission", c -> NumericValue.of(c.source().permissionLevel));
         options.put("source_custom_values", c -> {
             Map<Value, Value> map = ((CommandSourceStackInterface)c.source()).lanitium$customValues();
             return map != null ? MapValue.wrap(map) : Value.NULL;
         });
         options.put("source", SourceValue::of);
 
-        CommandArgument.builtIns.put("formatted_text", new VanillaArgument("formated_text", ComponentArgument::textComponent, (c, p) -> FormattedTextValue.of(ComponentArgument.getComponent(c, p)), param -> (ctx, builder) -> ctx.getArgument(param, ComponentArgument.class).listSuggestions(ctx, builder)));
+        CommandArgument.builtIns.put("formatted_text", new VanillaArgument("formated_text", ComponentArgument::textComponent, (c, p) -> FormattedTextValue.of(ComponentArgument.getRawComponent(c, p)), param -> (ctx, builder) -> ctx.getArgument(param, ComponentArgument.class).listSuggestions(ctx, builder)));
         CommandArgument.builtIns.put("style", new VanillaArgument("style", StyleArgument::style, (c, p) -> {
             Style style = StyleArgument.getStyle(c, p);
             return new SimpleFunctionValue(1, 1, (cc, tt, e, tok, lv) -> FormattedTextValue.of(((MutableComponent)FormattedTextValue.getTextByValue(lv.getFirst())).withStyle(style)));
@@ -131,7 +131,7 @@ public class Apply {
         final Fluff.ILazyFunction call;
         expr.addCustomFunction("call", call = new Fluff.AbstractLazyFunction(-1, "call") {
             @Override
-            public LazyValue lazyEval(Context c, Context.Type t, Expression expr, Tokenizer.Token tok, List<LazyValue> lv) {
+            public LazyValue lazyEval(Context c, Context.Type t, Expression expr, Token tok, List<LazyValue> lv) {
                 if (lv.isEmpty()) {
                     throw new InternalExpressionException("'call' expects at least function name to call");
                 } else if (t != Context.SIGNATURE) {
@@ -189,8 +189,32 @@ public class Apply {
             }
         });
 
-        expr.addLazyBinaryOperatorWithDelegation(".", Operators.precedence.get("attribute~:"), true, false, (c, t, e, tok, l, r) -> {
-            throw new InternalExpressionException("H O W");
+        final int attributePrecedence = Operators.precedence.get("attribute~:");
+        ((ExpressionInterface)expr).lanitium$operators().put(".", new Fluff.ILazyOperator() {
+            @Override
+            public int getPrecedence() {
+                return attributePrecedence;
+            }
+
+            @Override
+            public boolean isLeftAssoc() {
+                return true;
+            }
+
+            @Override
+            public LazyValue lazyEval(Context c, Context.Type t, Expression e, Token tok, LazyValue l, LazyValue r) {
+                throw new InternalExpressionException("H O W");
+            }
+
+            @Override
+            public boolean pure() {
+                return false;
+            }
+
+            @Override
+            public boolean transitive() {
+                return false;
+            }
         });
         // a.b(c, d) => call_method(a, 'b', c, d) => call(a.__meta().b, a, c, d)
         expr.addFunctionWithDelegation("call_method", -1, false, false, (c, t, e, tok, lv) -> {
@@ -212,17 +236,50 @@ public class Apply {
         });
 
         // now leftAssoc
-        expr.addLazyBinaryOperator("||", Operators.precedence.get("or||"), true, true, t -> Context.BOOLEAN, (c, t, l, r) -> {
+        expr.addLazyBinaryOperator("||", "or", Operators.precedence.get("or||"), true, true, t -> Context.BOOLEAN, (c, t, l, r) -> {
             Value v = l.evalValue(c, Context.BOOLEAN);
             return v.getBoolean() ? (cc, tt) -> v : r;
+        }, (c, t, lv) -> {
+            Value v = Value.FALSE;
+            for (LazyValue l : lv) {
+                Value val = l.evalValue(c, Context.BOOLEAN);
+                if (val instanceof final FunctionUnpackedArgumentsValue fuav)
+                    for (Value it : fuav) {
+                        if (it.getBoolean())
+                            return (cc, tt) -> it;
+                        v = it;
+                    }
+                else if (val.getBoolean())
+                    return (cc, tt) -> val;
+                else v = val;
+            }
+            Value ret = v;
+            return (cc, tt) -> ret;
         });
-        expr.addLazyBinaryOperator(/* or_default */ "??", Operators.precedence.get("or||"), true, true, t -> Context.NONE, (c, t, l, r) -> {
+
+        expr.addLazyBinaryOperator("??", "null_coalesce", Operators.precedence.get("or||"), true, true, t -> Context.NONE, (c, t, l, r) -> {
             Value v = l.evalValue(c);
             return v.isNull() ? r : (cc, tt) -> v;
+        }, (c, t, lv) -> {
+            Value v = Value.NULL;
+            for (LazyValue l : lv) {
+                Value val = l.evalValue(c);
+                if (val instanceof final FunctionUnpackedArgumentsValue fuav)
+                    for (Value it : fuav) {
+                        if (!it.isNull())
+                            return (cc, tt) -> it;
+                        v = it;
+                    }
+                else if (!val.isNull())
+                    return (cc, tt) -> val;
+                else v = val;
+            }
+            Value ret = v;
+            return (cc, tt) -> ret;
         });
 
 //        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l); // TODO: Add types to syntax
-        expr.addLazyBinaryOperator(/* with */ "\\", Operators.precedence.get("attribute~:"), true, false, type -> type, (c, t, l, r) -> {
+        expr.addLazyBinaryOperatorWithDelegation("\\", "with", Operators.precedence.get("attribute~:"), true, false, (c, t, e, tok, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
                 return with.with(c, t, r);
@@ -236,7 +293,7 @@ public class Apply {
             Value[] callArgs = new Value[values.length + 1];
             callArgs[0] = left;
             System.arraycopy(values, 0, callArgs, 1, values.length);
-            return call.lazyEval(c, t, expr, Tokenizer.Token.NONE, Arrays.stream(callArgs).map(v -> (LazyValue)(cc, tt) -> v).toList());
+            return call.lazyEval(c, t, e, tok, Arrays.stream(callArgs).map(v -> (LazyValue)(cc, tt) -> v).toList());
         });
         expr.addLazyFunction("do_all", -1, (c, t, lv) -> {
             int imax = lv.size() - 1;
@@ -508,6 +565,29 @@ public class Apply {
         try {
             return FormattedTextValue.deserialize(value, ((CarpetContext)c).registryAccess());
         } catch (JsonParseException e) {
+            throw new ThrowStatement(e.getMessage(), Throwables.JSON_ERROR);
+        }
+    }
+
+    @ScarpetFunction
+    public static Value format_nbt(NBTSerializableValue value) {
+        return FormattedTextValue.of(ComponentSerialization.CODEC.parse(NbtOps.INSTANCE, value.getTag()).mapOrElse(Function.identity(), e -> {
+            throw new ThrowStatement(e.error().orElseThrow().message(), Throwables.NBT_ERROR);
+        }));
+    }
+
+    @ScarpetFunction
+    public static Value format_to_nbt(FormattedTextValue value) {
+        return NBTSerializableValue.of(ComponentSerialization.CODEC.encodeStart(NbtOps.INSTANCE, value.getText()).mapOrElse(Function.identity(), e -> {
+            throw new ThrowStatement(e.error().orElseThrow().message(), Throwables.NBT_ERROR);
+        }));
+    }
+
+    @ScarpetFunction(maxParams = 2)
+    public static Value format_resolve(Context c, FormattedTextValue value, Optional<Entity> entity) {
+        try {
+            return FormattedTextValue.of(ComponentUtils.updateForEntity(((CarpetContext)c).source(), value.getText(), entity.orElseGet(() -> ((CarpetContext)c).source().getEntity()), 0));
+        } catch (CommandSyntaxException e) {
             throw new ThrowStatement(e.getMessage(), Throwables.JSON_ERROR);
         }
     }

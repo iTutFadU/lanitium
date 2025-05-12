@@ -1,6 +1,6 @@
 package me.itut.lanitium.mixin.carpet;
 
-import carpet.script.Tokenizer;
+import carpet.script.Token;
 import me.itut.lanitium.internal.carpet.TokenInterface;
 import me.itut.lanitium.internal.carpet.TokenTypeInterface;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,7 +15,7 @@ import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-@Mixin(value = Tokenizer.Token.class, remap = false)
+@Mixin(value = Token.class, remap = false)
 public abstract class TokenMixin implements TokenInterface {
     @Unique
     private static MethodHandle morphedInto, morph, typeValueOf;
@@ -25,13 +25,13 @@ public abstract class TokenMixin implements TokenInterface {
     @Inject(method = "<init>", at = @At("TAIL"))
     private void init(CallbackInfo ci) {
         if (morphedInto == null) try {
-            Class<?> tokenTypeClass = Tokenizer.Token.class.getDeclaredClasses()[0];
+            Class<?> tokenTypeClass = Token.class.getDeclaredClasses()[0];
 
-            Method method = Tokenizer.Token.class.getDeclaredMethod("morphedInto", tokenTypeClass, String.class);
+            Method method = Token.class.getDeclaredMethod("morphedInto", tokenTypeClass, String.class);
             method.setAccessible(true);
             morphedInto = MethodHandles.lookup().unreflect(method);
 
-            method = Tokenizer.Token.class.getDeclaredMethod("morph", tokenTypeClass, String.class);
+            method = Token.class.getDeclaredMethod("morph", tokenTypeClass, String.class);
             method.setAccessible(true);
             morph = MethodHandles.lookup().unreflect(method);
 
@@ -39,7 +39,7 @@ public abstract class TokenMixin implements TokenInterface {
             method.setAccessible(true);
             typeValueOf = MethodHandles.lookup().unreflect(method);
 
-            Field field = Tokenizer.Token.class.getDeclaredField("type");
+            Field field = Token.class.getDeclaredField("type");
             field.setAccessible(true);
             type = MethodHandles.lookup().unreflectVarHandle(field);
         } catch (NoSuchMethodException | IllegalAccessException | NoSuchFieldException e) {
@@ -58,18 +58,18 @@ public abstract class TokenMixin implements TokenInterface {
 
     @Override
     public TokenTypeInterface lanitium$type() {
-        return (TokenTypeInterface)type.get((Tokenizer.Token)(Object)this);
+        return (TokenTypeInterface)type.get((Token)(Object)this);
     }
 
     @Override
     public void lanitium$setType(TokenTypeInterface newType) {
-        type.set((Tokenizer.Token)(Object)this, newType);
+        type.set((Token)(Object)this, newType);
     }
 
     @Override
-    public Tokenizer.Token lanitium$morphedInto(TokenTypeInterface newType, String newSurface) {
+    public Token lanitium$morphedInto(TokenTypeInterface newType, String newSurface) {
         try {
-            return (Tokenizer.Token)morphedInto.invoke((Tokenizer.Token)(Object)this, newType, newSurface);
+            return (Token)morphedInto.invoke((Token)(Object)this, newType, newSurface);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -78,7 +78,7 @@ public abstract class TokenMixin implements TokenInterface {
     @Override
     public void lanitium$morph(TokenTypeInterface type, String s) {
         try {
-            morph.invoke((Tokenizer.Token)(Object)this, type, s);
+            morph.invoke((Token)(Object)this, type, s);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

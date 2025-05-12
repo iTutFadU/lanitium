@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.9-SNAPSHOT'
+	id 'fabric-loom' version '1.10-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -10,12 +10,16 @@ base {
 	archivesName = project.archives_base_name
 }
 
+loom {
+	accessWidenerPath = file "src/main/resources/lanitium.accesswidener"
+}
+
 repositories {
 	maven {
-		url 'https://masa.dy.fi/maven'
+		url = "https://masa.dy.fi/maven"
 	}
 	maven {
-		url "https://api.modrinth.com/maven"
+		url = "https://api.modrinth.com/maven"
 	}
 	mavenCentral()
 }

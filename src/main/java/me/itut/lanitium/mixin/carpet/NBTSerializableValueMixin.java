@@ -53,7 +53,7 @@ public abstract class NBTSerializableValueMixin implements NBTSerializableValueI
             output = switch (getTag()) {
                 case CompoundTag compound -> {
                     Map<Value, Value> map = new HashMap<>(compound.size());
-                    compound.getAllKeys().forEach(k -> map.put(StringValue.of(k), of(compound.get(k))));
+                    compound.keySet().forEach(k -> map.put(StringValue.of(k), of(compound.get(k))));
                     yield MapValue.wrap(map);
                 }
                 case ListTag list -> ListValue.wrap(list.stream().map(NBTSerializableValue::of));

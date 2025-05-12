@@ -16,7 +16,7 @@ import java.util.Map;
 @Mixin(CommandSourceStack.class)
 public abstract class CommandSourceStackMixin implements CommandSourceStackInterface {
     @Shadow @Final
-    private int permissionLevel;
+    public int permissionLevel;
 
     @Shadow
     public abstract CommandSourceStack withPermission(int i);
@@ -41,11 +41,6 @@ public abstract class CommandSourceStackMixin implements CommandSourceStackInter
         if (customValues == null) ((CommandSourceStackInterface)copy).lanitium$setCustomValues(values);
         else customValues.putAll(values);
         return copy;
-    }
-
-    @Override
-    public int lanitium$permissionLevel() {
-        return permissionLevel;
     }
 
     @Inject(method = {

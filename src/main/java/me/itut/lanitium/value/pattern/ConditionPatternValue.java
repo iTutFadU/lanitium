@@ -1,9 +1,6 @@
 package me.itut.lanitium.value.pattern;
 
-import carpet.script.Context;
-import carpet.script.Expression;
-import carpet.script.LazyValue;
-import carpet.script.Tokenizer;
+import carpet.script.*;
 import carpet.script.exception.ExpressionException;
 import carpet.script.value.FrameworkValue;
 import carpet.script.value.LContainerValue;
@@ -11,18 +8,18 @@ import carpet.script.value.Value;
 
 public class ConditionPatternValue extends FrameworkValue {
     public final Expression expression;
-    public final Tokenizer.Token token;
+    public final Token token;
     public final Value pattern;
     public final LazyValue condition;
 
-    public ConditionPatternValue(Expression expression, Tokenizer.Token token, Value pattern, LazyValue condition) {
+    public ConditionPatternValue(Expression expression, Token token, Value pattern, LazyValue condition) {
         this.expression = expression;
         this.token = token;
         this.pattern = pattern;
         this.condition = condition;
     }
 
-    public static void checkPattern(Expression expression, Tokenizer.Token token, Context context, Value pattern) throws ExpressionException {
+    public static void checkPattern(Expression expression, Token token, Context context, Value pattern) throws ExpressionException {
         switch (pattern) {
             case LContainerValue ignored -> throw new ExpressionException(context, expression, token, "Container mutation cannot have a condition");
             case ConditionPatternValue condition -> throw new ExpressionException(context, condition.expression, condition.token, "Multiple condition patterns are not allowed, use pattern && (condition1 && condition2) instead of pattern && condition1 && condition2");

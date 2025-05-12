@@ -1,9 +1,6 @@
 package me.itut.lanitium.value.pattern;
 
-import carpet.script.Context;
-import carpet.script.Expression;
-import carpet.script.LazyValue;
-import carpet.script.Tokenizer;
+import carpet.script.*;
 import carpet.script.exception.ExpressionException;
 import carpet.script.value.FrameworkValue;
 import carpet.script.value.LContainerValue;
@@ -11,18 +8,18 @@ import carpet.script.value.Value;
 
 public class DefaultPatternValue extends FrameworkValue {
     public final Expression expression;
-    public final Tokenizer.Token token;
+    public final Token token;
     public final Value pattern;
     public final LazyValue defaultValue;
 
-    public DefaultPatternValue(Expression expression, Tokenizer.Token token, Value pattern, LazyValue defaultValue) {
+    public DefaultPatternValue(Expression expression, Token token, Value pattern, LazyValue defaultValue) {
         this.expression = expression;
         this.token = token;
         this.pattern = pattern;
         this.defaultValue = defaultValue;
     }
 
-    public static void checkPattern(Expression expression, Tokenizer.Token token, Context context, Value pattern) throws ExpressionException {
+    public static void checkPattern(Expression expression, Token token, Context context, Value pattern) throws ExpressionException {
         switch (pattern) {
             case LContainerValue ignored -> {}
             case ConditionPatternValue ignored -> {}

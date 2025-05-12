@@ -9,6 +9,9 @@ import carpet.script.language.Operators;
 import carpet.script.value.*;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import me.itut.lanitium.value.pattern.*;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -18,18 +21,90 @@ import java.util.stream.Collectors;
 
 public class Patterns {
     public static void apply(Expression expr) {
-        expr.addLazyBinaryOperatorWithDelegation("&&", Operators.precedence.get("and&&"), false, true, (c, t, e, tok, l, r) -> {
-            if (t == Context.LVALUE) {
-                Value p = l.evalValue(c, t);
-                ConditionPatternValue.checkPattern(e, tok, c, p);
-                Value ret = new ConditionPatternValue(e, tok, p, r);
+        final int andPrecedence = Operators.precedence.get("and&&");
+        Fluff.ILazyOperator and = new Fluff.ILazyOperator() {
+            @Override
+            public int getPrecedence() {
+                return andPrecedence;
+            }
+
+            @Override
+            public boolean isLeftAssoc() {
+                return true;
+            }
+
+            @Override
+            public LazyValue lazyEval(Context c, Context.Type t, Expression e, Token tok, LazyValue l, LazyValue r) {
+                if (t == Context.LVALUE) {
+                    Value p = l.evalValue(c, t);
+                    ConditionPatternValue.checkPattern(e, tok, c, p);
+                    Value ret = new ConditionPatternValue(e, tok, p, r);
+                    return (cc, tt) -> ret;
+                }
+                Value v = l.evalValue(c, Context.BOOLEAN);
+                return v.getBoolean() ? r : (cc, tt) -> v;
+            }
+
+            @Override
+            public boolean pure() {
+                return true;
+            }
+
+            @Override
+            public boolean transitive() {
+                return false;
+            }
+        };
+        ((ExpressionInterface)expr).lanitium$operators().put("&&", and);
+        ((ExpressionInterface)expr).lanitium$functions().put("and", new Fluff.ILazyFunction() {
+            @Override
+            public int getNumParams() {
+                return -1;
+            }
+
+            @Override
+            public boolean numParamsVaries() {
+                return true;
+            }
+
+            @Override
+            public LazyValue lazyEval(Context c, Context.Type t, Expression e, Token tok, List<LazyValue> lv) {
+                if (t == Context.LVALUE) return switch (lv.size()) {
+                    case 0 -> LazyValue.TRUE;
+                    case 1 -> lv.getFirst();
+                    case 2 -> and.lazyEval(c, t, e, tok, lv.getFirst(), lv.getLast());
+                    default -> throw new ExpressionException(c, e, tok, "Multiple condition patterns are not allowed, use pattern && (condition1 && condition2) instead of pattern && condition1 && condition2");
+                };
+
+                Value v = Value.TRUE;
+                for (LazyValue l : lv) {
+                    Value val = l.evalValue(c, Context.BOOLEAN);
+                    if (val instanceof final FunctionUnpackedArgumentsValue fuav)
+                        for (Value it : fuav) {
+                            if (!it.getBoolean())
+                                return (cc, tt) -> it;
+                            v = it;
+                        }
+                    else if (!val.getBoolean())
+                        return (cc, tt) -> val;
+                    else v = val;
+                }
+                Value ret = v;
                 return (cc, tt) -> ret;
             }
-            Value v = l.evalValue(c, Context.BOOLEAN);
-            return v.getBoolean() ? r : (cc, tt) -> v;
+
+            @Override
+            public boolean pure() {
+                return true;
+            }
+
+            @Override
+            public boolean transitive() {
+                return false;
+            }
         });
 
-        expr.addLazyBinaryOperatorWithDelegation("->", Operators.precedence.get("def->"), false, false, (c, t, e, tok, l, r) -> {
+        expr.addLazyBinaryOperatorWithDelegation("->", "define", Operators.precedence.get("def->"), false, false, (c, t, e, tok, l, r) -> {
             if (t == Context.LVALUE) {
                 Value p = r.evalValue(c, t);
                 EntryPatternValue.checkPattern(c, p);
@@ -48,7 +123,7 @@ public class Patterns {
         });
 
         final int unaryPrecedence = Operators.precedence.get("unary+-!...");
-        ((ExpressionInterface)expr).lanitium$operators().put("...u", new Fluff.ILazyOperator() {
+        Fluff.ILazyOperator unpack = new Fluff.ILazyOperator() {
             @Override
             public int getPrecedence() {
                 return unaryPrecedence;
@@ -70,7 +145,7 @@ public class Patterns {
             }
 
             @Override
-            public LazyValue lazyEval(Context c, Context.Type t, Expression e, Tokenizer.Token tok, LazyValue v, LazyValue v2) {
+            public LazyValue lazyEval(Context c, Context.Type t, Expression e, Token tok, LazyValue v, LazyValue v2) {
                 if (t == Context.LVALUE) {
                     Value p = v.evalValue(c, t);
                     RestPatternValue.checkPattern(e, tok, c, p);
@@ -83,7 +158,35 @@ public class Patterns {
                 FunctionUnpackedArgumentsValue fuaval = new FunctionUnpackedArgumentsValue(alv.unpack());
                 return (cc, tt) -> fuaval;
             }
+        };
+        ((ExpressionInterface)expr).lanitium$operators().put("...u", unpack);
+        ((ExpressionInterface)expr).lanitium$functions().put("unpack", new Fluff.ILazyFunction() {
+            @Override
+            public int getNumParams() {
+                return 1;
+            }
+
+            @Override
+            public boolean numParamsVaries() {
+                return false;
+            }
+
+            @Override
+            public LazyValue lazyEval(Context c, Context.Type t, Expression e, Token tok, List<LazyValue> lv) {
+                return unpack.lazyEval(c, t, e, tok, lv.getFirst(), null);
+            }
+
+            @Override
+            public boolean pure() {
+                return true;
+            }
+
+            @Override
+            public boolean transitive() {
+                return false;
+            }
         });
+
 
         expr.addLazyFunctionWithDelegation("l", -1, true, false, (c, t, e, tok, lv) -> {
             if (t == Context.LVALUE) {
@@ -121,7 +224,7 @@ public class Patterns {
             return (cc, tt) -> ret;
         });
 
-        expr.addLazyBinaryOperatorWithDelegation("=", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
+        expr.addLazyBinaryOperatorWithDelegation("=", "assign", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
             Value pattern = l.evalValue(c, Context.LVALUE);
             if (t == Context.LVALUE) {
                 DefaultPatternValue.checkPattern(e, tok, c, pattern);
@@ -150,7 +253,7 @@ public class Patterns {
             return (cc, tt) -> assign;
         });
 
-        expr.addLazyBinaryOperatorWithDelegation("+=", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
+        expr.addLazyBinaryOperatorWithDelegation("+=", "append", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
             Value pattern = l.evalValue(c, Context.LVALUE);
             if (t == Context.LVALUE) {
                 DefaultPatternValue.checkPattern(e, tok, c, pattern);
@@ -215,7 +318,7 @@ public class Patterns {
             return (cc, tt) -> ret;
         });
 
-        expr.addLazyBinaryOperatorWithDelegation("<>", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
+        expr.addLazyBinaryOperatorWithDelegation("<>", "swap", Operators.precedence.get("assign=<>"), false, false, (c, t, e, tok, l, r) -> {
             Value ll = l.evalValue(c, Context.LVALUE);
             checkAssignmentPattern(e, tok, c, ll);
             Value rl = r.evalValue(c, Context.LVALUE);
@@ -269,7 +372,12 @@ public class Patterns {
                     Value ret = lv.get(i + 1).evalValue(c, t);
                     return (cc, tt) -> ret;
                 } catch (ContinueStatement ignored) {} finally {
-                    c.variables.putAll(scope);
+                    scope.forEach((k, v) -> {
+                        if (v == null)
+                            c.delVariable(k);
+                        else
+                            c.setVariable(k, v);
+                    });
                     scope.clear();
                 }
             } catch (BreakStatement exc) {
@@ -280,7 +388,7 @@ public class Patterns {
         });
     }
 
-    private static void checkAssignmentPattern(Expression expression, Tokenizer.Token token, Context context, Value pattern) throws ExpressionException {
+    private static void checkAssignmentPattern(Expression expression, Token token, Context context, Value pattern) throws ExpressionException {
         switch (pattern) {
             case LContainerValue ignored -> {}
             case ConditionPatternValue condition -> throw new ExpressionException(context, condition.expression, condition.token, "Condition pattern is not allowed in assignment");
@@ -296,7 +404,7 @@ public class Patterns {
         }
     }
 
-    private static AssignmentOperation assignPattern(Expression expression, Tokenizer.Token token, Context context, Value pattern, Value assign) throws ExpressionException {
+    private static AssignmentOperation assignPattern(Expression expression, Token token, Context context, Value pattern, Value assign) throws ExpressionException {
         return switch (pattern) {
             case ListPatternValue list -> {
                 if (!(assign instanceof AbstractListValue l) || l instanceof MapValue)
@@ -340,7 +448,7 @@ public class Patterns {
 
                 for (Value p : map.values) {
                     Expression expr = expression;
-                    Tokenizer.Token tok = token;
+                    Token tok = token;
                     LazyValue defaultValue = null;
                     Value key = null;
 
@@ -442,7 +550,7 @@ public class Patterns {
         }
     }
 
-    private static void checkSwitchPattern(Expression expression, Tokenizer.Token token, Context context, Value pattern) throws ExpressionException {
+    private static void checkSwitchPattern(Expression expression, Token token, Context context, Value pattern) throws ExpressionException {
         switch (pattern) {
             case LContainerValue ignored -> throw new ExpressionException(context, expression, token, "Container mutation is not allowed in switch, use get(container[index]) instead of container[index] to test against the value");
             case ConditionPatternValue condition -> checkSwitchPattern(condition.expression, condition.token, context, condition.pattern);

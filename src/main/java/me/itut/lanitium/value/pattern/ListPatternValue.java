@@ -2,7 +2,7 @@ package me.itut.lanitium.value.pattern;
 
 import carpet.script.Context;
 import carpet.script.Expression;
-import carpet.script.Tokenizer;
+import carpet.script.Token;
 import carpet.script.exception.ExpressionException;
 import carpet.script.value.FrameworkValue;
 import carpet.script.value.Value;
@@ -12,11 +12,11 @@ import java.util.List;
 
 public class ListPatternValue extends FrameworkValue {
     public final Expression expression;
-    public final Tokenizer.Token token;
+    public final Token token;
     public final List<Value> values;
     public final int rest;
 
-    public ListPatternValue(Expression expression, Tokenizer.Token token, List<Value> values, int rest) {
+    public ListPatternValue(Expression expression, Token token, List<Value> values, int rest) {
         this.expression = expression;
         this.token = token;
         this.values = values;

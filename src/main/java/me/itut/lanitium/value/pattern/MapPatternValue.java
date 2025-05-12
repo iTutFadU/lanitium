@@ -2,7 +2,7 @@ package me.itut.lanitium.value.pattern;
 
 import carpet.script.Context;
 import carpet.script.Expression;
-import carpet.script.Tokenizer;
+import carpet.script.Token;
 import carpet.script.exception.ExpressionException;
 import carpet.script.value.FrameworkValue;
 import carpet.script.value.LContainerValue;
@@ -13,11 +13,11 @@ import java.util.List;
 
 public class MapPatternValue extends FrameworkValue {
     public final Expression expression;
-    public final Tokenizer.Token token;
+    public final Token token;
     public final List<Value> values;
     public final int rest, minSize;
 
-    public MapPatternValue(Expression expression, Tokenizer.Token token, List<Value> values, int rest, int minSize) {
+    public MapPatternValue(Expression expression, Token token, List<Value> values, int rest, int minSize) {
         this.expression = expression;
         this.token = token;
         this.values = values;
@@ -26,7 +26,7 @@ public class MapPatternValue extends FrameworkValue {
     }
 
     @Contract(mutates = "param5") // vars[0] - rest, vars[1] - minSize
-    public static void checkPattern(Expression expression, Tokenizer.Token token, Context context, Value pattern, int[] vars, int index, boolean inEntry, boolean optional) throws ExpressionException {
+    public static void checkPattern(Expression expression, Token token, Context context, Value pattern, int[] vars, int index, boolean inEntry, boolean optional) throws ExpressionException {
         switch (pattern) {
             case LContainerValue ignored -> {
                 if (!inEntry)

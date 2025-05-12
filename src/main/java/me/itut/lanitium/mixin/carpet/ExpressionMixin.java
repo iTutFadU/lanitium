@@ -30,8 +30,8 @@ public abstract class ExpressionMixin implements ExpressionInterface {
         return functions;
     }
 
-    @Redirect(method = "RPNToParseTree", at = @At(value = "NEW", target = "(Lcarpet/script/LazyValue;Ljava/util/List;Lcarpet/script/Tokenizer$Token;)Lcarpet/script/Expression$ExpressionNode;"))
-    private Expression.ExpressionNode checkMethodCall(LazyValue op, List<Expression.ExpressionNode> args, Tokenizer.Token token) {
+    @Redirect(method = "RPNToParseTree", at = @At(value = "NEW", target = "(Lcarpet/script/LazyValue;Ljava/util/List;Lcarpet/script/Token;)Lcarpet/script/Expression$ExpressionNode;"))
+    private Expression.ExpressionNode checkMethodCall(LazyValue op, List<Expression.ExpressionNode> args, Token token) {
         if (((TokenInterface)token).lanitium$type() == TokenTypeInterface.OPERATOR && ".".equals(token.surface)) {
             Expression.ExpressionNode self = args.getFirst(), call = args.getLast();
             args = new ArrayList<>(1 + call.args.size());

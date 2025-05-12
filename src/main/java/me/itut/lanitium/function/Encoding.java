@@ -211,6 +211,6 @@ public class Encoding {
     @ScarpetFunction
     public static Value nbt_list_type(NBTSerializableValue nbt) {
         if (!(nbt.getTag() instanceof ListTag list)) return Value.NULL;
-        return StringValue.of(TagTypes.getType(list.getElementType()).getName().toLowerCase());
+        return StringValue.of(TagTypes.getType(list.identifyRawElementType()).getName().toLowerCase());
     }
 }

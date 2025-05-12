@@ -165,7 +165,7 @@ public class Symbols {
         return safeCopy(container, new IdentityHashMap<>());
     }
 
-    private static Value safeCopy(Value container, IdentityHashMap<Object, Value> copied) {
+    public static Value safeCopy(Value container, IdentityHashMap<Object, Value> copied) {
         return switch (container) {
             case ListValue l -> {
                 if (copied.containsKey(l.getItems())) yield copied.get(l.getItems());
@@ -211,8 +211,8 @@ public class Symbols {
         loop_inner = {};
         loop_list = [loop_inner];
         loop_outer = {'a' -> loop_inner, 'b' -> loop_list};
-        loop_inner:'c' = loop_outer;
-        loop_inner:'d' = loop_list;
+        loop_inner.c = loop_outer;
+        loop_inner.d = loop_list;
         print(safe_str(loop_outer)) => '{a: {c: {...}, d: [{...}]}, b: [{c: {...}, d: [...]}]}'
 
         { ─────────────────────────────────────────────────────────────┬─( outer )
@@ -243,7 +243,7 @@ public class Symbols {
             new IdentityHashMap<>());
     }
 
-    private static Value safeDeepMap(Value container, UnaryOperator<Value> lf, BinaryOperator<Value> kf, BinaryOperator<Value> vf, BinaryOperator<Value> ref, IdentityHashMap<Object, Value> mapped) {
+    public static Value safeDeepMap(Value container, UnaryOperator<Value> lf, BinaryOperator<Value> kf, BinaryOperator<Value> vf, BinaryOperator<Value> ref, IdentityHashMap<Object, Value> mapped) {
         return switch (container) {
             case ListValue l -> {
                 if (mapped.containsKey(l.getItems())) yield ref.apply(l, mapped.get(l.getItems()));

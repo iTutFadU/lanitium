@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
-@Mixin(targets = "carpet/script/Tokenizer$Token$TokenType", remap = false)
+@Mixin(targets = "carpet/script/Token$TokenType", remap = false)
 public abstract class TokenTypeMixin implements TokenTypeInterface {
     @Shadow @Final boolean functional;
     @Shadow @Final boolean constant;

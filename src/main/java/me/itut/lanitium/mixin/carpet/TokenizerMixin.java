@@ -2,6 +2,7 @@ package me.itut.lanitium.mixin.carpet;
 
 import carpet.script.Context;
 import carpet.script.Expression;
+import carpet.script.Token;
 import carpet.script.Tokenizer;
 import carpet.script.exception.ExpressionException;
 import com.mojang.brigadier.context.StringRange;
@@ -17,14 +18,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.math.BigInteger;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Mixin(value = Tokenizer.class, remap = false)
 public abstract class TokenizerMixin {
     @Shadow private int pos;
     @Shadow @Final private String input;
-    @Shadow private Tokenizer.Token previousToken;
+    @Shadow private Token previousToken;
     @Shadow private int linepos;
     @Shadow private int lineno;
     @Shadow protected abstract char peekNextChar();
@@ -34,12 +33,12 @@ public abstract class TokenizerMixin {
     @Shadow @Final private boolean newLinesMarkers;
 
     @Shadow
-    private static boolean isSemicolon(Tokenizer.Token tok) {
+    private static boolean isSemicolon(Token tok) {
         return false;
     }
 
     @Unique
-    private void escapeCode(Tokenizer.Token token) {
+    private void escapeCode(Token token) {
         char nextChar = peekNextChar();
         switch (nextChar) {
             case 'n' -> token.append('\n');
@@ -99,9 +98,9 @@ public abstract class TokenizerMixin {
         return len;
     }
 
-    @Inject(method = "next()Lcarpet/script/Tokenizer$Token;", at = @At("HEAD"), cancellable = true)
-    private void customSyntax(CallbackInfoReturnable<Tokenizer.Token> cir) {
-        Tokenizer.Token token = new Tokenizer.Token();
+    @Inject(method = "next()Lcarpet/script/Token;", at = @At("HEAD"), cancellable = true)
+    private void customSyntax(CallbackInfoReturnable<Token> cir) {
+        Token token = new Token();
 
         if (pos >= input.length()) {
             cir.setReturnValue(previousToken = null);
@@ -476,14 +475,12 @@ public abstract class TokenizerMixin {
     }
 
     @Inject(method = "postProcess", at = @At("HEAD"), cancellable = true)
-    private void postProcess(CallbackInfoReturnable<List<Tokenizer.Token>> cir) {
-        Iterable<Tokenizer.Token> iterable = () -> (Tokenizer)(Object)this;
-        List<Tokenizer.Token> originalTokens = StreamSupport.stream(iterable.spliterator(), false).collect(Collectors.toList());
-        List<Tokenizer.Token> cleanedTokens = new ArrayList<>();
-        Tokenizer.Token last = null;
+    private static void postProcess(List<Token> originalTokens, CallbackInfoReturnable<List<Token>> cir) {
+        List<Token> cleanedTokens = new ArrayList<>();
+        Token last = null;
         Stack<Integer> bracketStack = new Stack<>();
-        while (!originalTokens.isEmpty()) {
-            Tokenizer.Token current = originalTokens.removeLast();
+        for (int i = originalTokens.size() - 1; i >= 0; i--) {
+            Token current = originalTokens.get(i);
             TokenTypeInterface currentType = ((TokenInterface)current).lanitium$type();
             if (currentType == TokenTypeInterface.MARKER && current.surface.charAt(0) == '/')
                 continue;
@@ -508,7 +505,7 @@ public abstract class TokenizerMixin {
                         if (bracketStack.isEmpty()) break;
                         int bracket = bracketStack.pop();
 
-                        if (!originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.FUNCTION) {
+                        if (i > 0 && ((TokenInterface)originalTokens.get(i - 1)).lanitium$type() == TokenTypeInterface.FUNCTION) {
                             cleanedTokens.add(bracket + 1, cleanedTokens.get(bracket));
                             cleanedTokens.add(current);
                             cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
@@ -521,8 +518,8 @@ public abstract class TokenizerMixin {
 
                         if (!bracketStack.isEmpty()) bracketStack.pop();
 
-                        if (!originalTokens.isEmpty()) {
-                            Tokenizer.Token prev = originalTokens.getLast();
+                        if (i > 0) {
+                            Token prev = originalTokens.get(i - 1);
                             TokenTypeInterface prevType = ((TokenInterface)prev).lanitium$type();
                             if (prevType == TokenTypeInterface.VARIABLE
                              || prevType == TokenTypeInterface.LITERAL
@@ -541,15 +538,15 @@ public abstract class TokenizerMixin {
                         ((TokenInterface)current).lanitium$morph(TokenTypeInterface.CLOSE_PAREN, ")");
                         bracketStack.push(cleanedTokens.size());
                     }
-                } else if (currentType == TokenTypeInterface.STRINGPARAM && !originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.FUNCTION) {
+                } else if (currentType == TokenTypeInterface.STRINGPARAM && i > 0 && ((TokenInterface)originalTokens.get(i - 1)).lanitium$type() == TokenTypeInterface.FUNCTION) {
                     cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.CLOSE_PAREN, ")"));
                     cleanedTokens.add(current);
                     cleanedTokens.add(((TokenInterface)current).lanitium$morphedInto(TokenTypeInterface.OPEN_PAREN, "("));
                     last = current;
                     continue;
-                } else if (!originalTokens.isEmpty() && ((TokenInterface)originalTokens.getLast()).lanitium$type() == TokenTypeInterface.OPERATOR && originalTokens.getLast().surface.equals(".")) {
+                } else if (i > 0 && ((TokenInterface)originalTokens.get(i - 1)).lanitium$type() == TokenTypeInterface.OPERATOR && originalTokens.get(i - 1).surface.equals(".")) {
                     if (currentType == TokenTypeInterface.VARIABLE) {
-                        originalTokens.getLast().surface = ":";
+                        originalTokens.get(i - 1).surface = ":";
                         TokenInterface.setType(current, TokenTypeInterface.STRINGPARAM);
                     } else current.surface = '.' + current.surface;
                 }

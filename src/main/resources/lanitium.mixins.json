@@ -16,6 +16,7 @@
         "carpet.EntityValueMixin",
         "carpet.ExpressionMixin",
         "carpet.FunctionValueMixin",
+        "carpet.ListValueMixin",
         "carpet.MapValueMixin",
         "carpet.NBTSerializableValueMixin",
         "carpet.ScriptHostMixin",

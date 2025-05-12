@@ -1,0 +1,4 @@
+accessWidener v2 named
+accessible method net/minecraft/nbt/ListTag identifyRawElementType ()B
+accessible field net/minecraft/nbt/TagParser NBT_OPS_PARSER Lnet/minecraft/nbt/TagParser;
+accessible field net/minecraft/commands/CommandSourceStack permissionLevel I

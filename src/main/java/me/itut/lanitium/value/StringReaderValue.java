@@ -150,7 +150,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
             case "read_nbt" -> {
                 checkArguments(what, more, 0);
                 try {
-                    yield NBTSerializableValue.of(new TagParser(value).readValue());
+                    yield NBTSerializableValue.of(TagParser.NBT_OPS_PARSER.parseAsArgument(value));
                 } catch (CommandSyntaxException e) {
                     yield Value.NULL;
                 }
@@ -158,9 +158,89 @@ public class StringReaderValue extends ObjectValue<StringReader> {
             case "read_compound" -> {
                 checkArguments(what, more, 0);
                 try {
-                    yield NBTSerializableValue.of(new TagParser(value).readStruct());
+                    yield NBTSerializableValue.of(TagParser.parseCompoundAsArgument(value));
                 } catch (CommandSyntaxException e) {
                     yield Value.NULL;
+                }
+            }
+            case "read_int_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NumericValue.of(value.readInt());
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_long_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NumericValue.of(value.readLong());
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_double_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NumericValue.of(value.readDouble());
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_float_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NumericValue.of(value.readFloat());
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_quoted_string_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield StringValue.of(value.readQuotedString());
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_string_until_or_panic" -> {
+                checkArguments(what, more, 1);
+                try {
+                    yield StringValue.of(value.readStringUntil(ValueConversions.toChar(more[0])));
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_string_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield StringValue.of(value.readString());
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_boolean_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield BooleanValue.of(value.readBoolean());
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_nbt_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NBTSerializableValue.of(TagParser.NBT_OPS_PARSER.parseAsArgument(value));
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            case "read_compound_or_panic" -> {
+                checkArguments(what, more, 0);
+                try {
+                    yield NBTSerializableValue.of(TagParser.parseCompoundAsArgument(value));
+                } catch (CommandSyntaxException e) {
+                    throw new RuntimeException(e);
                 }
             }
             case "index_of", "find" -> {

@@ -32,16 +32,16 @@ public class SimpleFunctionValue extends FunctionValue {
     }
 
     public final int minParams, maxParams;
-    public final Fluff.QuinnFunction<Context, Context.Type, Expression, Tokenizer.Token, List<Value>, Value> body;
+    public final Fluff.QuinnFunction<Context, Context.Type, Expression, Token, List<Value>, Value> body;
 
-    public SimpleFunctionValue(int minParams, int maxParams, Fluff.QuinnFunction<Context, Context.Type, Expression, Tokenizer.Token, List<Value>, Value> body) {
+    public SimpleFunctionValue(int minParams, int maxParams, Fluff.QuinnFunction<Context, Context.Type, Expression, Token, List<Value>, Value> body) {
         super(Expression.none, null, "_", null, List.of(), null, null);
         this.minParams = minParams;
         this.maxParams = maxParams;
         this.body = body;
     }
 
-    public static SimpleFunctionValue runnable(int minParams, int maxParams, QuinnConsumer<Context, Context.Type, Expression, Tokenizer.Token, List<Value>> body) {
+    public static SimpleFunctionValue runnable(int minParams, int maxParams, QuinnConsumer<Context, Context.Type, Expression, Token, List<Value>> body) {
         return new SimpleFunctionValue(minParams, maxParams, (c, t, e, tok, lv) -> {
             body.accept(c, t, e, tok, lv);
             return Value.NULL;
@@ -49,7 +49,7 @@ public class SimpleFunctionValue extends FunctionValue {
     }
 
     @Override
-    public LazyValue execute(Context c, Context.Type type, Expression e, Tokenizer.Token t, List<Value> args, ThreadValue freshNewCallingThread) {
+    public LazyValue execute(Context c, Context.Type type, Expression e, Token t, List<Value> args, ThreadValue freshNewCallingThread) {
         if (args.size() < minParams || maxParams >= 0 && args.size() > maxParams)
             throw new ExpressionException(c, e, t, "Incorrect number of arguments for function. Should be %s, not %d".formatted(maxParams < 0 ? "at least " + minParams : minParams < maxParams ? "from " + minParams + " to " + maxParams : minParams, args.size()));
 
