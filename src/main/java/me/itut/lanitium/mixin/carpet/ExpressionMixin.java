@@ -1,6 +1,7 @@
 package me.itut.lanitium.mixin.carpet;
 
 import carpet.script.*;
+import carpet.script.Module;
 import carpet.script.value.StringValue;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import me.itut.lanitium.internal.carpet.TokenInterface;
@@ -28,6 +29,12 @@ public abstract class ExpressionMixin implements ExpressionInterface {
     @Override
     public Map<String, Fluff.ILazyFunction> lanitium$functions() {
         return functions;
+    }
+
+    @Redirect(method = "getOrSetAnyVariable", at = @At(value = "INVOKE", target = "Lcarpet/script/ScriptHost;getGlobalVariable(Lcarpet/script/Module;Ljava/lang/String;)Lcarpet/script/LazyValue;"))
+    private LazyValue checkLocalVariable(ScriptHost instance, Module module, String name) {
+        if (!name.startsWith("global_")) return null;
+        return instance.getGlobalVariable(module, name);
     }
 
     @Redirect(method = "RPNToParseTree", at = @At(value = "NEW", target = "(Lcarpet/script/LazyValue;Ljava/util/List;Lcarpet/script/Token;)Lcarpet/script/Expression$ExpressionNode;"))

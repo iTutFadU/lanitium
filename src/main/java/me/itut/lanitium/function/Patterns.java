@@ -233,7 +233,7 @@ public class Patterns {
             }
 
             if (pattern.isBound()) {
-                Value rebounded = r.evalValue(c).reboundedTo(pattern.boundVariable);
+                Value rebounded = assertDefined(r.evalValue(c)).reboundedTo(pattern.boundVariable);
                 e.setAnyVariable(c, rebounded.boundVariable, (cc, tt) -> rebounded);
                 return (cc, tt) -> rebounded;
             }
@@ -264,10 +264,10 @@ public class Patterns {
             if (pattern.isBound()) {
                 Value ret;
                 if (pattern instanceof ListValue || pattern instanceof MapValue) {
-                    ((AbstractListValue)pattern).append(r.evalValue(c));
+                    ((AbstractListValue)pattern).append(assertDefined(r.evalValue(c)));
                     ret = pattern;
                 } else {
-                    ret = pattern.add(r.evalValue(c)).bindTo(pattern.boundVariable);
+                    ret = pattern.add(assertDefined(r.evalValue(c))).bindTo(pattern.boundVariable);
                     e.setAnyVariable(c, ret.boundVariable, (cc, tt) -> ret);
                 }
                 return (cc, tt) -> ret;
@@ -325,8 +325,8 @@ public class Patterns {
             checkAssignmentPattern(e, tok, c, rl);
 
             if (ll.isBound() && rl.isBound()) {
-                Value rv = ll.reboundedTo(rl.boundVariable);
-                Value lv = rl.reboundedTo(ll.boundVariable);
+                Value rv = assertDefined(ll).reboundedTo(rl.boundVariable);
+                Value lv = assertDefined(rl).reboundedTo(ll.boundVariable);
                 e.setAnyVariable(c, lv.boundVariable, (cc, tt) -> lv);
                 e.setAnyVariable(c, rv.boundVariable, (cc, tt) -> rv);
                 return (cc, tt) -> rv;
@@ -386,6 +386,18 @@ public class Patterns {
             }
             throw new InternalExpressionException("No branches matched in a switch: " + test.getString());
         });
+    }
+
+    /**
+     * @param v the value to check
+     * @return <code>v</code>
+     * @throws InternalExpressionException if <code>v</code> is undefined
+     * @see UndefValue#getError()
+     * @see UndefValue#isNull()
+     */
+    private static Value assertDefined(Value v) throws InternalExpressionException {
+        v.isNull();
+        return v;
     }
 
     private static void checkAssignmentPattern(Expression expression, Token token, Context context, Value pattern) throws ExpressionException {
@@ -499,6 +511,10 @@ public class Patterns {
     }
 
     private record AssignmentMutation(Value lvalue, Value rvalue) implements AssignmentOperation {
+        public AssignmentMutation {
+            assertDefined(rvalue);
+        }
+
         @Override
         public Value traverse(Function<AssignmentMutation, Value> function) {
             return function.apply(this);
