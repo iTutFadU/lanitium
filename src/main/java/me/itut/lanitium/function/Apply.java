@@ -279,6 +279,7 @@ public class Apply {
         });
 
 //        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l); // TODO: Add types to syntax
+
         expr.addLazyBinaryOperatorWithDelegation("\\", "with", Operators.precedence.get("attribute~:"), true, false, (c, t, e, tok, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
@@ -295,6 +296,7 @@ public class Apply {
             System.arraycopy(values, 0, callArgs, 1, values.length);
             return call.lazyEval(c, t, e, tok, Arrays.stream(callArgs).map(v -> (LazyValue)(cc, tt) -> v).toList());
         });
+
         expr.addLazyFunction("do_all", -1, (c, t, lv) -> {
             int imax = lv.size() - 1;
             Throwable error = null;
@@ -313,6 +315,7 @@ public class Apply {
                 throw e;
             return (cc, tt) -> v;
         });
+
         expr.addLazyFunction("catch_all", 1, (c, t, lv) -> {
             try {
                 Value output = lv.getFirst().evalValue(c, t);
@@ -321,6 +324,7 @@ public class Apply {
                 return LazyValue.NULL;
             }
         });
+
         expr.addLazyFunction("catch", 1, (c, t, lv) -> {
             Value output;
             try {
@@ -373,8 +377,36 @@ public class Apply {
             Value finalOutput = output;
             return (cc, tt) -> finalOutput;
         });
+
         expr.addImpureUnaryFunction("panic", v -> {
             throw new InternalExpressionException(v.getString());
+        });
+
+        expr.addContextFunction("sys", 1, (c, t, lv) -> {
+            Value key = lv.getFirst();
+            if (t == Context.LVALUE) return new LContainerValue(new ContainerValueInterface() {
+                @Override
+                public boolean put(Value where, Value value) {
+                    c.host.scriptServer().systemGlobals.put(key, value);
+                    return true;
+                }
+
+                @Override
+                public Value get(Value where) {
+                    return c.host.scriptServer().systemGlobals.getOrDefault(key, Value.NULL);
+                }
+
+                @Override
+                public boolean has(Value where) {
+                    return c.host.scriptServer().systemGlobals.containsKey(key);
+                }
+
+                @Override
+                public boolean delete(Value where) {
+                    return c.host.scriptServer().systemGlobals.remove(key) != null;
+                }
+            }, null);
+            return c.host.scriptServer().systemGlobals.getOrDefault(key, Value.NULL);
         });
 
         expr.addLazyFunction("as_entity", 2, (c, t, lv) -> {
