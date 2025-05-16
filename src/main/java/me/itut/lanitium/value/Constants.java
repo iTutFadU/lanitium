@@ -32,4 +32,7 @@ public class Constants {
     public static final Value TOOLTIP = StringValue.of("tooltip");
     public static final Value __META = StringValue.of("__meta");
     public static final Value __TYPE = StringValue.of("__type");
+    public static final Value __STR = StringValue.of("__str");
+    public static final Value __HASH = StringValue.of("__hash");
+    public static final Value __EQ = StringValue.of("__eq");
 }
