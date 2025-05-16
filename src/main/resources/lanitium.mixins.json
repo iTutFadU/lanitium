@@ -5,6 +5,7 @@
     "compatibilityLevel": "JAVA_21",
     "mixins": [
         "CommandSourceStackMixin",
+        "CommandSourceStackMixin$Snoopy",
         "DedicatedServerMixin",
         "EntityDataAccessorMixin",
         "MinecraftServerMixin",

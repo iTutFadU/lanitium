@@ -21,6 +21,7 @@ import me.itut.lanitium.value.SimpleFunctionValue;
 import me.itut.lanitium.value.SourceValue;
 import me.itut.lanitium.value.WithValue;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.ComponentArgument;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.commands.arguments.StyleArgument;
@@ -33,6 +34,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.TypedDataComponent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceLocation;
@@ -411,11 +413,14 @@ public class Apply {
 
         expr.addLazyFunction("as_entity", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
-            if (!(lv.getFirst().evalValue(c) instanceof EntityValue entity))
-                throw new InternalExpressionException("First argument to 'as_entity' must be an entity");
-            if (entity.getEntity().equals(source.getEntity())) return lv.get(1);
+            Entity entity = switch (lv.getFirst().evalValue(c)) {
+                case NullValue ignored -> null;
+                case EntityValue e -> e.getEntity();
+                default -> throw new InternalExpressionException("First argument to 'as_entity' must be an entity or null");
+            };
+            if (Objects.equals(source.getEntity(), entity)) return lv.get(1);
             final Context ctx = c.recreate();
-            ((CarpetContext)ctx).swapSource(source.withEntity(entity.getEntity()));
+            ((CarpetContext)ctx).swapSource(source.withEntity(entity));
             ctx.variables = c.variables;
             final Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
@@ -488,7 +493,7 @@ public class Apply {
                 case NullValue ignored -> null;
                 case MapValue map -> map;
                 case AbstractListValue list -> new MapValue(list.unpack());
-                default -> throw new InternalExpressionException("Argument 'custom_values' must be a map");
+                default -> throw new InternalExpressionException("First argument to 'with_custom_values' must be a map or null");
             };
             if (customValues == null || customValues.getMap().isEmpty()) return lv.get(1);
             Context ctx = c.recreate();
@@ -659,8 +664,13 @@ public class Apply {
             case Number number -> NumericValue.of(number);
             case String str -> StringValue.of(str);
             case Component component -> FormattedTextValue.of(component);
-            default -> NBTSerializableValueInterface.decodeTag(v.encodeValue(NbtOps.INSTANCE).result().orElse(null));
+            default -> NBTSerializableValueInterface.decodeTag(v.encodeValue(NbtOps.INSTANCE).result().orElse(EndTag.INSTANCE));
         };
+    }
+
+    @ScarpetFunction
+    public static void run_as_source(Context c, String command) {
+        ((CarpetContext)c).server().getCommands().performPrefixedCommand(((CarpetContext)c).source(), command);
     }
 
     @ScarpetFunction(maxParams = -1)

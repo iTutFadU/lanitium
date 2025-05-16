@@ -1,5 +1,6 @@
 package me.itut.lanitium.mixin;
 
+import carpet.script.utils.SnoopyCommandSource;
 import carpet.script.value.Value;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import net.minecraft.commands.CommandSourceStack;
@@ -58,5 +59,21 @@ public abstract class CommandSourceStackMixin implements CommandSourceStackInter
     }, at = @At("TAIL"))
     private void withCustomValues(CallbackInfoReturnable<CommandSourceStack> cir) {
         ((CommandSourceStackInterface)cir.getReturnValue()).lanitium$setCustomValues(customValues);
+    }
+
+    @Mixin(value = SnoopyCommandSource.class, remap = false)
+    public abstract static class Snoopy {
+        @Inject(method = {
+            "withEntity",
+            "withPosition",
+            "withRotation",
+            "withCallback(Lnet/minecraft/commands/CommandResultCallback;)Lnet/minecraft/commands/CommandSourceStack;",
+            "withAnchor",
+            "withLevel",
+            "withSigningContext",
+        }, at = @At("TAIL"))
+        private void withCustomValues(CallbackInfoReturnable<CommandSourceStack> cir) {
+            ((CommandSourceStackInterface)cir.getReturnValue()).lanitium$setCustomValues(((CommandSourceStackInterface)this).lanitium$customValues());
+        }
     }
 }
