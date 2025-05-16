@@ -373,10 +373,8 @@ public class Patterns {
                     return (cc, tt) -> ret;
                 } catch (ContinueStatement ignored) {} finally {
                     scope.forEach((k, v) -> {
-                        if (v == null)
-                            c.delVariable(k);
-                        else
-                            c.setVariable(k, v);
+                        if (v == null) c.delVariable(k);
+                        else c.setVariable(k, v);
                     });
                     scope.clear();
                 }
@@ -385,6 +383,24 @@ public class Patterns {
                 return (cc, tt) -> ret;
             }
             throw new InternalExpressionException("No branches matched in a switch: " + test.getString());
+        });
+
+        expr.addLazyFunctionWithDelegation("matches", -1, false, false, (c, t, e, tok, lv) -> {
+            if (lv.isEmpty()) throw new InternalExpressionException("'matches' requires a value to test and patterns to test against");
+            Value test = lv.getFirst().evalValue(c);
+            Map<String, @Nullable LazyValue> scope = new HashMap<>();
+            for (int i = 1, size = lv.size(); i < size; i++) {
+                Value pattern = lv.get(i).evalValue(c, Context.LVALUE);
+                checkSwitchPattern(e, tok, c, pattern);
+                if (!switchPattern(c, pattern, test, scope)) continue;
+                scope.forEach((k, v) -> {
+                    if (v == null) c.delVariable(k);
+                    else c.setVariable(k, v);
+                });
+                scope.clear();
+                return LazyValue.TRUE;
+            }
+            return LazyValue.FALSE;
         });
     }
 
