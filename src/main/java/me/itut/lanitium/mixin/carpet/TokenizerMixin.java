@@ -256,10 +256,11 @@ public abstract class TokenizerMixin {
             pos++;
             linepos++;
 
-            if (expression != null && context != null && previousToken != null &&
-                ((TokenInterface)previousToken).lanitium$type() == TokenTypeInterface.OPERATOR &&
-                (ch == ')' || ch == ',' || ch == ']' || ch == '}') &&
-                !previousToken.surface.equals(";"))
+            if (expression != null && context != null && previousToken != null && (
+                ((TokenInterface)previousToken).lanitium$type() == TokenTypeInterface.OPERATOR ||
+                ((TokenInterface)previousToken).lanitium$type() == TokenTypeInterface.UNARY_OPERATOR)
+             && (ch == ')' || ch == ',' || ch == ']' || ch == '}')
+             && !previousToken.surface.equals(";"))
                 throw new ExpressionException(context, expression, previousToken, "Can't have operator " + previousToken.surface + " at the end of a subexpression");
         } else if (ch == '.' && peekNextChar() != '.') {
             token.surface = ".";
@@ -267,6 +268,7 @@ public abstract class TokenizerMixin {
             TokenTypeInterface prevType = previousToken != null ? ((TokenInterface)previousToken).lanitium$type() : null;
             if (prevType == null
              || prevType == TokenTypeInterface.OPERATOR
+             || prevType == TokenTypeInterface.UNARY_OPERATOR
              || prevType == TokenTypeInterface.OPEN_PAREN
              || prevType == TokenTypeInterface.COMMA
              || prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("{") || previousToken.surface.equals("[")))
@@ -344,6 +346,7 @@ public abstract class TokenizerMixin {
             TokenTypeInterface prevType = previousToken != null ? ((TokenInterface)previousToken).lanitium$type() : null;
             if (prevType == null
              || prevType == TokenTypeInterface.OPERATOR
+             || prevType == TokenTypeInterface.UNARY_OPERATOR
              || prevType == TokenTypeInterface.OPEN_PAREN
              || prevType == TokenTypeInterface.COMMA
              || (prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("{") || previousToken.surface.equals("[")))
@@ -579,12 +582,12 @@ public abstract class TokenizerMixin {
 
         for (int i = str.interpolations().size() - 1; i > 0; i--) {
             tokenQueue.addAll(str.interpolations().get(i).reversed());
-            tokenQueue.add(((TokenInterface)token).lanitium$morphedInto(TokenTypeInterface.MARKER, InterpolatedString.NEXT));
-            tokenQueue.add(((TokenInterface)token).lanitium$morphedInto(TokenTypeInterface.STRINGPARAM, str.substrings().get(i)));
+            tokenQueue.push(((TokenInterface)token).lanitium$morphedInto(TokenTypeInterface.MARKER, InterpolatedString.NEXT));
+            tokenQueue.push(((TokenInterface)token).lanitium$morphedInto(TokenTypeInterface.STRINGPARAM, str.substrings().get(i)));
         }
 
         tokenQueue.addAll(str.interpolations().getFirst().reversed());
-        tokenQueue.add(((TokenInterface)token).lanitium$morphedInto(TokenTypeInterface.MARKER, InterpolatedString.FIRST));
+        tokenQueue.push(((TokenInterface)token).lanitium$morphedInto(TokenTypeInterface.MARKER, InterpolatedString.FIRST));
         token.surface = str.substrings().getFirst();
     }
 
