@@ -61,6 +61,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
         AnnotationParser.parseFunctionClass(Apply.class);
         AnnotationParser.parseFunctionClass(DataStructures.class);
         AnnotationParser.parseFunctionClass(Encoding.class);
+        AnnotationParser.parseFunctionClass(Parsing.class);
         AnnotationParser.parseFunctionClass(Protocol.class);
         AnnotationParser.parseFunctionClass(Server.class);
         AnnotationParser.parseFunctionClass(Symbols.class);

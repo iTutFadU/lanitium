@@ -8,7 +8,7 @@ import net.minecraft.commands.CommandSourceStack;
 
 public class SourceValue extends ObjectValue<CommandSourceStack> {
     protected SourceValue(CarpetContext c) {
-        super(c, c.source());
+        super(c.source());
     }
 
     public static SourceValue of(CarpetContext c) {

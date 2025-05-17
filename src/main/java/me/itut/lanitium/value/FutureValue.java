@@ -1,20 +1,23 @@
 package me.itut.lanitium.value;
 
-import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.exception.ProcessedThrowStatement;
 import carpet.script.value.*;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
-    protected FutureValue(CarpetContext context, CompletableFuture<Value> value) {
-        super(context, value);
+    private final Context context;
+
+    protected FutureValue(Context context, CompletableFuture<Value> value) {
+        super(value);
+        this.context = context;
     }
 
-    public static Value of(CarpetContext context, CompletableFuture<Value> value) {
+    public static Value of(Context context, CompletableFuture<Value> value) {
         return value != null ? new FutureValue(context, value) : null;
     }
 
@@ -62,19 +65,15 @@ public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
             }
             case "when_complete" -> {
                 checkArguments(what, more, 1);
-                FunctionValue callback = switch (more[0]) {
-                    case FunctionValue fn -> fn;
-                    default -> throw new InternalExpressionException("future~'" + what + "' expects a functions as an argument");
-                };
+                if (!(Objects.requireNonNull(more[0]) instanceof FunctionValue callback))
+                    throw new InternalExpressionException("future~'" + what + "' expects a functions as an argument");
                 value.whenComplete((value, exception) -> callback.callInContext(context, Context.VOID, exception == null ? List.of(value) : List.of()).evalValue(context, Context.VOID));
                 yield this;
             }
             case "handle" -> {
                 checkArguments(what, more, 1);
-                FunctionValue callback = switch (more[0]) {
-                    case FunctionValue fn -> fn;
-                    default -> throw new InternalExpressionException("future~'" + what + "' expects a functions as an argument");
-                };
+                if (!(Objects.requireNonNull(more[0]) instanceof FunctionValue callback))
+                    throw new InternalExpressionException("future~'" + what + "' expects a functions as an argument");
                 yield of(context, value.handle((value, exception) -> callback.callInContext(context, Context.NONE, exception == null ? List.of(value) : List.of()).evalValue(context)));
             }
             case "cancel" -> {
@@ -100,6 +99,6 @@ public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
 
     @Override
     public Value deepcopy() {
-        return of(context, value.copy());
+        return new FutureValue(context, value.copy());
     }
 }

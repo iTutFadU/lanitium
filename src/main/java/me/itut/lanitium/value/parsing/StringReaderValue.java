@@ -1,19 +1,22 @@
-package me.itut.lanitium.value;
+package me.itut.lanitium.value.parsing;
 
-import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
+import carpet.script.exception.ThrowStatement;
 import carpet.script.value.*;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import me.itut.lanitium.function.Apply;
+import me.itut.lanitium.value.ObjectValue;
+import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.nbt.TagParser;
 
 public class StringReaderValue extends ObjectValue<StringReader> {
-    protected StringReaderValue(CarpetContext context, StringReader value) {
-        super(context, value);
+    protected StringReaderValue(StringReader value) {
+        super(value);
     }
 
-    public static Value of(CarpetContext context, StringReader value) {
-        return value != null ? new StringReaderValue(context, value) : Value.NULL;
+    public static Value of(StringReader value) {
+        return value != null ? new StringReaderValue(value) : Value.NULL;
     }
 
     public static StringReader from(Value value) {
@@ -126,7 +129,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
             case "read_string_until" -> {
                 checkArguments(what, more, 1);
                 try {
-                    yield StringValue.of(value.readStringUntil(ValueConversions.toChar(more[0])));
+                    yield StringValue.of(value.readStringUntil(me.itut.lanitium.value.ValueConversions.toChar(more[0])));
                 } catch (CommandSyntaxException e) {
                     yield Value.NULL;
                 }
@@ -163,84 +166,84 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                     yield Value.NULL;
                 }
             }
-            case "read_int_or_panic" -> {
+            case "read_int_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield NumericValue.of(value.readInt());
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_long_or_panic" -> {
+            case "read_long_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield NumericValue.of(value.readLong());
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_double_or_panic" -> {
+            case "read_double_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield NumericValue.of(value.readDouble());
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_float_or_panic" -> {
+            case "read_float_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield NumericValue.of(value.readFloat());
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_quoted_string_or_panic" -> {
+            case "read_quoted_string_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield StringValue.of(value.readQuotedString());
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_string_until_or_panic" -> {
+            case "read_string_until_or_throw" -> {
                 checkArguments(what, more, 1);
                 try {
-                    yield StringValue.of(value.readStringUntil(ValueConversions.toChar(more[0])));
+                    yield StringValue.of(value.readStringUntil(me.itut.lanitium.value.ValueConversions.toChar(more[0])));
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_string_or_panic" -> {
+            case "read_string_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield StringValue.of(value.readString());
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_boolean_or_panic" -> {
+            case "read_boolean_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield BooleanValue.of(value.readBoolean());
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_nbt_or_panic" -> {
+            case "read_nbt_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield NBTSerializableValue.of(TagParser.NBT_OPS_PARSER.parseAsArgument(value));
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
-            case "read_compound_or_panic" -> {
+            case "read_compound_or_throw" -> {
                 checkArguments(what, more, 0);
                 try {
                     yield NBTSerializableValue.of(TagParser.parseCompoundAsArgument(value));
                 } catch (CommandSyntaxException e) {
-                    throw new RuntimeException(e);
+                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
                 }
             }
             case "index_of", "find" -> {
@@ -285,7 +288,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 1);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (c != ValueConversions.toChar(more[0])) yield Value.NULL;
+                if (c != me.itut.lanitium.value.ValueConversions.toChar(more[0])) yield Value.NULL;
                 if ("expect".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
@@ -293,7 +296,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 1);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (c == ValueConversions.toChar(more[0])) yield Value.NULL;
+                if (c == me.itut.lanitium.value.ValueConversions.toChar(more[0])) yield Value.NULL;
                 if ("expect_not".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
@@ -301,7 +304,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 2);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (c < ValueConversions.toChar(more[0]) || c > ValueConversions.toChar(more[1])) yield Value.NULL;
+                if (c < me.itut.lanitium.value.ValueConversions.toChar(more[0]) || c > me.itut.lanitium.value.ValueConversions.toChar(more[1])) yield Value.NULL;
                 if ("expect_range".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
@@ -309,7 +312,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 2);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (c >= ValueConversions.toChar(more[0]) || c <= ValueConversions.toChar(more[1])) yield Value.NULL;
+                if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[0]) || c <= me.itut.lanitium.value.ValueConversions.toChar(more[1])) yield Value.NULL;
                 if ("expect_not_range".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
@@ -317,7 +320,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 1, -1);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (Value v : more) if (c == ValueConversions.toChar(v)) {
+                for (Value v : more) if (c == me.itut.lanitium.value.ValueConversions.toChar(v)) {
                     if ("expect_list".equals(what)) value.skip();
                     yield StringValue.of(String.valueOf(c));
                 }
@@ -327,7 +330,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 1, -1);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (Value v : more) if (c == ValueConversions.toChar(v)) {
+                for (Value v : more) if (c == me.itut.lanitium.value.ValueConversions.toChar(v)) {
                     if ("expect_not_list".equals(what)) value.skip();
                     yield Value.NULL;
                 }
@@ -335,10 +338,11 @@ public class StringReaderValue extends ObjectValue<StringReader> {
             }
             case "next_range_list", "expect_range_list" -> {
                 checkArguments(what, more, 2, -1);
-                if ((more.length & 1) != 0) throw new InternalExpressionException("Range list must have an even size");
+                if ((more.length & 1) != 0)
+                    throw new InternalExpressionException("Range list must have an even size");
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (int i = 0; i < more.length; i += 2) if (c >= ValueConversions.toChar(more[i]) && c <= ValueConversions.toChar(more[i + 1])) {
+                for (int i = 0; i < more.length; i += 2) if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[i]) && c <= me.itut.lanitium.value.ValueConversions.toChar(more[i + 1])) {
                     if ("expect_range_list".equals(what)) value.skip();
                     yield StringValue.of(String.valueOf(c));
                 }
@@ -346,10 +350,11 @@ public class StringReaderValue extends ObjectValue<StringReader> {
             }
             case "next_not_range_list", "expect_not_range_list" -> {
                 checkArguments(what, more, 2, -1);
-                if ((more.length & 1) != 0) throw new InternalExpressionException("Range list must have an even size");
+                if ((more.length & 1) != 0)
+                    throw new InternalExpressionException("Range list must have an even size");
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (int i = 0; i < more.length; i += 2) if (c >= ValueConversions.toChar(more[i]) && c <= ValueConversions.toChar(more[i + 1])) {
+                for (int i = 0; i < more.length; i += 2) if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[i]) && c <= ValueConversions.toChar(more[i + 1])) {
                     if ("expect_not_range_list".equals(what)) value.skip();
                     yield Value.NULL;
                 }
@@ -371,6 +376,6 @@ public class StringReaderValue extends ObjectValue<StringReader> {
 
     @Override
     public Value deepcopy() {
-        return new StringReaderValue(context, new StringReader(value));
+        return new StringReaderValue(new StringReader(value));
     }
 }

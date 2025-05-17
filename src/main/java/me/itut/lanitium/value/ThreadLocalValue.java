@@ -1,6 +1,5 @@
 package me.itut.lanitium.value;
 
-import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.value.ContainerValueInterface;
 import carpet.script.value.FunctionValue;
@@ -10,11 +9,11 @@ import com.google.gson.JsonElement;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.Tag;
 
-import java.util.Collections;
+import java.util.List;
 
 public class ThreadLocalValue extends ObjectValue<ThreadLocal<Value>> implements ContainerValueInterface {
     public ThreadLocalValue(Context c, FunctionValue initial) {
-        super((CarpetContext)c, ThreadLocal.withInitial(() -> initial.callInContext(c, Context.NONE, Collections.emptyList()).evalValue(c)));
+        super(ThreadLocal.withInitial(() -> initial.callInContext(c, Context.NONE, List.of()).evalValue(c)));
     }
 
     @Override

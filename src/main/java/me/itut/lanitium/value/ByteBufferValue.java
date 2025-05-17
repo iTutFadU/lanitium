@@ -107,7 +107,7 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
     }
 
     @Override
-    public ByteBufferValue clone() {
+    public ByteBufferValue deepcopy() {
         return new ByteBufferValue(ByteBuffer.wrap(buffer.array()));
     }
 
@@ -158,7 +158,7 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
         byte[] src = buffer.array();
         String[] strings = new String[src.length];
         for (int i = 0; i < src.length; i++) strings[i] = src[i] + "B";
-        return "[B;" + String.join(",", strings) + "]";
+        return "[B;" + String.join(",", strings) + ']';
     }
 
     @Override
@@ -168,6 +168,8 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
 
     @Override
     public Tag toTag(boolean force, RegistryAccess regs) {
+        // parse_nbt(to_nbt(byte_buffer(1, 2, 3))) => [1, 2, 3] list (not [B; 1B, 2B, 3B] byte_buffer)
+        if (!force) throw new NBTSerializableValue.IncompatibleTypeException(this);
         return new ByteArrayTag(buffer.array());
     }
 

@@ -1,6 +1,9 @@
 package me.itut.lanitium.value.pattern;
 
-import carpet.script.*;
+import carpet.script.Context;
+import carpet.script.Expression;
+import carpet.script.LazyValue;
+import carpet.script.Token;
 import carpet.script.exception.ExpressionException;
 import carpet.script.value.FrameworkValue;
 import carpet.script.value.LContainerValue;

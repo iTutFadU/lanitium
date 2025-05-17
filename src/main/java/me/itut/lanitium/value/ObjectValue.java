@@ -1,6 +1,5 @@
 package me.itut.lanitium.value;
 
-import carpet.script.CarpetContext;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
@@ -12,11 +11,9 @@ import java.util.List;
 import java.util.Objects;
 
 public abstract class ObjectValue<T> extends Value {
-    public final CarpetContext context;
     public final T value;
 
-    protected ObjectValue(CarpetContext context, T value) {
-        this.context = context;
+    protected ObjectValue(T value) {
         this.value = value;
     }
 
@@ -51,12 +48,10 @@ public abstract class ObjectValue<T> extends Value {
     public int compareTo(Value o) {
         if (!(value instanceof Comparable a)) return super.compareTo(o);
         try {
-            if (o instanceof ObjectValue<?> ob && ob.value instanceof Comparable b)
-                return a.compareTo(b);
-            if (o instanceof ObjectFunctionValue<?> ob && ob.value instanceof Comparable b)
-                return a.compareTo(b);
+            if (o instanceof ObjectValue<?> b)
+                return a.compareTo(b.value);
         } catch (ClassCastException e) {
-            throw new RuntimeException(e);
+            throw new InternalExpressionException("Cannot compare " + getTypeString() + " to " + o.getTypeString());
         }
         return super.compareTo(o);
     }
@@ -78,7 +73,6 @@ public abstract class ObjectValue<T> extends Value {
     }
 
     public static void checkArguments(String fn, int length, int min, int max) throws InternalExpressionException {
-        assert min >= 0 && (max < 0 || min <= max) : "Why.";
         if (length < min || max >= 0 && length > max) throw new InternalExpressionException(fn + " expected " + (min == max ? min == 0 ? "no" : min : max < 0 ? "at least " + min : min == 0 ? "at most " + max : "from " + min + " to " + max) + " argument" + ((max != 1 ? min : max) != 1 ? "s" : "") + ", got " + length);
     }
 

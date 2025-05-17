@@ -1,6 +1,6 @@
 package me.itut.lanitium.value;
 
-import carpet.script.CarpetContext;
+import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
 import net.minecraft.core.RegistryAccess;
@@ -10,12 +10,10 @@ import net.minecraft.nbt.Tag;
 import java.util.Objects;
 
 public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
-    public final CarpetContext context;
     public final T value;
     
-    protected ObjectFunctionValue(CarpetContext context, T value, SimpleFunctionValue fn) {
+    protected ObjectFunctionValue(T value, SimpleFunctionValue fn) {
         super(fn.minParams, fn.maxParams, fn.body);
-        this.context = context;
         this.value = value;
     }
 
@@ -37,9 +35,11 @@ public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
     public int compareTo(Value o) {
         if (!(value instanceof Comparable a)) return super.compareTo(o);
         try {
-            if (o instanceof ObjectValue<?> ob && ob.value instanceof Comparable b) return a.compareTo(b);
-            if (o instanceof ObjectFunctionValue<?> ob && ob.value instanceof Comparable b) return a.compareTo(b);
-        } catch (ClassCastException ignored) {}
+            if (o instanceof ObjectFunctionValue<?> b)
+                return a.compareTo(b.value);
+        } catch (ClassCastException e) {
+            throw new InternalExpressionException("Cannot compare " + getTypeString() + " to " + o.getTypeString());
+        }
         return super.compareTo(o);
     }
 
@@ -53,4 +53,7 @@ public abstract class ObjectFunctionValue<T> extends SimpleFunctionValue {
     public String getString() {
         return getTypeString() + "@" + Integer.toHexString(hashCode());
     }
+
+    @Override
+    protected abstract Value clone();
 }

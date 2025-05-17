@@ -1,7 +1,7 @@
 package me.itut.lanitium.function;
 
-import carpet.script.*;
 import carpet.script.Module;
+import carpet.script.*;
 import carpet.script.annotation.Locator;
 import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
@@ -21,7 +21,6 @@ import me.itut.lanitium.value.SimpleFunctionValue;
 import me.itut.lanitium.value.SourceValue;
 import me.itut.lanitium.value.WithValue;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.ComponentArgument;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.commands.arguments.StyleArgument;
@@ -61,6 +60,7 @@ import static me.itut.lanitium.internal.carpet.SystemInfoInterface.options;
 
 public class Apply {
     public static final Throwables ITERATION_END = Throwables.register("iteration_end", Throwables.THROWN_EXCEPTION_TYPE);
+    public static final Throwables COMMAND_SYNTAX_EXCEPTION = Throwables.register("command_syntax_exception", Throwables.THROWN_EXCEPTION_TYPE);
 
     static {
         options.put("server_tps", c -> new NumericValue(c.server().tickRateManager().tickrate()));
@@ -95,7 +95,7 @@ public class Apply {
         } else return fun;
     }
 
-    private static Value internalExceptionMap(Throwable e) {
+    public static Value internalExceptionMap(Throwable e) {
         return MapValue.wrap(new HashMap<>() {{
             put(Constants.CLASS, StringValue.of(e.getClass().getName()));
             put(Constants.MESSAGE, StringValue.of(e.getMessage()));
@@ -558,6 +558,7 @@ public class Apply {
         );
     }
 
+    @Deprecated // in favor of call_method() and self.method(), as well as map_function_calls{}
     @ScarpetFunction(maxParams = -1)
     public static Value inject(FunctionValue fn, @Param.KeyValuePairs Map<String, Value> vars) {
         Value clone = fn.deepcopy();
@@ -693,10 +694,7 @@ public class Apply {
                     case Value v -> new DamageSource(type, Vector3Argument.findIn(List.of(v), 0).vec);
                 };
             }
-        }, new SimpleExplosionDamageCalculator(settings.getOrDefault("explode_blocks", Value.TRUE).getBoolean(), settings.getOrDefault("damage_entities", Value.TRUE).getBoolean(), switch (settings.getOrDefault("knockback_multiplier", Value.NULL)) {
-            case NumericValue n -> Optional.of(n.getFloat());
-            default -> Optional.empty();
-        }, Optional.ofNullable(switch (settings.getOrDefault("immune_blocks", Value.NULL)) {
+        }, new SimpleExplosionDamageCalculator(settings.getOrDefault("explode_blocks", Value.TRUE).getBoolean(), settings.getOrDefault("damage_entities", Value.TRUE).getBoolean(), Optional.of(settings.getOrDefault("knockback_multiplier", Value.NULL)).flatMap(v -> v instanceof NumericValue n ? Optional.of(n.getFloat()) : Optional.empty()), Optional.ofNullable(switch (settings.getOrDefault("immune_blocks", Value.NULL)) {
             case NullValue ignored -> null;
             case AbstractListValue list -> HolderSet.direct(list.unpack().stream().map(v -> Holder.direct(BlockArgument.findIn(((CarpetContext)c), List.of(v), 0, true).block.getBlockState().getBlock())).toList());
             case Value b -> HolderSet.direct(Holder.direct(BlockArgument.findIn(((CarpetContext)c), List.of(b), 0, true).block.getBlockState().getBlock()));

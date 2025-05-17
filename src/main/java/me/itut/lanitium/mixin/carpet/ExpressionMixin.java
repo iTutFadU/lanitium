@@ -1,7 +1,7 @@
 package me.itut.lanitium.mixin.carpet;
 
-import carpet.script.*;
 import carpet.script.Module;
+import carpet.script.*;
 import carpet.script.value.StringValue;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import me.itut.lanitium.internal.carpet.TokenInterface;

@@ -9,9 +9,6 @@ import carpet.script.language.Operators;
 import carpet.script.value.*;
 import me.itut.lanitium.internal.carpet.ExpressionInterface;
 import me.itut.lanitium.value.pattern.*;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;

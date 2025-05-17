@@ -1,13 +1,11 @@
 package me.itut.lanitium.function;
 
-import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.exception.ProcessedThrowStatement;
 import carpet.script.value.*;
 import me.itut.lanitium.value.ByteBufferValue;
 import me.itut.lanitium.value.FutureValue;
-import me.itut.lanitium.value.StringReaderValue;
 import me.itut.lanitium.value.ThreadLocalValue;
 
 import java.nio.ByteBuffer;
@@ -73,14 +71,9 @@ public class DataStructures {
         return ByteBufferValue.of(ByteBuffer.wrap(arr));
     }
 
-    @ScarpetFunction
-    public static Value string_reader(Context c, Value reader) {
-        return StringReaderValue.of((CarpetContext)c, StringReaderValue.from(reader));
-    }
-
     @ScarpetFunction(maxParams = 1)
     public static Value future(Context c, Optional<Value> completed) {
-        return FutureValue.of((CarpetContext)c, completed.map(CompletableFuture::completedFuture).orElseGet(CompletableFuture::new));
+        return FutureValue.of(c, completed.map(CompletableFuture::completedFuture).orElseGet(CompletableFuture::new));
     }
 
     @ScarpetFunction

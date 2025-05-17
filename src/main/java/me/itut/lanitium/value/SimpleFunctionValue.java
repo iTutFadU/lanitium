@@ -2,11 +2,9 @@ package me.itut.lanitium.value;
 
 import carpet.script.*;
 import carpet.script.exception.ExpressionException;
-import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.FunctionValue;
 import carpet.script.value.ThreadValue;
 import carpet.script.value.Value;
-import me.itut.lanitium.internal.Magic;
 
 import java.util.List;
 
@@ -35,7 +33,7 @@ public class SimpleFunctionValue extends FunctionValue {
     public final Fluff.QuinnFunction<Context, Context.Type, Expression, Token, List<Value>, Value> body;
 
     public SimpleFunctionValue(int minParams, int maxParams, Fluff.QuinnFunction<Context, Context.Type, Expression, Token, List<Value>, Value> body) {
-        super(Expression.none, null, "_", null, List.of(), null, null);
+        super(Expression.none, Token.NONE, "_", null, List.of(), null, null);
         this.minParams = minParams;
         this.maxParams = maxParams;
         this.body = body;
@@ -59,11 +57,6 @@ public class SimpleFunctionValue extends FunctionValue {
 
     @Override
     protected Value clone() {
-        try {
-            return (SimpleFunctionValue)Magic.cloneObject(this);
-        } catch (CloneNotSupportedException e) {
-            // should never happen
-            throw new InternalExpressionException("Cannot make a copy of value: " + this);
-        }
+        return new SimpleFunctionValue(minParams, maxParams, body);
     }
 }
