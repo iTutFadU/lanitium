@@ -13,6 +13,7 @@ import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
@@ -20,7 +21,14 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import me.itut.lanitium.value.SourceValue;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.parsing.packrat.*;
+import net.minecraft.util.parsing.packrat.Dictionary;
+import net.minecraft.util.parsing.packrat.commands.Grammar;
+import net.minecraft.util.parsing.packrat.commands.GreedyPredicateParseRule;
+import net.minecraft.util.parsing.packrat.commands.StringReaderTerms;
+import net.minecraft.util.parsing.packrat.commands.UnquotedStringParseRule;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -30,6 +38,125 @@ import java.util.stream.Stream;
 public class CommandParser {
     public static CommandNode<CommandSourceStack> parseCommand(CarpetScriptHost host, Map<String, Value> branches, Map<String, Value> requirements) throws CommandSyntaxException {
         return Node.construct(host, branches, requirements).createCommand(host);
+    }
+
+    private static final DelayedException<CommandSyntaxException> ERROR_EXPECTED_ARGUMENT = DelayedException.create(new SimpleCommandExceptionType(Component.literal("Expected an argument")));
+    private static final DelayedException<CommandSyntaxException> ERROR_EXPECTED_ARGUMENT_SEPARATOR = DelayedException.create(CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherExpectedArgumentSeparator());
+
+    public static final Grammar<List<Argument>> BRANCH_GRAMMAR;
+    public static final Grammar<List<String>> PATH_GRAMMAR;
+
+    static {
+        Dictionary<StringReader> dictionary = new Dictionary<>();
+
+        Atom<String> string = Atom.of("string");
+        dictionary.put(string, state -> {
+            state.input().skipWhitespace();
+
+            String str;
+            try {
+                str = state.input().readString();
+            } catch (CommandSyntaxException e) {
+                state.errorCollector().store(state.mark(), e);
+                return null;
+            }
+
+            if (str.isEmpty()) {
+                state.errorCollector().store(state.mark(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedStartOfQuote().createWithContext(state.input()));
+                return null;
+            }
+
+            return str;
+        });
+
+        Atom<Argument> literalArgument = Atom.of("literal_argument");
+        dictionary.put(literalArgument, dictionary.named(string), scope -> new LiteralArgument(scope.getOrThrow(string)));
+
+        Atom<String> argumentName = Atom.of("argument_name");
+        Atom<String> argumentType = Atom.of("argument_type");
+        Atom<Argument> requiredArgument = Atom.of("required_argument");
+        dictionary.put(requiredArgument, Term.sequence(
+            StringReaderTerms.character('<'),
+            dictionary.namedWithAlias(string, argumentName),
+            Term.optional(Term.sequence(
+                StringReaderTerms.character(':'),
+                dictionary.namedWithAlias(string, argumentType)
+            )),
+            StringReaderTerms.character('>')
+        ), scope -> {
+            String name = scope.getOrThrow(argumentName);
+            return new RequiredArgument(name, scope.getOrDefault(argumentType, name));
+        });
+
+        Atom<Argument> argument = Atom.of("argument");
+        Atom<List<Argument>> arguments = Atom.of("arguments");
+        NamedRule<StringReader, List<Argument>> argumentsRule = dictionary.put(arguments, Term.repeatedWithoutTrailingSeparator(dictionary.forward(argument), arguments, (state, scope, control) -> {
+            StringReader reader = state.input();
+            if (!reader.canRead() || !Character.isWhitespace(reader.peek())) {
+                state.errorCollector().store(reader.getCursor(), ERROR_EXPECTED_ARGUMENT_SEPARATOR);
+                return false;
+            }
+            reader.skip();
+            return true;
+        }), scope -> scope.getOrThrow(arguments));
+
+        Atom<List<String>> path = Atom.of("path");
+        NamedRule<StringReader, List<String>> pathRule = dictionary.put(path, dictionary.named(arguments), scope -> argumentListToPath(scope.getOrThrow(arguments)));
+
+        Atom<Boolean> fork = Atom.of("fork");
+        Atom<Argument> forwardArgument = Atom.of("forward_argument");
+        dictionary.put(forwardArgument, Term.sequence(
+            (state, scope, control) -> {
+                StringReader reader = state.input();
+                reader.skipWhitespace();
+                if (!reader.canRead(2) || reader.peek() != '-' || reader.peek(1) != '<' && reader.peek(1) != '>') {
+                    state.errorCollector().store(state.mark(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedSymbol().create("->"));
+                    return false;
+                }
+                scope.put(fork, reader.peek(1) == '<');
+                state.restore(state.mark() + 2);
+                return true;
+            },
+            Term.cut(),
+            dictionary.named(path)
+        ), scope -> new ForwardArgument(scope.getOrThrow(fork), scope.getOrThrow(path)));
+
+        dictionary.put(argument, Term.alternative(
+            dictionary.namedWithAlias(requiredArgument, argument),
+            dictionary.namedWithAlias(forwardArgument, argument),
+            dictionary.namedWithAlias(literalArgument, argument)
+        ), scope -> scope.getOrThrow(argument));
+
+        BRANCH_GRAMMAR = new Grammar<>(dictionary, argumentsRule);
+        PATH_GRAMMAR = new Grammar<>(dictionary, pathRule);
+    }
+
+    public static List<String> argumentListToPath(List<Argument> arguments) {
+        List<String> path = new ArrayList<>();
+        arguments.forEach(arg -> {
+            switch (arg) {
+                case LiteralArgument literal -> path.add(literal.surface);
+                case RequiredArgument required -> path.add(required.surface);
+                case ForwardArgument forward -> path.addAll(forward.path);
+            }
+        });
+        return path;
+    }
+
+    public static List<Argument> parseBranch(String input) throws CommandSyntaxException {
+        StringReader reader = new StringReader(input);
+        List<Argument> arguments = BRANCH_GRAMMAR.parseForCommands(reader);
+        reader.skipWhitespace();
+        if (reader.canRead()) throw ERROR_EXPECTED_ARGUMENT.create(input, reader.getCursor());
+        return arguments;
+    }
+
+    public static List<String> parsePath(String input) throws CommandSyntaxException {
+        StringReader reader = new StringReader(input);
+        List<String> path = PATH_GRAMMAR.parseForCommands(reader);
+        reader.skipWhitespace();
+        if (reader.canRead()) throw ERROR_EXPECTED_ARGUMENT.create(input, reader.getCursor());
+        return path;
     }
 
     public static Predicate<CommandSourceStack> parseRequirement(CarpetScriptHost host, Value value) throws CommandSyntaxException {
@@ -74,21 +201,6 @@ public class CommandParser {
         };
     }
 
-    public static List<Argument> parseBranch(String branch) throws CommandSyntaxException {
-        StringReader reader = new StringReader(branch);
-        reader.skipWhitespace();
-        List<Argument> arguments = new ArrayList<>();
-        if (!reader.canRead()) return arguments;
-        arguments.add(parseArgument(reader));
-        while (reader.canRead()) {
-            expectSeparator(reader);
-            reader.skipWhitespace();
-            if (!reader.canRead()) return arguments;
-            arguments.add(parseArgument(reader));
-        }
-        return arguments;
-    }
-
     public static class Node {
         public final String name;
         public List<RequiredArgument> argumentList = List.of();
@@ -120,7 +232,7 @@ public class CommandParser {
                 parent.execute = FunctionArgument.fromCommandSpec(host, entry.getValue());
             }
             r: for (Map.Entry<String, Value> entry : requirements.entrySet()) {
-                List<String> path = parsePath(new StringReader(entry.getKey()), new ArrayList<>());
+                List<String> path = parsePath(entry.getKey());
                 Predicate<CommandSourceStack> requirement = parseRequirement(host, entry.getValue());
                 Node node = root;
                 for (String argument : path) {
@@ -246,63 +358,7 @@ public class CommandParser {
         }
     }
 
-    public static Argument parseArgument(StringReader reader) throws CommandSyntaxException {
-        assert reader.canRead();
-        if (maybeFork(reader) instanceof Boolean fork) {
-            if (!reader.canRead()) return new ForwardArgument(fork, List.of());
-            expectSeparator(reader);
-            return new ForwardArgument(fork, parseRootPath(reader));
-        }
-        if (reader.peek() != '<')
-            return new LiteralArgument(reader.readString());
-        reader.skip();
-        reader.skipWhitespace();
-        String surface = reader.readString(), type = surface;
-        reader.skipWhitespace();
-        if (readArgumentType(reader)) {
-            reader.skipWhitespace();
-            type = reader.readString();
-            reader.skipWhitespace();
-            reader.expect('>');
-        }
-        return new RequiredArgument(surface, type);
-    }
-
-    public static List<String> parseRootPath(StringReader reader) throws CommandSyntaxException {
-        List<String> path = new ArrayList<>();
-        reader.skipWhitespace();
-        if (!reader.canRead()) return path;
-        path.add(reader.readString());
-        if (!reader.canRead()) return path;
-        expectSeparator(reader);
-        return parsePath(reader, path);
-    }
-
-    public static List<String> parsePath(StringReader reader, List<String> path) throws CommandSyntaxException {
-        for (boolean has = false; reader.canRead();) {
-            if (has) expectSeparator(reader); else has = true;
-            reader.skipWhitespace();
-            if (!reader.canRead()) return path;
-            if (reader.peek() != '<') {
-                if (maybeFork(reader) != null) return path;
-                path.add(reader.readString());
-                continue;
-            }
-            reader.skip();
-            reader.skipWhitespace();
-            path.add(reader.readString());
-            reader.skipWhitespace();
-            if (readArgumentType(reader)) {
-                reader.skipWhitespace();
-                reader.readString();
-                reader.skipWhitespace();
-                reader.expect('>');
-            }
-        }
-        return path;
-    }
-
-    public static abstract class Argument {
+    public static abstract sealed class Argument {
         public final String surface;
 
         public Argument(String surface) {
@@ -322,7 +378,7 @@ public class CommandParser {
         }
     }
 
-    public static class LiteralArgument extends Argument {
+    public static final class LiteralArgument extends Argument {
         public LiteralArgument(String literal) {
             super(literal);
         }
@@ -333,7 +389,7 @@ public class CommandParser {
         }
     }
 
-    public static class RequiredArgument extends Argument {
+    public static final class RequiredArgument extends Argument {
         public final String type;
 
         public RequiredArgument(String surface, String type) {
@@ -347,7 +403,7 @@ public class CommandParser {
         }
     }
 
-    public static class ForwardArgument extends Argument {
+    public static final class ForwardArgument extends Argument {
         public final boolean forks;
         public final List<String> path;
 
@@ -361,31 +417,5 @@ public class CommandParser {
         public String toString() {
             return (forks ? "-<" : "->") + path.stream().map(v -> " " + StringArgumentType.escapeIfRequired(v)).collect(Collectors.joining());
         }
-    }
-
-    public static void expectSeparator(StringReader reader) throws CommandSyntaxException {
-        if (!reader.canRead() || !Character.isWhitespace(reader.peek()))
-            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherExpectedArgumentSeparator().createWithContext(reader);
-        reader.skip();
-    }
-
-    public static boolean readArgumentType(StringReader reader) throws CommandSyntaxException {
-        if (!reader.canRead() || reader.peek() != '>' && reader.peek() != ':') throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedSymbol().createWithContext(reader, ">' or ':");
-        boolean type = reader.peek() == ':';
-        reader.skip();
-        return type;
-    }
-
-    public static Boolean maybeFork(StringReader reader) {
-        if (!reader.canRead(2) || reader.peek() != '-') return null;
-        int cursor = reader.getCursor();
-        reader.skip();
-        if (reader.peek() != '>' && reader.peek() != '<') {
-            reader.setCursor(cursor);
-            return null;
-        }
-        boolean fork = reader.peek() == '<';
-        reader.skip();
-        return fork;
     }
 }
