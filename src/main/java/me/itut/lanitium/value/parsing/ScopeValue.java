@@ -29,6 +29,7 @@ public class ScopeValue extends ObjectValue<Scope> {
         };
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Value get(String what, Value... more) {
         return switch (what) {

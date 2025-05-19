@@ -17,6 +17,7 @@ import me.itut.lanitium.Emoticons;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.*;
 import me.itut.lanitium.value.Constants;
+import me.itut.lanitium.value.ObjectValue;
 import me.itut.lanitium.value.SimpleFunctionValue;
 import me.itut.lanitium.value.SourceValue;
 import me.itut.lanitium.value.WithValue;
@@ -219,18 +220,26 @@ public class Apply {
             }
         });
         // a.b(c, d) => call_method(a, 'b', c, d) => call(a.__meta().b, a, c, d)
+        //                                        => a~['b', c, d]
         expr.addFunctionWithDelegation("call_method", -1, false, false, (c, t, e, tok, lv) -> {
             if (lv.size() < 2)
-                throw new InternalExpressionException("'call_method' expects at least a map and the method to call on that map");
-            if (!(lv.getFirst() instanceof MapValue self))
-                return Value.NULL;
+                throw new InternalExpressionException("'call_method' expects at least a map or object and the method to call");
+
+            Value obj = lv.getFirst();
             Value methodName = lv.get(1);
+
+            if (obj instanceof ObjectValue<?> o)
+                return o.get(methodName.getString(), lv.subList(2, lv.size()).toArray(Value[]::new));
+            
+            if (!(obj instanceof MapValue self)) return Value.NULL;
+            
             Map<Value, Value> meta = ((MapValueInterface)self).lanitium$meta();
             Value method;
             if (meta == null || (method = meta.get(methodName)) == null)
                 method = MapValueInterface.defaultMetaMethods.get(methodName);
             if (!(method instanceof FunctionValue fun))
                 throw new InternalExpressionException("Method " + methodName.getString() + " not found for type " + self.getTypeString());
+            
             List<Value> args = new ArrayList<>(lv.size() - 1);
             args.add(self);
             args.addAll(lv.subList(2, lv.size()));
