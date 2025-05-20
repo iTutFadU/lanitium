@@ -77,8 +77,7 @@ public abstract class TokenizerMixin {
                             pos += 2;
                             linepos += 2;
                             break S;
-                        } catch (NumberFormatException ignored) {
-                        }
+                        } catch (NumberFormatException ignored) {}
                     }
                     case 'u' -> {
                         if (pos + 5 < input.length() && input.charAt(pos + 2) != '+') try {
@@ -86,8 +85,7 @@ public abstract class TokenizerMixin {
                             pos += 4;
                             linepos += 4;
                             break S;
-                        } catch (NumberFormatException ignored) {
-                        }
+                        } catch (NumberFormatException ignored) {}
                     }
                     case 'U' -> {
                         if (pos + 9 < input.length() && input.charAt(pos + 2) != '+') try {
@@ -95,8 +93,7 @@ public abstract class TokenizerMixin {
                             pos += 8;
                             linepos += 8;
                             break S;
-                        } catch (NumberFormatException ignored) {
-                        }
+                        } catch (NumberFormatException ignored) {}
                     }
                     case 'N' -> {
                         N: if (pos + 4 < input.length() && input.charAt(pos + 2) == '{') try {
@@ -268,6 +265,7 @@ public abstract class TokenizerMixin {
         } else if (ch == '.' && peekNextChar() != '.') {
             token.surface = ".";
             TokenInterface.setType(token, TokenTypeInterface.OPERATOR);
+
             TokenTypeInterface prevType = previousToken != null ? ((TokenInterface)previousToken).lanitium$type() : null;
             if (prevType == null
              || prevType == TokenTypeInterface.OPERATOR
@@ -276,13 +274,13 @@ public abstract class TokenizerMixin {
              || prevType == TokenTypeInterface.COMMA
              || prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("{") || previousToken.surface.equals("[")))
                 throw new ExpressionException(context, expression, token, "Member access must come after a value");
+
             pos++;
             linepos++;
         } else {
             StringBuilder greedyMatch = new StringBuilder();
             int initialPos = pos;
             int initialLinePos = linepos;
-            ch = input.charAt(pos);
             int validOperatorSeenUntil = -1;
             while (!Character.isLetter(ch) && !Character.isDigit(ch) && ch != '_'
                 && !Character.isWhitespace(ch) && ch != ','
@@ -292,11 +290,9 @@ public abstract class TokenizerMixin {
                 if (comments && "/*".contentEquals(greedyMatch)) {
                     while (pos < input.length()) {
                         ch = input.charAt(pos++);
-                        greedyMatch.append(ch);
                         if (ch == '*' && pos < input.length() && input.charAt(pos) == '/') {
                             pos++;
                             linepos += 2;
-                            greedyMatch.append('/');
                             break;
                         } else if (ch == '\n') {
                             lineno++;
@@ -305,7 +301,7 @@ public abstract class TokenizerMixin {
                         }
                         linepos++;
                     }
-                    token.append(greedyMatch.toString());
+                    token.append(input.substring(initialPos, pos));
                     TokenInterface.setType(token, TokenTypeInterface.MARKER);
                     cir.setReturnValue(token);
                     return;
@@ -313,13 +309,12 @@ public abstract class TokenizerMixin {
                     while (ch != '\n' && pos < input.length()) {
                         ch = input.charAt(pos++);
                         linepos++;
-                        greedyMatch.append(ch);
                     }
                     if (ch == '\n') {
                         lineno++;
                         linepos = 0;
                     }
-                    token.append(greedyMatch.toString());
+                    token.append(input.substring(initialPos, pos));
                     TokenInterface.setType(token, TokenTypeInterface.MARKER);
                     cir.setReturnValue(token); // skipping setting previous
                     return;
@@ -493,9 +488,11 @@ public abstract class TokenizerMixin {
                 lines.add(line);
                 while (pos < input.length()) {
                     ch = input.charAt(pos);
-                    if (ch == '\\' && escapeCode(next)) {
-                        interpolate = true;
-                        readInterpolation(line);
+                    if (ch == '\\') {
+                        if (escapeCode(next)) {
+                            interpolate = true;
+                            readInterpolation(line);
+                        }
                     } else if (ch == '\n') continue w;
                     else next.append(ch);
                     pos++;
@@ -530,8 +527,8 @@ public abstract class TokenizerMixin {
             StringBuilder next = new StringBuilder();
             InterpolatedString str = new InterpolatedString(new ArrayList<>(), new ArrayList<>(), next);
             while (ch != '\'') {
-                if (ch == '\\' && escapeCode(next)) {
-                    readInterpolation(str);
+                if (ch == '\\') {
+                    if (escapeCode(next)) readInterpolation(str);
                     linepos++;
                 } else {
                     next.append(ch);

@@ -71,7 +71,7 @@ public abstract class CommandSourceStackMixin implements CommandSourceStackInter
             "withAnchor",
             "withLevel",
             "withSigningContext",
-        }, at = @At("TAIL"))
+        }, at = @At("TAIL"), remap = true)
         private void withCustomValues(CallbackInfoReturnable<CommandSourceStack> cir) {
             ((CommandSourceStackInterface)cir.getReturnValue()).lanitium$setCustomValues(((CommandSourceStackInterface)this).lanitium$customValues());
         }
