@@ -1,11 +1,9 @@
 package me.itut.lanitium.value.parsing;
 
 import carpet.script.exception.InternalExpressionException;
-import carpet.script.exception.ThrowStatement;
 import carpet.script.value.*;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import me.itut.lanitium.function.Apply;
 import me.itut.lanitium.value.ObjectValue;
 import me.itut.lanitium.value.ValueConversions;
 import net.minecraft.nbt.TagParser;
@@ -171,7 +169,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readInt());
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_long_or_throw" -> {
@@ -179,7 +177,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readLong());
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_double_or_throw" -> {
@@ -187,7 +185,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readDouble());
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_float_or_throw" -> {
@@ -195,7 +193,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NumericValue.of(value.readFloat());
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_quoted_string_or_throw" -> {
@@ -203,7 +201,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield StringValue.of(value.readQuotedString());
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_string_until_or_throw" -> {
@@ -211,7 +209,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield StringValue.of(value.readStringUntil(me.itut.lanitium.value.ValueConversions.toChar(more[0])));
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_string_or_throw" -> {
@@ -219,7 +217,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield StringValue.of(value.readString());
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_boolean_or_throw" -> {
@@ -227,7 +225,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield BooleanValue.of(value.readBoolean());
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_nbt_or_throw" -> {
@@ -235,7 +233,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NBTSerializableValue.of(TagParser.NBT_OPS_PARSER.parseAsArgument(value));
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "read_compound_or_throw" -> {
@@ -243,7 +241,7 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 try {
                     yield NBTSerializableValue.of(TagParser.parseCompoundAsArgument(value));
                 } catch (CommandSyntaxException e) {
-                    throw new ThrowStatement(Apply.internalExceptionMap(e), Apply.COMMAND_SYNTAX_EXCEPTION);
+                    throw ValueConversions.commandSyntaxException(e);
                 }
             }
             case "index_of", "find" -> {

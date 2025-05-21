@@ -26,9 +26,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.parsing.packrat.*;
 import net.minecraft.util.parsing.packrat.Dictionary;
 import net.minecraft.util.parsing.packrat.commands.Grammar;
-import net.minecraft.util.parsing.packrat.commands.GreedyPredicateParseRule;
 import net.minecraft.util.parsing.packrat.commands.StringReaderTerms;
-import net.minecraft.util.parsing.packrat.commands.UnquotedStringParseRule;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -173,16 +171,14 @@ public class CommandParser {
                 }
                 String hostName = host.getName();
                 yield s -> {
+                    Runnable token = Carpet.startProfilerSection("Scarpet command");
                     try {
-                        Runnable token = Carpet.startProfilerSection("Scarpet command");
-                        try {
-                            return host.scriptServer().modules.get(hostName).retrieveOwnForExecution(s).handleCommand(s, fun, List.of(s.getEntity() instanceof ServerPlayer player ? new EntityValue(player) : Value.NULL)).getBoolean();
-                        } finally {
-                            token.run();
-                        }
+                        return host.scriptServer().modules.get(hostName).retrieveOwnForExecution(s).handleCommand(s, fun, List.of(s.getEntity() instanceof ServerPlayer player ? new EntityValue(player) : Value.NULL)).getBoolean();
                     } catch (CommandSyntaxException e) {
                         Carpet.Messenger_message(s, "rb Unable to run app command: " + e.getMessage());
                         return false;
+                    } finally {
+                        token.run();
                     }
                 };
             }
@@ -284,6 +280,8 @@ public class CommandParser {
                             args.add(((CommandArgumentInterface)CommandArgument.getTypeForArgument(arg.type, cHost)).lanitium$getValueFromContext(ctx, arg.surface));
                         args.addAll(execute.args);
                         return (int)cHost.handleCommand(ctx.getSource(), execute.function, args).readInteger();
+                    } catch (CommandExpressionException e) {
+                        throw e.exception();
                     } finally {
                         token.run();
                     }
@@ -303,6 +301,8 @@ public class CommandParser {
                             case AbstractListValue list -> list.unpack().stream().flatMap(v -> v instanceof SourceValue s ? Stream.of(s.value) : Stream.empty()).toList();
                             default -> List.of(ctx.getSource());
                         };
+                    } catch (CommandExpressionException e) {
+                        throw e.exception();
                     } finally {
                         token.run();
                     }

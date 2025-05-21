@@ -1,6 +1,5 @@
 package me.itut.lanitium.internal.carpet;
 
-import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.value.*;
 import me.itut.lanitium.value.Constants;
@@ -11,10 +10,10 @@ import java.util.Map;
 
 public interface MapValueInterface {
     class LMetaValue extends FrameworkValue implements ContainerValueInterface {
-        private final CarpetContext context;
+        private final Context context;
         public final MapValue self;
 
-        public LMetaValue(CarpetContext context, MapValue self) {
+        public LMetaValue(Context context, MapValue self) {
             this.context = context;
             this.self = self;
         }
@@ -22,7 +21,7 @@ public interface MapValueInterface {
         @Override
         public boolean put(Value where, Value value) {
             if (value.isNull()) {
-                ((MapValueInterface)self).lanitium$setMeta(null, null);
+                ((MapValueInterface)self).lanitium$removeMeta();
                 return true;
             }
             if (!(value instanceof MapValue meta))
@@ -54,8 +53,10 @@ public interface MapValueInterface {
         Constants.__META, new SimpleFunctionValue(1, 1, (c, t, e, tok, lv) -> {
             MapValue self = (MapValue)lv.getFirst();
             return t == Context.LVALUE
-                ? new LContainerValue(new LMetaValue((CarpetContext)c, self), null)
-                : MapValue.wrap(((MapValueInterface)self).lanitium$meta());
+                ? new LContainerValue(new LMetaValue(c, self), null)
+                : ((MapValueInterface)self).lanitium$meta() instanceof Map<Value, Value> meta
+                ? MapValue.wrap(meta)
+                : Value.NULL;
         }),
         Constants.__STR, new SimpleFunctionValue(1, 1, (c, t, e, tok, lv) -> StringValue.of(lv.getFirst().getString())),
         Constants.__HASH, new SimpleFunctionValue(1, 1, (c, t, e, tok, lv) -> NumericValue.of(lv.getFirst().hashCode())),
@@ -63,6 +64,6 @@ public interface MapValueInterface {
     );
 
     @Nullable Map<Value, Value> lanitium$meta();
-    void lanitium$setMeta(CarpetContext context, Map<Value, Value> meta);
+    void lanitium$setMeta(Context context, Map<Value, Value> meta);
     void lanitium$removeMeta();
 }

@@ -1,19 +1,31 @@
 package me.itut.lanitium.value;
 
 import carpet.script.exception.InternalExpressionException;
+import carpet.script.exception.ThrowStatement;
 import carpet.script.value.*;
 import com.mojang.brigadier.Message;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.context.StringRange;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.IntegerSuggestion;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import me.itut.lanitium.function.Apply;
+import me.itut.lanitium.value.parsing.StringReaderValue;
+import net.minecraft.network.chat.Component;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ValueConversions {
+    public static ThrowStatement commandSyntaxException(CommandSyntaxException e) {
+        StringReader reader = new StringReader(e.getInput());
+        reader.setCursor(e.getCursor());
+        return new ThrowStatement(ListValue.of(StringReaderValue.of(reader), message(e.getRawMessage())), Apply.COMMAND_SYNTAX_EXCEPTION);
+    }
+
     public static Value range(StringRange range) {
         return range != null ? ListValue.of(NumericValue.of(range.getStart()), NumericValue.of(range.getEnd())) : Value.NULL;
     }
@@ -99,5 +111,9 @@ public class ValueConversions {
             }
             default -> new Suggestion(StringRange.between(start, start + length), value.getString());
         };
+    }
+
+    public static Value message(Message msg) {
+        return msg instanceof Component c ? FormattedTextValue.of(c) : StringValue.of(msg.getString());
     }
 }

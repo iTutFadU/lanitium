@@ -1,6 +1,5 @@
 package me.itut.lanitium.mixin.carpet;
 
-import carpet.script.CarpetContext;
 import carpet.script.Context;
 import carpet.script.value.*;
 import me.itut.lanitium.internal.carpet.MapValueInterface;
@@ -18,7 +17,7 @@ import java.util.Map;
 
 @Mixin(value = MapValue.class, remap = false)
 public abstract class MapValueMixin implements MapValueInterface {
-    @Unique private @Nullable CarpetContext metaContext;
+    @Unique private @Nullable Context metaContext;
     @Unique private @Nullable Map<Value, Value> meta;
 
     @Override
@@ -27,7 +26,7 @@ public abstract class MapValueMixin implements MapValueInterface {
     }
 
     @Override
-    public void lanitium$setMeta(CarpetContext context, Map<Value, Value> meta) {
+    public void lanitium$setMeta(Context context, Map<Value, Value> meta) {
         metaContext = context;
         this.meta = meta;
     }

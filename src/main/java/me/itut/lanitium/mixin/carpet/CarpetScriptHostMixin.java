@@ -1,13 +1,14 @@
 package me.itut.lanitium.mixin.carpet;
 
-import carpet.script.CarpetScriptHost;
-import carpet.script.CarpetScriptServer;
+import carpet.script.*;
 import carpet.script.command.CommandArgument;
+import carpet.script.exception.ProcessedThrowStatement;
 import carpet.script.value.MapValue;
 import carpet.script.value.StringValue;
 import carpet.script.value.Value;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
+import me.itut.lanitium.internal.carpet.CommandExpressionException;
 import me.itut.lanitium.internal.carpet.CommandParser;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -15,11 +16,13 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Mixin(value = CarpetScriptHost.class, remap = false)
 public abstract class CarpetScriptHostMixin {
@@ -30,8 +33,6 @@ public abstract class CarpetScriptHostMixin {
 
     @Inject(method = "addAppCommands", at = @At(value = "INVOKE", target = "Lcarpet/script/CarpetScriptHost;readCommands(Ljava/util/function/Predicate;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;"), cancellable = true)
     private void brigadierCommand(Consumer<Component> notifier, CallbackInfoReturnable<Boolean> cir) throws CommandSyntaxException {
-        if (!appConfig.getOrDefault(StringValue.of("brigadier"), Value.FALSE).getBoolean()) return;
-
         cir.setReturnValue(false);
         Value rawBranches = appConfig.get(StringValue.of("commands"));
         if (rawBranches == null)
@@ -49,7 +50,7 @@ public abstract class CarpetScriptHostMixin {
             Map<Value, Value> permissionsMap = p.getMap();
             permissions = new HashMap<>(permissionsMap.size());
             permissionsMap.forEach((k, v) -> permissions.put(k.getString(), v));
-        } else permissions = new HashMap<>(1) {{ put("", rawPermissions); }};
+        } else permissions = Map.of("", rawPermissions);
 
         final CommandNode<CommandSourceStack> command;
         try {
@@ -59,5 +60,14 @@ public abstract class CarpetScriptHostMixin {
         }
         scriptServer().server.getCommands().getDispatcher().getRoot().addChild(command);
         cir.setReturnValue(hasCommand = true);
+    }
+
+    @Redirect(method = "call", at = @At(value = "INVOKE", target = "Lcarpet/script/Expression;evaluatePartial(Ljava/util/function/Supplier;Lcarpet/script/Context;Lcarpet/script/Context$Type;)Lcarpet/script/value/Value;"))
+    private Value throwCommandException(Expression instance, Supplier<LazyValue> provider, Context context, Context.Type type) {
+        try {
+            return instance.evaluatePartial(provider, context, type);
+        } catch (ProcessedThrowStatement e) {
+            throw CommandExpressionException.of(e);
+        }
     }
 }
