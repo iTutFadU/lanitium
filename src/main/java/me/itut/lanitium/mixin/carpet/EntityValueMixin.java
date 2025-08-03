@@ -1,10 +1,14 @@
 package me.itut.lanitium.mixin.carpet;
 
+import carpet.script.CarpetScriptServer;
 import carpet.script.value.EntityValue;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,20 +26,27 @@ public abstract class EntityValueMixin {
         featureModifiers.put("nbt", (e, v) -> {
             UUID uUID = e.getUUID();
             Value tagValue = NBTSerializableValue.fromValue(v);
-            if (tagValue instanceof NBTSerializableValue nbtsv)
-            {
-                e.load(nbtsv.getCompoundTag());
+            if (tagValue instanceof NBTSerializableValue nbtsv) {
+                try (final ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(e.problemPath(), CarpetScriptServer.LOG)) {
+                    e.load(TagValueInput.create(reporter, e.registryAccess(), nbtsv.getCompoundTag()));
+                }
                 e.setUUID(uUID);
             }
         });
         featureModifiers.put("nbt_merge", (e, v) -> {
             UUID uUID = e.getUUID();
             Value tagValue = NBTSerializableValue.fromValue(v);
-            if (tagValue instanceof NBTSerializableValue nbtsv)
-            {
-                CompoundTag compound = e.saveWithoutId((new CompoundTag()));
-                compound.merge(nbtsv.getCompoundTag());
-                e.load(compound);
+            if (tagValue instanceof NBTSerializableValue nbtsv) {
+                CompoundTag nbttagcompound;
+                try (final ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(e.problemPath(), CarpetScriptServer.LOG)) {
+                    final TagValueOutput output = TagValueOutput.createWithContext(reporter, e.registryAccess());
+                    e.saveWithoutId(output);
+                    nbttagcompound = output.buildResult();
+                }
+                nbttagcompound.merge(nbtsv.getCompoundTag());
+                try (final ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(e.problemPath(), CarpetScriptServer.LOG)) {
+                    e.load(TagValueInput.create(reporter, e.registryAccess(), nbttagcompound));
+                }
                 e.setUUID(uUID);
             }
         });

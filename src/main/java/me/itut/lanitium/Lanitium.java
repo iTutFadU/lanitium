@@ -18,7 +18,6 @@ import me.itut.lanitium.config.Config;
 import me.itut.lanitium.config.ConfigManager;
 import me.itut.lanitium.function.*;
 import me.itut.lanitium.value.ByteBufferValue;
-import me.mrnavastar.biscuit.api.Biscuit;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
@@ -27,7 +26,6 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.server.players.ServerOpList;
@@ -42,7 +40,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 	public static final Logger LOGGER = LoggerFactory.getLogger("Lanitium");
 	public static final ConfigManager CONFIG_MANAGER = new ConfigManager(FabricLoader.getInstance().getConfigDir().resolve("lanitium.json").toFile());
 	public static Config CONFIG;
-	public static final Biscuit.RegisteredCookie COOKIE = Biscuit.register(ResourceLocation.fromNamespaceAndPath("lanitium", "cookie"), LanitiumCookie.class);
+//	public static final Biscuit.RegisteredCookie COOKIE = Biscuit.register(ResourceLocation.fromNamespaceAndPath("lanitium", "cookie"), LanitiumCookie.class);
 
 	@Override
 	public void onInitialize() {
@@ -62,7 +60,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
         AnnotationParser.parseFunctionClass(DataStructures.class);
         AnnotationParser.parseFunctionClass(Encoding.class);
         AnnotationParser.parseFunctionClass(Parsing.class);
-        AnnotationParser.parseFunctionClass(Protocol.class);
+//        AnnotationParser.parseFunctionClass(Protocol.class);
         AnnotationParser.parseFunctionClass(Server.class);
         AnnotationParser.parseFunctionClass(Symbols.class);
 

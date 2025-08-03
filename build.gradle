@@ -30,8 +30,8 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	modImplementation "carpet:fabric-carpet:${project.carpet_version}"
-	modImplementation include("maven.modrinth:fRCaJmPG:${project.biscuit_version}")
-		implementation include("com.esotericsoftware:kryo5:5.6.0")
+//	modImplementation include("maven.modrinth:fRCaJmPG:${project.biscuit_version}")
+//		implementation include("com.esotericsoftware:kryo5:5.6.0")
 }
 
 processResources {

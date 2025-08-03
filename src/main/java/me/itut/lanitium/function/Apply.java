@@ -12,7 +12,9 @@ import carpet.script.exception.*;
 import carpet.script.language.Operators;
 import carpet.script.value.*;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.serialization.JsonOps;
 import me.itut.lanitium.Emoticons;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.*;
@@ -36,9 +38,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.LenientJsonParser;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
@@ -610,17 +614,15 @@ public class Apply {
     @ScarpetFunction
     public static Value format_json(Context c, String value) {
         try {
-            return FormattedTextValue.deserialize(value, ((CarpetContext)c).registryAccess());
+            return FormattedTextValue.deserialize(JsonOps.INSTANCE.convertTo(NbtOps.INSTANCE, LenientJsonParser.parse(value)), ((CarpetContext)c).registryAccess());
         } catch (JsonParseException e) {
             throw new ThrowStatement(e.getMessage(), Throwables.JSON_ERROR);
         }
     }
 
     @ScarpetFunction
-    public static Value format_nbt(NBTSerializableValue value) {
-        return FormattedTextValue.of(ComponentSerialization.CODEC.parse(NbtOps.INSTANCE, value.getTag()).mapOrElse(Function.identity(), e -> {
-            throw new ThrowStatement(e.error().orElseThrow().message(), Throwables.NBT_ERROR);
-        }));
+    public static Value format_nbt(Context c, NBTSerializableValue value) {
+        return FormattedTextValue.deserialize(value.getTag(), ((CarpetContext)c).registryAccess());
     }
 
     @ScarpetFunction
