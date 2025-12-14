@@ -386,16 +386,17 @@ public class Patterns {
             if (lv.isEmpty()) throw new InternalExpressionException("'matches' requires a value to test and patterns to test against");
             Value test = lv.getFirst().evalValue(c);
             Map<String, @Nullable LazyValue> scope = new HashMap<>();
-            for (int i = 1, size = lv.size(); i < size; i++) {
+            for (int i = 1, size = lv.size(); i < size; i++) try {
                 Value pattern = lv.get(i).evalValue(c, Context.LVALUE);
                 checkSwitchPattern(e, tok, c, pattern);
                 if (!switchPattern(c, pattern, test, scope)) continue;
+                return LazyValue.TRUE;
+            } finally {
                 scope.forEach((k, v) -> {
                     if (v == null) c.delVariable(k);
                     else c.setVariable(k, v);
                 });
                 scope.clear();
-                return LazyValue.TRUE;
             }
             return LazyValue.FALSE;
         });

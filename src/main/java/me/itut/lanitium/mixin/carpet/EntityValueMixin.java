@@ -4,6 +4,7 @@ import carpet.script.CarpetScriptServer;
 import carpet.script.value.EntityValue;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
+import me.itut.lanitium.internal.carpet.EntityValueInterface;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Entity;
@@ -18,8 +19,13 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 
 @Mixin(value = EntityValue.class, remap = false)
-public abstract class EntityValueMixin {
+public abstract class EntityValueMixin implements EntityValueInterface {
     @Shadow @Final private static Map<String, BiConsumer<Entity, Value>> featureModifiers;
+
+    @Override
+    public Map<String, BiConsumer<Entity, Value>> lanitium$featureModifiers() {
+        return featureModifiers;
+    }
 
     static {
         // No !player check

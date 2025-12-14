@@ -41,7 +41,7 @@ public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
                 yield value.join();
             }
             case "get_now" -> {
-                checkArguments(what, more, 0);
+                checkArguments(what, more, 1);
                 yield value.getNow(more[0]);
             }
             case "result_now" -> {

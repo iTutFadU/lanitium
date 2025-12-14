@@ -74,6 +74,11 @@ public class Lanitium implements ModInitializer, CarpetExtension {
         Patterns.apply(expr.getExpr());
 	}
 
+	@Override
+	public void onGameStarted() {
+		LanitiumEvent ignored = LanitiumEvent.PLAYER_CUSTOM_CLICK;
+	}
+
 	private void registerCommands() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("lanitium")

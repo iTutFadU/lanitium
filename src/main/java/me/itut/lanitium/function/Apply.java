@@ -12,7 +12,6 @@ import carpet.script.exception.*;
 import carpet.script.language.Operators;
 import carpet.script.value.*;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
 import me.itut.lanitium.Emoticons;
@@ -38,7 +37,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -234,6 +232,35 @@ public class Apply {
 
             if (obj instanceof ObjectValue<?> o)
                 return o.get(methodName.getString(), lv.subList(2, lv.size()).toArray(Value[]::new));
+
+            if (obj instanceof EntityValue entity) {
+                String method = methodName.getString();
+                List<Value> sub = lv.subList(2, lv.size());
+                return t == Context.LVALUE
+                    ? new LContainerValue(new ContainerValueInterface() {
+                        @Override
+                        public boolean put(Value where, Value value) {
+                            entity.set(method, ListValue.wrap(Stream.concat(sub.stream(), value instanceof ListValue list ? list.getItems().stream() : Stream.of(value))));
+                            return true;
+                        }
+
+                        @Override
+                        public Value get(Value where) {
+                            return entity.get(method, ListValue.wrap(sub));
+                        }
+
+                        @Override
+                        public boolean has(Value where) {
+                            return ((EntityValueInterface)entity).lanitium$featureModifiers().containsKey(method);
+                        }
+
+                        @Override
+                        public boolean delete(Value where) {
+                            return false;
+                        }
+                    }, null)
+                    : entity.get(method, ListValue.wrap(sub));
+            }
             
             if (!(obj instanceof MapValue self)) return Value.NULL;
             

@@ -10,6 +10,7 @@
         "EntityDataAccessorMixin",
         "MinecraftServerMixin",
         "PlayerListMixin",
+        "ServerCommonPacketListenerImplMixin",
         "ServerGamePacketListenerImplMixin",
         "ServerStatusMixin",
         "carpet.CarpetScriptHostMixin",
