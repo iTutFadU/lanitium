@@ -6,7 +6,6 @@ import carpet.script.exception.ProcessedThrowStatement;
 import carpet.script.value.*;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
@@ -18,7 +17,7 @@ public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
     }
 
     public static Value of(Context context, CompletableFuture<Value> value) {
-        return value != null ? new FutureValue(context, value) : null;
+        return value != null ? new FutureValue(context, value) : Value.NULL;
     }
 
     public static CompletableFuture<Value> from(Value value) {
@@ -65,15 +64,15 @@ public class FutureValue extends ObjectValue<CompletableFuture<Value>> {
             }
             case "when_complete" -> {
                 checkArguments(what, more, 1);
-                if (!(Objects.requireNonNull(more[0]) instanceof FunctionValue callback))
-                    throw new InternalExpressionException("future~'" + what + "' expects a functions as an argument");
+                if (!(more[0] instanceof FunctionValue callback))
+                    throw new InternalExpressionException("future~'" + what + "' expects a function as an argument");
                 value.whenComplete((value, exception) -> callback.callInContext(context, Context.VOID, exception == null ? List.of(value) : List.of()).evalValue(context, Context.VOID));
                 yield this;
             }
             case "handle" -> {
                 checkArguments(what, more, 1);
-                if (!(Objects.requireNonNull(more[0]) instanceof FunctionValue callback))
-                    throw new InternalExpressionException("future~'" + what + "' expects a functions as an argument");
+                if (!(more[0] instanceof FunctionValue callback))
+                    throw new InternalExpressionException("future~'" + what + "' expects a function as an argument");
                 yield of(context, value.handle((value, exception) -> callback.callInContext(context, Context.NONE, exception == null ? List.of(value) : List.of()).evalValue(context)));
             }
             case "cancel" -> {

@@ -18,6 +18,7 @@ import me.itut.lanitium.config.Config;
 import me.itut.lanitium.config.ConfigManager;
 import me.itut.lanitium.function.*;
 import me.itut.lanitium.value.ByteBufferValue;
+import me.itut.lanitium.value.CollisionContextValue;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
@@ -30,6 +31,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.server.players.ServerOpList;
 import net.minecraft.server.players.ServerOpListEntry;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +57,13 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 				return null;
 			}
 		}, "byte buffer");
+        SimpleTypeConverter.registerType(Value.class, CollisionContext.class, v -> {
+			try {
+				return CollisionContextValue.from(v);
+			} catch (InternalExpressionException ignored) {
+                return null;
+            }
+        }, "collision context");
 
         AnnotationParser.parseFunctionClass(Apply.class);
         AnnotationParser.parseFunctionClass(DataStructures.class);
@@ -63,6 +72,7 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 //        AnnotationParser.parseFunctionClass(Protocol.class);
         AnnotationParser.parseFunctionClass(Server.class);
         AnnotationParser.parseFunctionClass(Symbols.class);
+		AnnotationParser.parseFunctionClass(World.class);
 
 		registerCommands();
         LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());

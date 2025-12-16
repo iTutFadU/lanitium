@@ -29,6 +29,11 @@ public class Constants {
     public static final Value FEET = StringValue.of("feet");
     public static final Value RANGE = StringValue.of("range");
     public static final Value TEXT = StringValue.of("text");
+    public static final Value POS = StringValue.of("pos");
+    public static final Value FACE = StringValue.of("face");
+    public static final Value BLOCK_POS = StringValue.of("block_pos");
+    public static final Value INSIDE = StringValue.of("inside");
+    public static final Value WORLD_BORDER_HIT = StringValue.of("world_border_hit");
     public static final Value TOOLTIP = StringValue.of("tooltip");
     public static final Value __META = StringValue.of("__meta");
     public static final Value __TYPE = StringValue.of("__type");

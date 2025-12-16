@@ -11,17 +11,14 @@ import carpet.script.command.CommandArgument;
 import carpet.script.exception.*;
 import carpet.script.language.Operators;
 import carpet.script.value.*;
+import carpet.script.value.ValueConversions;
 import com.google.gson.JsonParseException;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
 import me.itut.lanitium.Emoticons;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import me.itut.lanitium.internal.carpet.*;
-import me.itut.lanitium.value.Constants;
-import me.itut.lanitium.value.ObjectValue;
-import me.itut.lanitium.value.SimpleFunctionValue;
-import me.itut.lanitium.value.SourceValue;
-import me.itut.lanitium.value.WithValue;
+import me.itut.lanitium.value.*;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.ComponentArgument;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
@@ -232,6 +229,8 @@ public class Apply {
 
             if (obj instanceof ObjectValue<?> o)
                 return o.get(methodName.getString(), lv.subList(2, lv.size()).toArray(Value[]::new));
+            if (obj instanceof ByteBufferValue o) // TODO: merge em
+                return o.get(methodName.getString(), lv.subList(2, lv.size()).toArray(Value[]::new));
 
             if (obj instanceof EntityValue entity) {
                 String method = methodName.getString();
@@ -240,13 +239,24 @@ public class Apply {
                     ? new LContainerValue(new ContainerValueInterface() {
                         @Override
                         public boolean put(Value where, Value value) {
-                            entity.set(method, ListValue.wrap(Stream.concat(sub.stream(), value instanceof ListValue list ? list.getItems().stream() : Stream.of(value))));
+                            List<Value> arg = new ArrayList<>(sub);
+                            if (value instanceof ListValue list) arg.addAll(list.getItems());
+                            else arg.add(value);
+                            entity.set(method, switch (arg.size()) {
+                                case 0 -> null;
+                                case 1 -> arg.getFirst();
+                                default -> ListValue.wrap(arg);
+                            });
                             return true;
                         }
 
                         @Override
                         public Value get(Value where) {
-                            return entity.get(method, ListValue.wrap(sub));
+                            return entity.get(method, switch (sub.size()) {
+                                case 0 -> null;
+                                case 1 -> sub.getFirst();
+                                default -> ListValue.wrap(sub);
+                            });
                         }
 
                         @Override
@@ -259,7 +269,11 @@ public class Apply {
                             return false;
                         }
                     }, null)
-                    : entity.get(method, ListValue.wrap(sub));
+                    : entity.get(method, switch (sub.size()) {
+                        case 0 -> null;
+                        case 1 -> sub.getFirst();
+                        default -> ListValue.wrap(sub);
+                    });
             }
             
             if (!(obj instanceof MapValue self)) return Value.NULL;

@@ -14,6 +14,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import me.itut.lanitium.function.Apply;
 import me.itut.lanitium.value.parsing.StringReaderValue;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.phys.AABB;
 
 import java.util.HashMap;
 import java.util.List;
@@ -115,5 +116,33 @@ public class ValueConversions {
 
     public static Value message(Message msg) {
         return msg instanceof Component c ? FormattedTextValue.of(c) : StringValue.of(msg.getString());
+    }
+
+    public static Value aabb(AABB aabb) {
+        return ListValue.of(ListValue.fromTriple(aabb.minX, aabb.minY, aabb.minZ), ListValue.fromTriple(aabb.maxX, aabb.maxY, aabb.maxZ));
+    }
+
+    public static AABB toAabb(Value value) {
+        return switch (value) {
+            case null -> null;
+            case NullValue ignored -> null;
+            default -> {
+                if (value instanceof AbstractListValue list) {
+                    List<Value> values = list.unpack();
+                    if (values.size() == 2 && values.getFirst() instanceof AbstractListValue min && values.getLast() instanceof AbstractListValue max) {
+                        List<Value> minValues = min.unpack(), maxValues = max.unpack();
+                        if (minValues.size() == 3 && maxValues.size() == 3) yield new AABB(
+                            NumericValue.asNumber(minValues.get(0)).getDouble(),
+                            NumericValue.asNumber(minValues.get(1)).getDouble(),
+                            NumericValue.asNumber(minValues.get(2)).getDouble(),
+                            NumericValue.asNumber(maxValues.get(0)).getDouble(),
+                            NumericValue.asNumber(maxValues.get(1)).getDouble(),
+                            NumericValue.asNumber(maxValues.get(2)).getDouble()
+                        );
+                    }
+                }
+                throw new InternalExpressionException("An AABB must be a list of two triples of numbers");
+            }
+        };
     }
 }
