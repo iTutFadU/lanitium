@@ -33,6 +33,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.*;
+import net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -52,6 +53,8 @@ import net.minecraft.world.level.SimpleExplosionDamageCalculator;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.scores.DisplaySlot;
+import net.minecraft.world.scores.Objective;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
@@ -697,6 +700,15 @@ public class Apply {
         Map<Value, Value> map = new HashMap<>(properties.size());
         properties.forEach(p -> map.put(StringValue.of(p.getName()), ListValue.wrap(p.getPossibleValues().stream().map(v -> StringValue.of(v instanceof StringRepresentable str ? str.getSerializedName() : v.toString())))));
         return MapValue.wrap(map);
+    }
+
+    private static final Map<String, DisplaySlot> displaySlotMap = Arrays.stream(DisplaySlot.values()).collect(Collectors.toMap(DisplaySlot::getSerializedName, Function.identity()));
+
+    @ScarpetFunction(maxParams = 3)
+    public static void show_scoreboard(Context c, ServerPlayer player, String slot, Optional<String> objective) {
+        DisplaySlot displaySlot = displaySlotMap.get(slot);
+        if (displaySlot == null) throw new ThrowStatement("Unknown scoreboard display slot: " + slot, Throwables.VALUE_EXCEPTION);
+        player.connection.send(new ClientboundSetDisplayObjectivePacket(displaySlot, objective.map(name -> new Objective(((CarpetContext)c).server().getScoreboard(), name, null, null, null, false, null)).orElse(null)));
     }
 
     @ScarpetFunction(maxParams = 3)
