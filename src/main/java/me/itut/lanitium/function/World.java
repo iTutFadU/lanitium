@@ -218,7 +218,7 @@ public class World {
     public Value collision_context(Context c, Optional<Value> entity, Optional<Boolean> standOnFluid) {
         return standOnFluid
             .map(s -> {
-                Value v = entity.orElseThrow();
+                Value v = entity.orElse(null);
                 if (!(v instanceof EntityValue e))
                     throw new InternalExpressionException("When calling collision_context with 2 arguments, the first one must be an entity");
                 return CollisionContextValue.of((CarpetContext)c, CollisionContext.of(e.getEntity(), s));

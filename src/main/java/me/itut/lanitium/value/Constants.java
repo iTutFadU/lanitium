@@ -35,6 +35,9 @@ public class Constants {
     public static final Value INSIDE = StringValue.of("inside");
     public static final Value WORLD_BORDER_HIT = StringValue.of("world_border_hit");
     public static final Value TOOLTIP = StringValue.of("tooltip");
+    public static final Value ITEMS = StringValue.of("items");
+    public static final Value WEIGHT = StringValue.of("weight");
+    public static final Value SELECTED_ITEM = StringValue.of("selected_item");
     public static final Value __META = StringValue.of("__meta");
     public static final Value __TYPE = StringValue.of("__type");
     public static final Value __STR = StringValue.of("__str");

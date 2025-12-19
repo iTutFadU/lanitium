@@ -27,9 +27,7 @@ import net.minecraft.commands.arguments.item.ItemPredicateArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.core.component.TypedDataComponent;
+import net.minecraft.core.component.*;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.EndTag;
@@ -37,12 +35,17 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.LenientJsonParser;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemCooldowns;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.BundleContents;
+import net.minecraft.world.item.component.UseCooldown;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.ServerExplosion;
 import net.minecraft.world.level.SimpleExplosionDamageCalculator;
@@ -696,6 +699,30 @@ public class Apply {
         return MapValue.wrap(map);
     }
 
+    @ScarpetFunction(maxParams = 3)
+    public static Value cooldown(Context c, ServerPlayer player, Value group, Optional<Integer> ticks) {
+        ItemCooldowns cooldowns = player.getCooldowns();
+
+        ItemStack stack = null;
+        ResourceLocation cooldownGroup = group instanceof ListValue
+            ? cooldowns.getCooldownGroup(stack = ValueConversions.getItemStackFromValue(group, false, ((CarpetContext)c).registryAccess()))
+            : ResourceLocation.read(group.getString()).getOrThrow(msg -> new ThrowStatement(msg, Throwables.UNKNOWN_ITEM));
+
+        if (ticks.isPresent()) {
+            if (ticks.get() > 0) cooldowns.addCooldown(cooldownGroup, ticks.get());
+            else cooldowns.removeCooldown(cooldownGroup);
+            return Value.NULL;
+        }
+
+        return NumericValue.of(cooldowns.getCooldownPercent(stack != null
+            ? stack
+            : new ItemStack(BuiltInRegistries.ITEM.wrapAsHolder(Items.STONE), 1, DataComponentPatch.builder()
+                .set(DataComponents.USE_COOLDOWN, new UseCooldown(0, Optional.of(cooldownGroup)))
+                .build()
+            ), 0
+        ));
+    }
+
     @ScarpetFunction(maxParams = 2) // https://github.com/gnembon/fabric-carpet/pull/1996
     public static Value item_components(Context c, Value item, Optional<String> component) {
         ItemStack stack = ValueConversions.getItemStackFromValue(item, true, ((CarpetContext)c).registryAccess());
@@ -717,6 +744,11 @@ public class Apply {
             case Number number -> NumericValue.of(number);
             case String str -> StringValue.of(str);
             case Component component -> FormattedTextValue.of(component);
+            case BundleContents bundle -> MapValue.wrap(Map.of(
+                Constants.ITEMS, NBTSerializableValue.of(v.encodeValue(NbtOps.INSTANCE).result().orElse(null)),
+                Constants.WEIGHT, NumericValue.of(bundle.weight().doubleValue()),
+                Constants.SELECTED_ITEM, NumericValue.of(bundle.getSelectedItem())
+            ));
             default -> NBTSerializableValueInterface.decodeTag(v.encodeValue(NbtOps.INSTANCE).result().orElse(EndTag.INSTANCE));
         };
     }
