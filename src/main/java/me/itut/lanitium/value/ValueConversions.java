@@ -15,6 +15,9 @@ import me.itut.lanitium.function.Apply;
 import me.itut.lanitium.value.parsing.StringReaderValue;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 
 import java.util.HashMap;
 import java.util.List;
@@ -143,6 +146,32 @@ public class ValueConversions {
                 }
                 throw new InternalExpressionException("An AABB must be a list of two triples of numbers");
             }
+        };
+    }
+
+    public static Value hitResult(HitResult hit) {
+        if (hit == null) return Value.NULL;
+        return switch (hit.getType()) {
+            case BLOCK -> {
+                BlockHitResult blockHit = (BlockHitResult)hit;
+                yield MapValue.wrap(Map.of(
+                    Constants.TYPE, Constants.BLOCK,
+                    Constants.POS, carpet.script.value.ValueConversions.of(hit.getLocation()),
+                    Constants.FACE, StringValue.of(blockHit.getDirection().getName()),
+                    Constants.BLOCK_POS, carpet.script.value.ValueConversions.of(blockHit.getBlockPos()),
+                    Constants.INSIDE, BooleanValue.of(blockHit.isInside()),
+                    Constants.WORLD_BORDER_HIT, BooleanValue.of(blockHit.isWorldBorderHit())
+                ));
+            }
+            case ENTITY -> {
+                EntityHitResult entityHit = (EntityHitResult)hit;
+                yield MapValue.wrap(Map.of(
+                    Constants.TYPE, Constants.ENTITY,
+                    Constants.POS, carpet.script.value.ValueConversions.of(hit.getLocation()),
+                    Constants.ENTITY, EntityValue.of(entityHit.getEntity())
+                ));
+            }
+            default -> Value.NULL;
         };
     }
 }

@@ -7,13 +7,11 @@ import carpet.script.argument.Vector3Argument;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import net.minecraft.core.Direction;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class VoxelShapeValue extends ObjectValue<VoxelShape> {
     private final CarpetContext context;
@@ -107,15 +105,7 @@ public class VoxelShapeValue extends ObjectValue<VoxelShape> {
                 Vector3Argument start = Vector3Argument.findIn(lv, 0),
                                 finish = Vector3Argument.findIn(lv, start.offset);
                 BlockArgument block = BlockArgument.findIn(context, lv, finish.offset);
-                BlockHitResult hit = value.clip(start.vec, finish.vec, block.block.getPos());
-                if (hit == null) yield Value.NULL;
-                yield MapValue.wrap(Map.of(
-                    Constants.POS, ListValue.fromTriple(hit.getLocation().x, hit.getLocation().y, hit.getLocation().z),
-                    Constants.FACE, StringValue.of(hit.getDirection().getName()),
-                    Constants.BLOCK_POS, ListValue.fromTriple(hit.getBlockPos().getX(), hit.getBlockPos().getY(), hit.getBlockPos().getZ()),
-                    Constants.INSIDE, BooleanValue.of(hit.isInside()),
-                    Constants.WORLD_BORDER_HIT, BooleanValue.of(hit.isWorldBorderHit())
-                ));
+                yield ValueConversions.hitResult(value.clip(start.vec, finish.vec, block.block.getPos()));
             }
             case "closest_point_to" -> {
                 checkArguments(what, more, 1, 3);

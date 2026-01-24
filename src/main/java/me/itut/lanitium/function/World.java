@@ -4,11 +4,13 @@ import carpet.script.CarpetContext;
 import carpet.script.CarpetScriptServer;
 import carpet.script.Context;
 import carpet.script.annotation.Locator;
+import carpet.script.annotation.Param;
 import carpet.script.annotation.ScarpetFunction;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.mojang.brigadier.StringReader;
 import me.itut.lanitium.value.CollisionContextValue;
+import me.itut.lanitium.value.ValueConversions;
 import me.itut.lanitium.value.VoxelShapeValue;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -16,6 +18,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
@@ -24,9 +30,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.phys.*;
 import net.minecraft.world.phys.shapes.CollisionContext;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class World {
@@ -283,5 +291,89 @@ public class World {
     @ScarpetFunction(maxParams = 3)
     public Value interaction_shape(Context c, @Locator.Block BlockValue block) {
         return VoxelShapeValue.of((CarpetContext)c, block.getBlockState().getInteractionShape(((CarpetContext)c).level(), block.getPos()));
+    }
+
+    private static final Predicate<Entity> PICKABLE_ENTITIES = e -> !e.isSpectator() && e.isPickable();
+
+    @ScarpetFunction(maxParams = -1)
+    public Value trace(Context c, @Locator.Vec3d Vec3 from, @Locator.Vec3d Vec3 to, @Param.KeyValuePairs Map<String, Value> options) {
+        boolean traceBlock = false, traceEntity = false;
+        Level world = ((CarpetContext)c).level();
+
+        ClipContext.Block blockType = ClipContext.Block.OUTLINE;
+        ClipContext.Fluid fluidType = ClipContext.Fluid.NONE;
+        CollisionContext context = CollisionContext.empty();
+
+        Entity source = null;
+        Predicate<Entity> predicate = PICKABLE_ENTITIES;
+        double inflate = 0;
+        
+        for (Map.Entry<String, Value> entry : options.entrySet()) switch (entry.getKey()) {
+            case "block" -> {
+                traceBlock = true;
+                String type = entry.getValue().getString();
+                blockType = switch (type.toLowerCase(Locale.ROOT)) {
+                    case "collider" -> ClipContext.Block.COLLIDER;
+                    case "outline" -> ClipContext.Block.OUTLINE;
+                    case "visual" -> ClipContext.Block.VISUAL;
+                    case "falldamage_resetting" -> ClipContext.Block.FALLDAMAGE_RESETTING;
+                    default -> throw new InternalExpressionException("Unknown block selection: " + type);
+                };
+            }
+            case "fluid" -> {
+                traceBlock = true;
+                String type = entry.getValue().getString();
+                fluidType = switch (type.toLowerCase(Locale.ROOT)) {
+                    case "none" -> ClipContext.Fluid.NONE;
+                    case "any" -> ClipContext.Fluid.ANY;
+                    case "source_only" -> ClipContext.Fluid.SOURCE_ONLY;
+                    case "water" -> ClipContext.Fluid.WATER;
+                    default -> throw new InternalExpressionException("Unknown fluid selection: " + type);
+                };
+            }
+            case "context" -> {
+                traceBlock = true;
+                context = CollisionContextValue.from(entry.getValue());
+            }
+
+            case "source" -> {
+                traceEntity = true;
+                Value value = entry.getValue();
+                if (value.isNull()) {
+                    source = null;
+                    break;
+                }
+
+                if (!(value instanceof EntityValue entity)) throw new InternalExpressionException("Source must be an entity or null");
+                source = entity.getEntity();
+            }
+            case "predicate" -> {
+                traceEntity = true;
+                if (!(entry.getValue() instanceof FunctionValue fn)) throw new InternalExpressionException("Predicate must be a function value");
+                predicate = e -> fn.callInContext(c, Context.BOOLEAN, List.of(EntityValue.of(e))).evalValue(c, Context.BOOLEAN).getBoolean();
+            }
+            case "inflate" -> {
+                traceEntity = true;
+                inflate = NumericValue.asNumber(entry.getValue(), "inflate").getDouble();
+            }
+
+            default -> throw new InternalExpressionException("Unknown trace() option: " + entry.getKey());
+        }
+
+        if (!(traceBlock || traceEntity)) traceBlock = traceEntity = true;
+
+        HitResult hit = null;
+        if (traceBlock) {
+            hit = world.clip(new ClipContext(from, to, blockType, fluidType, context));
+            if (hit.getType() == HitResult.Type.MISS) hit = null;
+        }
+
+        if (traceEntity) {
+            if (hit != null) to = hit.getLocation();
+            EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(world, source, from, to, new AABB(from, to).inflate(inflate), predicate, (float)inflate);
+            if (entityHit != null && entityHit.getType() != HitResult.Type.MISS) hit = entityHit;
+        }
+
+        return ValueConversions.hitResult(hit);
     }
 }

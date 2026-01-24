@@ -38,6 +38,8 @@ public class Constants {
     public static final Value ITEMS = StringValue.of("items");
     public static final Value WEIGHT = StringValue.of("weight");
     public static final Value SELECTED_ITEM = StringValue.of("selected_item");
+    public static final Value BLOCK = StringValue.of("block");
+    public static final Value ENTITY = StringValue.of("entity");
     public static final Value __META = StringValue.of("__meta");
     public static final Value __TYPE = StringValue.of("__type");
     public static final Value __STR = StringValue.of("__str");
