@@ -10,6 +10,7 @@
         "EntityDataAccessorMixin",
         "MinecraftServerMixin",
         "PlayerListMixin",
+        "ProjectileMixin",
         "ServerCommonPacketListenerImplMixin",
         "ServerGamePacketListenerImplMixin",
         "ServerStatusMixin",
