@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -23,7 +24,7 @@ public abstract class LanitiumEvent extends CarpetEventServer.Event {
 
     public void onProjectileHit(Projectile projectile, HitResult hit) {}
 
-    public void onProjectileDeflected(Projectile projectile, @Nullable Entity entity, boolean aim) {}
+    public void onProjectileDeflected(Projectile projectile, @Nullable Entity entity, boolean byAttack, Vec3 power) {}
 
     public static final LanitiumEvent PLAYER_CUSTOM_CLICK = new LanitiumEvent("player_custom_click", 3, false) {
         @Override
@@ -56,13 +57,14 @@ public abstract class LanitiumEvent extends CarpetEventServer.Event {
         }
     };
 
-    public static final LanitiumEvent PROJECTILE_DEFLECTED = new LanitiumEvent("projectile_deflected", 3, true) {
+    public static final LanitiumEvent PROJECTILE_DEFLECTED = new LanitiumEvent("projectile_deflected", 4, true) {
         @Override
-        public void onProjectileDeflected(Projectile projectile, @Nullable Entity entity, boolean aim) {
+        public void onProjectileDeflected(Projectile projectile, @Nullable Entity entity, boolean byAttack, Vec3 power) {
             handler.call(() -> Arrays.asList(
                 EntityValue.of(projectile),
                 EntityValue.of(entity),
-                BooleanValue.of(aim)
+                BooleanValue.of(byAttack),
+                ValueConversions.of(power)
             ), () -> projectile.createCommandSourceStackForNameResolution((ServerLevel)projectile.level()));
         }
     };

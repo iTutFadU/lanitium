@@ -21,20 +21,20 @@ public abstract class ServerGamePacketListenerImplMixin {
     public ServerPlayer player;
 
     @Shadow
-    protected abstract void tryHandleChat(String string, Runnable runnable);
+    protected abstract void tryHandleChat(String string, boolean isCommand, Runnable chatHandler);
     @Shadow
     protected abstract void performUnsignedChatCommand(String string);
     @Shadow
-    protected abstract void detectRateSpam();
+    protected abstract void detectCommandRateSpam();
 
     @Inject(method = "handleChatCommand", at = @At("HEAD"), cancellable = true)
     private void handleChatCommand(ServerboundChatCommandPacket packet, CallbackInfo ci) { // EZ
         ci.cancel();
         if (PLAYER_COMMAND.isNeeded() && PLAYER_COMMAND.onPlayerMessage(player, packet.command()))
             return;
-        tryHandleChat(packet.command(), () -> {
+        tryHandleChat(packet.command(), true, () -> {
             performUnsignedChatCommand(packet.command());
-            detectRateSpam();
+            detectCommandRateSpam();
         });
     }
 

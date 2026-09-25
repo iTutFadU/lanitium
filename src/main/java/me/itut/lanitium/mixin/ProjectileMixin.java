@@ -2,9 +2,11 @@ package me.itut.lanitium.mixin;
 
 import me.itut.lanitium.LanitiumEvent;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileDeflection;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,9 +27,9 @@ public abstract class ProjectileMixin {
             LanitiumEvent.PROJECTILE_HIT_ENTITY.onProjectileHit((Projectile)(Object)this, hitResult);
     }
 
-    @Inject(method = "deflect", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/projectile/Projectile;onDeflection(Lnet/minecraft/world/entity/Entity;Z)V"))
-    void onDeflectedEvent(ProjectileDeflection projectileDeflection, Entity entity, Entity entity2, boolean bl, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "deflect", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/projectile/Projectile;onDeflection(Z)V"))
+    void onDeflectedEvent(ProjectileDeflection deflection, Entity entity, EntityReference<Entity> newOwner, boolean byAttack, Vec3 power, CallbackInfoReturnable<Boolean> cir) {
         if (LanitiumEvent.PROJECTILE_DEFLECTED.isNeeded())
-            LanitiumEvent.PROJECTILE_DEFLECTED.onProjectileDeflected((Projectile)(Object)this, entity, bl);
+            LanitiumEvent.PROJECTILE_DEFLECTED.onProjectileDeflected((Projectile)(Object)this, entity, byAttack, power);
     }
 }
