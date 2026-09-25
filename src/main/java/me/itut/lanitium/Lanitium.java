@@ -28,6 +28,8 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.GameProfileArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.*;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.server.players.PlayerList;
 import net.minecraft.server.players.ServerOpList;
 import net.minecraft.server.players.ServerOpListEntry;
@@ -39,28 +41,28 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 
 public class Lanitium implements ModInitializer, CarpetExtension {
-	public static final Logger LOGGER = LoggerFactory.getLogger("Lanitium");
-	public static final ConfigManager CONFIG_MANAGER = new ConfigManager(FabricLoader.getInstance().getConfigDir().resolve("lanitium.json").toFile());
-	public static Config CONFIG;
-//	public static final Biscuit.RegisteredCookie COOKIE = Biscuit.register(ResourceLocation.fromNamespaceAndPath("lanitium", "cookie"), LanitiumCookie.class);
+    public static final Logger LOGGER = LoggerFactory.getLogger("Lanitium");
+    public static final ConfigManager CONFIG_MANAGER = new ConfigManager(FabricLoader.getInstance().getConfigDir().resolve("lanitium.json").toFile());
+    public static Config CONFIG;
+//  public static final Biscuit.RegisteredCookie COOKIE = Biscuit.register(ResourceLocation.fromNamespaceAndPath("lanitium", "cookie"), LanitiumCookie.class);
 
-	@Override
-	public void onInitialize() {
-		CONFIG = CONFIG_MANAGER.load();
+    @Override
+    public void onInitialize() {
+        CONFIG = CONFIG_MANAGER.load();
 
-		CarpetServer.manageExtension(this);
+        CarpetServer.manageExtension(this);
 
-		SimpleTypeConverter.registerType(Value.class, ByteBuffer.class, v -> {
-			try {
-				return ByteBufferValue.from(v);
-			} catch (InternalExpressionException ignored) {
-				return null;
-			}
-		}, "byte buffer");
+        SimpleTypeConverter.registerType(Value.class, ByteBuffer.class, v -> {
+            try {
+                return ByteBufferValue.from(v);
+            } catch (InternalExpressionException ignored) {
+                return null;
+            }
+        }, "byte buffer");
         SimpleTypeConverter.registerType(Value.class, CollisionContext.class, v -> {
-			try {
-				return CollisionContextValue.from(v);
-			} catch (InternalExpressionException ignored) {
+            try {
+                return CollisionContextValue.from(v);
+            } catch (InternalExpressionException ignored) {
                 return null;
             }
         }, "collision context");
@@ -72,102 +74,103 @@ public class Lanitium implements ModInitializer, CarpetExtension {
 //        AnnotationParser.parseFunctionClass(Protocol.class);
         AnnotationParser.parseFunctionClass(Server.class);
         AnnotationParser.parseFunctionClass(Symbols.class);
-		AnnotationParser.parseFunctionClass(World.class);
+        AnnotationParser.parseFunctionClass(World.class);
 
-		registerCommands();
+        registerCommands();
         LOGGER.info("Yummy cookies! {}", Emoticons.getRandomEmoticon());
-	}
+    }
 
-	@Override
-	public void scarpetApi(CarpetExpression expr) {
-		Apply.apply(expr.getExpr());
+    @Override
+    public void scarpetApi(CarpetExpression expr) {
+        Apply.apply(expr.getExpr());
         Patterns.apply(expr.getExpr());
-	}
+    }
 
-	@Override
-	public void onGameStarted() {
-		LanitiumEvent ignored = LanitiumEvent.PLAYER_CUSTOM_CLICK;
-	}
+    @Override
+    public void onGameStarted() {
+        LanitiumEvent ignored = LanitiumEvent.PLAYER_CUSTOM_CLICK;
+    }
 
-	private void registerCommands() {
-		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-			LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("lanitium")
-				.requires(source -> source.hasPermission(2))
-				.then(Commands.literal("reload")
-					.executes(ctx -> {
-						CONFIG = CONFIG_MANAGER.load();
-						ctx.getSource().sendSuccess(() -> Component.literal("Lanitium configuration reloaded"), true);
-						return 1;
-					})
-				);
+    private void registerCommands() {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("lanitium")
+                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .then(Commands.literal("reload")
+                    .executes(ctx -> {
+                        CONFIG = CONFIG_MANAGER.load();
+                        ctx.getSource().sendSuccess(() -> Component.literal("Lanitium configuration reloaded"), true);
+                        return 1;
+                    })
+                );
 
-			if (environment.includeDedicated) {
-				class PermissionSubCommand { // <_< ...
-					private static final SimpleCommandExceptionType
-						ERROR_NOT_OP = new SimpleCommandExceptionType(Component.translatable("commands.deop.failed")),
-						ERROR_ALREADY_OP = new SimpleCommandExceptionType(Component.translatable("commands.op.failed"));
+            if (environment.includeDedicated) {
+                class PermissionSubCommand { // <_< ...
+                    private static final SimpleCommandExceptionType
+                        ERROR_NOT_OP = new SimpleCommandExceptionType(Component.translatable("commands.deop.failed")),
+                        ERROR_ALREADY_OP = new SimpleCommandExceptionType(Component.translatable("commands.op.failed"));
 
-					private static int execute(CommandContext<CommandSourceStack> ctx, boolean bypassesPlayerLimit) throws CommandSyntaxException {
-                        Collection<GameProfile> targets = GameProfileArgument.getGameProfiles(ctx, "targets");
-						int level = IntegerArgumentType.getInteger(ctx, "level");
+                    private static int execute(CommandContext<CommandSourceStack> ctx, boolean bypassesPlayerLimit) throws CommandSyntaxException {
+                        Collection<NameAndId> targets = GameProfileArgument.getGameProfiles(ctx, "targets");
+                        int level = IntegerArgumentType.getInteger(ctx, "level");
+                        LevelBasedPermissionSet permissions = LevelBasedPermissionSet.forLevel(PermissionLevel.byId(level));
 
-						CommandSourceStack source = ctx.getSource();
-						PlayerList playerList = ctx.getSource().getServer().getPlayerList();
-						int i = 0;
+                        CommandSourceStack source = ctx.getSource();
+                        PlayerList playerList = ctx.getSource().getServer().getPlayerList();
+                        int i = 0;
 
-						if (level == 0 && !bypassesPlayerLimit) {
-							for (GameProfile player : targets) {
+                        if (level == 0 && !bypassesPlayerLimit) {
+                            for (NameAndId player : targets) {
                                 if (!playerList.isOp(player)) continue;
                                 playerList.deop(player);
                                 i++;
-                                source.sendSuccess(() -> Component.translatable("commands.deop.success", player.getName()), true);
+                                source.sendSuccess(() -> Component.translatable("commands.deop.success", player.name()), true);
                             }
 
-							if (i == 0) throw ERROR_NOT_OP.create();
-						} else {
+                            if (i == 0) throw ERROR_NOT_OP.create();
+                        } else {
                             ServerOpList ops = playerList.getOps();
-							for (GameProfile player : targets) {
-								ServerOpListEntry entry = ops.get(player);
-								if (entry != null && (entry.getLevel() != level || entry.getBypassesPlayerLimit() != bypassesPlayerLimit)) ops.remove(entry);
+                            for (NameAndId player : targets) {
+                                ServerOpListEntry entry = ops.get(player);
+                                if (entry != null && (entry.permissions().level().id() != level || entry.getBypassesPlayerLimit() != bypassesPlayerLimit)) ops.remove(entry);
 
-								if (entry == null || entry.getLevel() != level || entry.getBypassesPlayerLimit() != bypassesPlayerLimit) {
-									ops.add(new ServerOpListEntry(player, level, bypassesPlayerLimit));
-									if (entry == null || entry.getLevel() != level) {
-                                        ServerPlayer p = playerList.getPlayer(player.getId());
+                                if (entry == null || entry.permissions().level().id() != level || entry.getBypassesPlayerLimit() != bypassesPlayerLimit) {
+                                    ops.add(new ServerOpListEntry(player, permissions, bypassesPlayerLimit));
+                                    if (entry == null || entry.permissions().level().id() != level) {
+                                        ServerPlayer p = playerList.getPlayer(player.id());
                                         if (p != null) playerList.sendPlayerPermissionLevel(p);
-									}
-								} else continue;
+                                    }
+                                } else continue;
 
-								i++;
-								source.sendSuccess(() -> Component.translatable("commands.op.success", player.getName()).append(" (level " + level + (bypassesPlayerLimit ? ", bypasses player limit)" : ")")), true);
-							}
+                                i++;
+                                source.sendSuccess(() -> Component.translatable("commands.op.success", player.name()).append(" (level " + level + (bypassesPlayerLimit ? ", bypasses player limit)" : ")")), true);
+                            }
 
-							if (i == 0) throw ERROR_ALREADY_OP.create();
-						}
+                            if (i == 0) throw ERROR_ALREADY_OP.create();
+                        }
 
-						if (level == 0) source.getServer().kickUnlistedPlayers(source);
-						return i;
-					}
-				}
+                        if (level == 0) source.getServer().kickUnlistedPlayers();
+                        return i;
+                    }
+                }
 
-				command.then(Commands.literal("permission")
-					.requires(s -> s.hasPermission(4))
-					.then(Commands.argument("targets", GameProfileArgument.gameProfile())
-						.suggests((ctx, builder) -> {
-							PlayerList playerList = ctx.getSource().getServer().getPlayerList();
-							return SharedSuggestionProvider.suggest(playerList.getPlayers().stream().filter(p -> !playerList.isOp(p.getGameProfile())).map(p -> p.getGameProfile().getName()), builder);
-						})
-						.then(Commands.argument("level", IntegerArgumentType.integer(0, 4))
-							.then(Commands.argument("bypasses_player_limit", BoolArgumentType.bool())
-								.executes(ctx -> PermissionSubCommand.execute(ctx, BoolArgumentType.getBool(ctx, "bypasses_player_limit")))
-							)
-							.executes(ctx -> PermissionSubCommand.execute(ctx, false))
-						)
-					)
-				);
-			}
+                command.then(Commands.literal("permission")
+                    .requires(Commands.hasPermission(Commands.LEVEL_OWNERS))
+                    .then(Commands.argument("targets", GameProfileArgument.gameProfile())
+                        .suggests((ctx, builder) -> {
+                            PlayerList playerList = ctx.getSource().getServer().getPlayerList();
+                            return SharedSuggestionProvider.suggest(playerList.getPlayers().stream().filter(p -> !playerList.isOp(p.nameAndId())).map(p -> p.nameAndId().name()), builder);
+                        })
+                        .then(Commands.argument("level", IntegerArgumentType.integer(0, 4))
+                            .then(Commands.argument("bypasses_player_limit", BoolArgumentType.bool())
+                                .executes(ctx -> PermissionSubCommand.execute(ctx, BoolArgumentType.getBool(ctx, "bypasses_player_limit")))
+                            )
+                            .executes(ctx -> PermissionSubCommand.execute(ctx, false))
+                        )
+                    )
+                );
+            }
 
-			dispatcher.register(command);
-		});
-	}
+            dispatcher.register(command);
+        });
+    }
 }

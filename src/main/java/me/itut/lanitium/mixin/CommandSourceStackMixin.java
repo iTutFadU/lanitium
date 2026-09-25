@@ -4,6 +4,7 @@ import carpet.script.utils.SnoopyCommandSource;
 import carpet.script.value.Value;
 import me.itut.lanitium.internal.CommandSourceStackInterface;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.permissions.*;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,11 +17,11 @@ import java.util.Map;
 
 @Mixin(CommandSourceStack.class)
 public abstract class CommandSourceStackMixin implements CommandSourceStackInterface {
-    @Shadow @Final
-    public int permissionLevel;
+    @Shadow
+    public abstract PermissionSet permissions();
 
     @Shadow
-    public abstract CommandSourceStack withPermission(int i);
+    public abstract CommandSourceStack withPermission(PermissionSet permissions);
 
     @Unique
     private Map<Value, Value> customValues;
@@ -37,7 +38,7 @@ public abstract class CommandSourceStackMixin implements CommandSourceStackInter
 
     @Override
     public CommandSourceStack lanitium$withCustomValues(Map<Value, Value> values) {
-        CommandSourceStack copy = permissionLevel != -1 ? withPermission(-1).withPermission(permissionLevel) : withPermission(0).withPermission(-1);
+        CommandSourceStack copy = withPermission(null).withPermission(permissions());
         Map<Value, Value> customValues = ((CommandSourceStackInterface)copy).lanitium$customValues();
         if (customValues == null) ((CommandSourceStackInterface)copy).lanitium$setCustomValues(values);
         else customValues.putAll(values);

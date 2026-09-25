@@ -23,6 +23,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.*;
 import net.minecraft.util.parsing.packrat.*;
 import net.minecraft.util.parsing.packrat.Dictionary;
 import net.minecraft.util.parsing.packrat.commands.Grammar;
@@ -160,10 +161,10 @@ public class CommandParser {
     public static Predicate<CommandSourceStack> parseRequirement(CarpetScriptHost host, Value value) throws CommandSyntaxException {
         return switch (value) {
             case null -> s -> true;
-            case NullValue ignored -> s -> true;
+            case NullValue _ -> s -> true;
             case NumericValue number -> {
-                int level = number.getInt();
-                yield s -> s.hasPermission(level);
+                Permission permission = new Permission.HasCommandLevel(PermissionLevel.byId(number.getInt()));
+                yield s -> s.permissions().hasPermission(permission);
             }
             case FunctionValue fun -> { // Copied
                 if (fun.getNumParams() != 1) {
@@ -173,7 +174,7 @@ public class CommandParser {
                 yield s -> {
                     Runnable token = Carpet.startProfilerSection("Scarpet command");
                     try {
-                        return host.scriptServer().modules.get(hostName).retrieveOwnForExecution(s).handleCommand(s, fun, List.of(s.getEntity() instanceof ServerPlayer player ? new EntityValue(player) : Value.NULL)).getBoolean();
+                        return host.scriptServer().modules.get(hostName).retrieveOwnForExecution(s).handleCommand(s, fun, List.of(EntityValue.of(s.getEntity()))).getBoolean();
                     } catch (CommandSyntaxException e) {
                         Carpet.Messenger_message(s, "rb Unable to run app command: " + e.getMessage());
                         return false;
@@ -183,9 +184,9 @@ public class CommandParser {
                 };
             }
             default -> {
-                String string = value.getString().toLowerCase(Locale.ROOT);
+                String string = value.getString().strip().toLowerCase(Locale.ROOT);
                 yield switch (string) {
-                    case "ops" -> s -> s.hasPermission(2);
+                    case "ops" -> Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
                     case "server" -> s -> !(s.getEntity() instanceof ServerPlayer);
                     case "players" -> s -> s.getEntity() instanceof ServerPlayer;
                     case "all" -> s -> true;

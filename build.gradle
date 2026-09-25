@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.10-SNAPSHOT'
+	id 'net.fabricmc.fabric-loom' version '1.17-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -26,11 +26,12 @@ repositories {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation "carpet:fabric-carpet:${project.carpet_version}"
-//	modImplementation include("maven.modrinth:fRCaJmPG:${project.biscuit_version}")
+	// mappings loom.officialMojangMappings()
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	// implementation "carpet:fabric-carpet:${project.carpet_version}"
+	implementation "maven.modrinth:TQTTVgYE:yt9oDFOj" // mesa.dy.fi is slow .-.
+//	implementation include("maven.modrinth:fRCaJmPG:${project.biscuit_version}")
 //		implementation include("com.esotericsoftware:kryo5:5.6.0")
 }
 
@@ -43,14 +44,14 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+	it.options.release = 25
 }
 
 java {
 	withSourcesJar()
 
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {

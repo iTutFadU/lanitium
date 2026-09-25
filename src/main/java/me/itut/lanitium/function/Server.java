@@ -7,7 +7,6 @@ import carpet.script.value.BooleanValue;
 import carpet.script.value.FormattedTextValue;
 import carpet.script.value.Value;
 import carpet.utils.CommandHelper;
-import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.CommandDispatcher;
 import me.itut.lanitium.Lanitium;
 import me.itut.lanitium.value.FutureValue;
@@ -16,11 +15,13 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.*;
+import net.minecraft.server.players.NameAndId;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static net.minecraft.Util.NIL_UUID;
+import static net.minecraft.util.Util.NIL_UUID;
 
 public class Server {
     @ScarpetFunction(maxParams = 1)
@@ -40,7 +41,7 @@ public class Server {
 
     @ScarpetFunction(maxParams = -1)
     public static void display_server_players_sample(String... players) {
-        Lanitium.CONFIG.displayPlayersSampleProfiles = Stream.of(players).map(v -> new GameProfile(NIL_UUID, v)).toList();
+        Lanitium.CONFIG.displayPlayersSampleProfiles = Stream.of(players).map(v -> new NameAndId(NIL_UUID, v)).toList();
     }
 
     @ScarpetFunction
@@ -89,7 +90,7 @@ public class Server {
 
     @ScarpetFunction // system_info('source_permission') >= level
     public static Value has_permission(Context c, int level) {
-        return BooleanValue.of(((CarpetContext)c).source().hasPermission(level));
+        return BooleanValue.of(((CarpetContext)c).source().permissions().hasPermission(new Permission.HasCommandLevel(PermissionLevel.byId(level))));
     }
 
     @ScarpetFunction

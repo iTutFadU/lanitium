@@ -3,7 +3,7 @@ package me.itut.lanitium;
 import carpet.script.CarpetEventServer;
 import carpet.script.value.*;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -19,7 +19,7 @@ public abstract class LanitiumEvent extends CarpetEventServer.Event {
         super(name, reqArgs, isGlobalOnly);
     }
 
-    public void onPlayerCustomClick(ServerPlayer player, ResourceLocation id, Optional<Tag> payload) {}
+    public void onPlayerCustomClick(ServerPlayer player, Identifier id, Optional<Tag> payload) {}
 
     public void onProjectileHit(Projectile projectile, HitResult hit) {}
 
@@ -27,7 +27,7 @@ public abstract class LanitiumEvent extends CarpetEventServer.Event {
 
     public static final LanitiumEvent PLAYER_CUSTOM_CLICK = new LanitiumEvent("player_custom_click", 3, false) {
         @Override
-        public void onPlayerCustomClick(ServerPlayer player, ResourceLocation id, Optional<Tag> payload) {
+        public void onPlayerCustomClick(ServerPlayer player, Identifier id, Optional<Tag> payload) {
             handler.call(() -> Arrays.asList(
                 EntityValue.of(player),
                 ValueConversions.of(id),

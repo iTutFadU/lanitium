@@ -37,6 +37,7 @@ public class Constants {
     public static final Value TOOLTIP = StringValue.of("tooltip");
     public static final Value ITEMS = StringValue.of("items");
     public static final Value WEIGHT = StringValue.of("weight");
+    public static final Value WEIGHT_FRACTION = StringValue.of("weight_fraction");
     public static final Value SELECTED_ITEM = StringValue.of("selected_item");
     public static final Value BLOCK = StringValue.of("block");
     public static final Value ENTITY = StringValue.of("entity");

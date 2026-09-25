@@ -34,9 +34,10 @@ import net.minecraft.nbt.EndTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.*;
 import net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.*;
 import net.minecraft.util.LenientJsonParser;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.damagesource.DamageSource;
@@ -73,7 +74,13 @@ public class Apply {
         options.put("server_frozen", c -> BooleanValue.of(c.server().tickRateManager().isFrozen()));
         options.put("server_sprinting", c -> BooleanValue.of(c.server().tickRateManager().isSprinting()));
         options.put("source_anchor", c -> c.source().getAnchor() == EntityAnchorArgument.Anchor.EYES ? Constants.EYES : Constants.FEET);
-        options.put("source_permission", c -> NumericValue.of(c.source().permissionLevel));
+        options.put("source_permission", c -> {
+            PermissionSet permissions = c.source().permissions();
+            return NumericValue.of(permissions.hasPermission(Permissions.COMMANDS_GAMEMASTER)
+                ? permissions.hasPermission(Permissions.COMMANDS_OWNER) ? 4
+                : permissions.hasPermission(Permissions.COMMANDS_ADMIN) ? 3 : 2
+                : permissions.hasPermission(Permissions.COMMANDS_MODERATOR) ? 1 : 0);
+        });
         options.put("source_custom_values", c -> {
             Map<Value, Value> map = ((CommandSourceStackInterface)c.source()).lanitium$customValues();
             return map != null ? MapValue.wrap(map) : Value.NULL;
@@ -528,18 +535,19 @@ public class Apply {
         });
         expr.addLazyFunction("elevated", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
-            final int level = NumericValue.asNumber(lv.getFirst().evalValue(c)).getInt();
-            if (source.hasPermission(level)) return lv.get(1);
+            final PermissionLevel level = PermissionLevel.byId(NumericValue.asNumber(lv.getFirst().evalValue(c)).getInt());
+            final CommandSourceStack newSource = source.withMaximumPermission(LevelBasedPermissionSet.forLevel(level));
+            if (source == newSource) return lv.get(1);
             Context ctx = c.recreate();
-            ((CarpetContext)ctx).swapSource(source.withPermission(level));
+            ((CarpetContext)ctx).swapSource(newSource);
             ctx.variables = c.variables;
             Value output = lv.get(1).evalValue(ctx);
             return (cc, tt) -> output;
         });
         expr.addLazyFunction("with_permission", 2, (c, t, lv) -> {
             final CommandSourceStack source = ((CarpetContext)c).source();
-            final int level = NumericValue.asNumber(lv.getFirst().evalValue(c)).getInt();
-            final CommandSourceStack newSource = source.withPermission(level);
+            final PermissionLevel level = PermissionLevel.byId(NumericValue.asNumber(lv.getFirst().evalValue(c)).getInt());
+            final CommandSourceStack newSource = source.withPermission(LevelBasedPermissionSet.forLevel(level));
             if (source == newSource) return lv.get(1);
             Context ctx = c.recreate();
             ((CarpetContext)ctx).swapSource(newSource);
@@ -682,7 +690,9 @@ public class Apply {
     @ScarpetFunction(maxParams = 2)
     public static Value format_resolve(Context c, FormattedTextValue value, Optional<Entity> entity) {
         try {
-            return FormattedTextValue.of(ComponentUtils.updateForEntity(((CarpetContext)c).source(), value.getText(), entity.orElseGet(() -> ((CarpetContext)c).source().getEntity()), 0));
+            ResolutionContext.Builder builder = ResolutionContext.builder().withSource(((CarpetContext)c).source());
+            if (entity.isPresent()) builder = builder.withEntityOverride(entity.get());
+            return FormattedTextValue.of(ComponentUtils.resolve(builder.build(), value.getText()));
         } catch (CommandSyntaxException e) {
             throw new ThrowStatement(e.getMessage(), Throwables.JSON_ERROR);
         }
@@ -716,9 +726,9 @@ public class Apply {
         ItemCooldowns cooldowns = player.getCooldowns();
 
         ItemStack stack = null;
-        ResourceLocation cooldownGroup = group instanceof ListValue
+        Identifier cooldownGroup = group instanceof ListValue
             ? cooldowns.getCooldownGroup(stack = ValueConversions.getItemStackFromValue(group, false, ((CarpetContext)c).registryAccess()))
-            : ResourceLocation.read(group.getString()).getOrThrow(msg -> new ThrowStatement(msg, Throwables.UNKNOWN_ITEM));
+            : Identifier.read(group.getString()).getOrThrow(msg -> new ThrowStatement(msg, Throwables.UNKNOWN_ITEM));
 
         if (ticks.isPresent()) {
             if (ticks.get() > 0) cooldowns.addCooldown(cooldownGroup, ticks.get());
@@ -740,7 +750,7 @@ public class Apply {
         ItemStack stack = ValueConversions.getItemStackFromValue(item, true, ((CarpetContext)c).registryAccess());
         DataComponentMap components = stack.getComponents().filter(t -> !t.isTransient());
         if (component.isPresent()) {
-            ResourceLocation name = ResourceLocation.tryParse(component.get());
+            Identifier name = Identifier.tryParse(component.get());
             if (name == null) return Value.NULL;
             Optional<Holder.Reference<DataComponentType<?>>> type = BuiltInRegistries.DATA_COMPONENT_TYPE.get(name);
             if (type.isEmpty()) return Value.NULL;
@@ -758,8 +768,11 @@ public class Apply {
             case Component component -> FormattedTextValue.of(component);
             case BundleContents bundle -> MapValue.wrap(Map.of(
                 Constants.ITEMS, NBTSerializableValue.of(v.encodeValue(NbtOps.INSTANCE).result().orElse(null)),
-                Constants.WEIGHT, NumericValue.of(bundle.weight().doubleValue()),
-                Constants.SELECTED_ITEM, NumericValue.of(bundle.getSelectedItem())
+                Constants.WEIGHT, bundle.weight().result().map(w -> NumericValue.of(w.doubleValue())).orElse(Value.NULL),
+                Constants.WEIGHT_FRACTION, bundle.weight().result()
+                    .<Value>map(w -> ListValue.ofNums(w.getNumerator(), w.getDenominator()))
+                    .orElse(Value.NULL),
+                Constants.SELECTED_ITEM, NumericValue.of(bundle.getSelectedItemIndex())
             ));
             default -> NBTSerializableValueInterface.decodeTag(v.encodeValue(NbtOps.INSTANCE).result().orElse(EndTag.INSTANCE));
         };
@@ -778,7 +791,7 @@ public class Apply {
         new ServerExplosion(((CarpetContext)c).level(), source, switch (settings.getOrDefault("damage_type", Value.NULL)) {
             case NullValue ignored -> null;
             case Value d -> {
-                Optional<Holder.Reference<DamageType>> optionalType = ((CarpetContext)c).registry(Registries.DAMAGE_TYPE).get(ResourceLocation.tryParse(d.getString()));
+                Optional<Holder.Reference<DamageType>> optionalType = ((CarpetContext)c).registry(Registries.DAMAGE_TYPE).get(Identifier.tryParse(d.getString()));
                 if (optionalType.isEmpty()) yield null;
                 Holder.Reference<DamageType> type = optionalType.get();
 
