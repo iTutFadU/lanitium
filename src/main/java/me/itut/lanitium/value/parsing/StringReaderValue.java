@@ -302,15 +302,17 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 2);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (c < me.itut.lanitium.value.ValueConversions.toChar(more[0]) || c > me.itut.lanitium.value.ValueConversions.toChar(more[1])) yield Value.NULL;
-                if ("expect_range".equals(what)) value.skip();
-                yield StringValue.of(String.valueOf(c));
+                if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[0]) && c <= me.itut.lanitium.value.ValueConversions.toChar(more[1])) {
+                    if ("expect_range".equals(what)) value.skip();
+                    yield StringValue.of(String.valueOf(c));
+                }
+                yield Value.NULL;
             }
             case "next_not_range", "expect_not_range" -> {
                 checkArguments(what, more, 2);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[0]) || c <= me.itut.lanitium.value.ValueConversions.toChar(more[1])) yield Value.NULL;
+                if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[0]) && c <= me.itut.lanitium.value.ValueConversions.toChar(more[1])) yield Value.NULL;
                 if ("expect_not_range".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
@@ -328,10 +330,8 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                 checkArguments(what, more, 1, -1);
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (Value v : more) if (c == me.itut.lanitium.value.ValueConversions.toChar(v)) {
-                    if ("expect_not_list".equals(what)) value.skip();
-                    yield Value.NULL;
-                }
+                for (Value v : more) if (c == me.itut.lanitium.value.ValueConversions.toChar(v)) yield Value.NULL;
+                if ("expect_not_list".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
             case "next_range_list", "expect_range_list" -> {
@@ -352,10 +352,8 @@ public class StringReaderValue extends ObjectValue<StringReader> {
                     throw new InternalExpressionException("Range list must have an even size");
                 if (!value.canRead()) yield Value.NULL;
                 char c = value.peek();
-                for (int i = 0; i < more.length; i += 2) if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[i]) && c <= ValueConversions.toChar(more[i + 1])) {
-                    if ("expect_not_range_list".equals(what)) value.skip();
-                    yield Value.NULL;
-                }
+                for (int i = 0; i < more.length; i += 2) if (c >= me.itut.lanitium.value.ValueConversions.toChar(more[i]) && c <= ValueConversions.toChar(more[i + 1])) yield Value.NULL;
+                if ("expect_not_range_list".equals(what)) value.skip();
                 yield StringValue.of(String.valueOf(c));
             }
             default -> unknownFeature(what);
