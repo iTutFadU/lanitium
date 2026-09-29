@@ -4,6 +4,7 @@ import carpet.script.Context;
 import carpet.script.value.*;
 import me.itut.lanitium.internal.carpet.MapValueInterface;
 import me.itut.lanitium.value.Constants;
+import me.itut.lanitium.value.WithMetaValue;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -39,7 +40,10 @@ public abstract class MapValueMixin implements MapValueInterface {
 
     @Inject(method = "put(Lcarpet/script/value/Value;)V", at = @At("HEAD"), cancellable = true)
     private void dontAddEmpty(Value v, CallbackInfo ci) {
-        if (v instanceof ListValue pair && pair.getItems().isEmpty()) ci.cancel();
+        if (v instanceof WithMetaValue meta) {
+            lanitium$setMeta(meta.context, meta.meta);
+            ci.cancel();
+        } else if (v instanceof ListValue pair && pair.getItems().isEmpty()) ci.cancel();
     }
 
     @Inject(method = "deepcopy", at = @At("RETURN"))

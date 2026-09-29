@@ -231,6 +231,44 @@ public class Apply {
                 return false;
             }
         });
+
+        ((ExpressionInterface)expr).lanitium$operators().put(".u", new Fluff.ILazyOperator() {
+            @Override
+            public int getPrecedence() {
+                return attributePrecedence;
+            }
+
+            @Override
+            public boolean isLeftAssoc() {
+                return false;
+            }
+
+            @Override
+            public LazyValue lazyEval(Context c, Context.Type t, Expression e, Token tok, LazyValue l, LazyValue r) {
+                throw new InternalExpressionException("Unary '.' can only be used as { .name = value } or { .__meta(value) }");
+            }
+
+            @Override
+            public boolean pure() {
+                return false;
+            }
+
+            @Override
+            public boolean transitive() {
+                return false;
+            }
+        });
+
+        expr.addLazyFunction("with_meta", 1, (c, t, lv) -> {
+            if (t != Context.MAPDEF)
+                throw new InternalExpressionException(".__meta() must be used in a map constructor");
+            Value v = lv.getFirst().evalValue(c);
+            if (v.isNull()) return WithMetaValue.LAZY_RESET;
+            if (!(v instanceof MapValue meta))
+                throw new InternalExpressionException("The argument to .__meta() must be a map");
+            return LazyValue.ofConstant(new WithMetaValue(c, meta.getMap()));
+        });
+
         // a.b(c, d) => call_method(a, 'b', c, d) => call(a.__meta().b, a, c, d)
         //                                        => a~['b', c, d]
         expr.addFunctionWithDelegation("call_method", -1, false, false, (c, t, e, tok, lv) -> {

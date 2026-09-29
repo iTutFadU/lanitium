@@ -263,17 +263,20 @@ public abstract class TokenizerMixin {
              && !previousToken.surface.equals(";"))
                 throw new ExpressionException(context, expression, previousToken, "Can't have operator " + previousToken.surface + " at the end of a subexpression");
         } else if (ch == '.' && peekNextChar() != '.') {
-            token.surface = ".";
-            TokenInterface.setType(token, TokenTypeInterface.OPERATOR);
-
             TokenTypeInterface prevType = previousToken != null ? ((TokenInterface)previousToken).lanitium$type() : null;
             if (prevType == null
              || prevType == TokenTypeInterface.OPERATOR
              || prevType == TokenTypeInterface.UNARY_OPERATOR
              || prevType == TokenTypeInterface.OPEN_PAREN
              || prevType == TokenTypeInterface.COMMA
-             || prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("{") || previousToken.surface.equals("[")))
-                throw new ExpressionException(context, expression, token, "Member access must come after a value");
+             || prevType == TokenTypeInterface.MARKER && (previousToken.surface.equals("{") || previousToken.surface.equals("["))) {
+                token.surface = ".u";
+                token.disguiseAs(".", null);
+                TokenInterface.setType(token, TokenTypeInterface.UNARY_OPERATOR);
+            } else {
+                token.surface = ".";
+                TokenInterface.setType(token, TokenTypeInterface.OPERATOR);
+            }
 
             pos++;
             linepos++;
@@ -383,9 +386,10 @@ public abstract class TokenizerMixin {
             if (invalidType
                 || type != TokenTypeInterface.VARIABLE
                 && type != TokenTypeInterface.FUNCTION
-                && prevType == TokenTypeInterface.OPERATOR
-                && previousToken.surface.equals("."))
-                throw new ExpressionException(context, expression, previousToken, '\'' + token.surface + "' is not allowed after '" + previousToken.surface + '\'');
+                && (prevType == TokenTypeInterface.OPERATOR && previousToken.surface.equals(".")
+                 || prevType == TokenTypeInterface.UNARY_OPERATOR && previousToken.surface.equals(".u")
+                )
+            ) throw new ExpressionException(context, expression, previousToken, '\'' + token.surface + "' is not allowed after '" + previousToken.surface + '\'');
         }
 
         cir.setReturnValue(previousToken = token);
@@ -607,7 +611,7 @@ public abstract class TokenizerMixin {
                 || (last != null && lastType != TokenTypeInterface.CLOSE_PAREN && lastType != TokenTypeInterface.COMMA && !isSemicolon(last))) {
                 if (isSemicolon(current)) {
                     current.surface = ";";
-                    ((TokenInterface)current).lanitium$setType(TokenTypeInterface.OPERATOR);
+                    TokenInterface.setType(current, TokenTypeInterface.OPERATOR);
                 }
 
                 if (currentType == TokenTypeInterface.OPEN_PAREN) {
@@ -689,6 +693,23 @@ public abstract class TokenizerMixin {
                         originalTokens.get(i - 1).surface = ":";
                         TokenInterface.setType(current, TokenTypeInterface.STRINGPARAM);
                     } else current.surface = '.' + current.surface;
+                } else if (currentType == TokenTypeInterface.FUNCTION && i > 0 && ((TokenInterface)originalTokens.get(i - 1)).lanitium$type() == TokenTypeInterface.UNARY_OPERATOR && originalTokens.get(i - 1).surface.equals(".u")) {
+                    if (current.surface.equals("__meta")) {
+                        current.surface = "with_meta";
+                        current.disguiseAs(".__meta", null);
+                        i--;
+                    }
+                } else if (currentType == TokenTypeInterface.OPERATOR && current.surface.equals("=") && i >= 2 && ((TokenInterface)originalTokens.get(i - 1)).lanitium$type() == TokenTypeInterface.VARIABLE && ((TokenInterface)originalTokens.get(i - 2)).lanitium$type() == TokenTypeInterface.UNARY_OPERATOR && originalTokens.get(i - 2).surface.equals(".u")) {
+                    current.surface = "->";
+                    current.disguiseAs("=", null);
+                    cleanedTokens.add(current);
+                    current = originalTokens.get(--i);
+                    TokenInterface.setType(current, TokenTypeInterface.STRINGPARAM);
+                    current.disguiseAs("." + current.surface, null);
+                    cleanedTokens.add(current);
+                    i--;
+                    last = current;
+                    continue;
                 }
                 cleanedTokens.add(current);
             }
