@@ -3,6 +3,7 @@
     "minVersion": "0.8",
     "package": "me.itut.lanitium.mixin",
     "compatibilityLevel": "JAVA_21",
+    "plugin": "me.itut.lanitium.mixin.MixinPlugin",
     "mixins": [
         "CommandSourceStackMixin",
         "CommandSourceStackMixin$Snoopy",
@@ -27,7 +28,8 @@
         "carpet.TokenizerMixin",
         "carpet.TokenMixin",
         "carpet.TokenTypeMixin",
-        "carpet.UndefValueMixin"
+        "carpet.UndefValueMixin",
+        "compat.DiscordValueMixin"
     ],
     "injectors": {
         "defaultRequire": 1

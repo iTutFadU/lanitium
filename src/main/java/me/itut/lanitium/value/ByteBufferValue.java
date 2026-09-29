@@ -1,5 +1,6 @@
 package me.itut.lanitium.value;
 
+import carpet.script.Context;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.*;
 import com.google.gson.JsonArray;
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.IntStream;
 
-public class ByteBufferValue extends AbstractListValue implements ContainerValueInterface {
+public class ByteBufferValue extends AbstractListValue implements FeatureMethodsValue, ContainerValueInterface {
     public final ByteBuffer buffer;
 
     protected ByteBufferValue(ByteBuffer buffer) {
@@ -74,6 +75,11 @@ public class ByteBufferValue extends AbstractListValue implements ContainerValue
             }
             default -> throw new InternalExpressionException("Unknown byte_buffer feature: " + what);
         };
+    }
+
+    @Override
+    public Value lanitium$feature(Context.Type type, Context ctx, String what, Value... more) {
+        return get(what, more);
     }
 
     @Override

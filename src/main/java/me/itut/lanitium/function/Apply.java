@@ -240,64 +240,18 @@ public class Apply {
             Value obj = lv.getFirst();
             Value methodName = lv.get(1);
 
-            if (obj instanceof ObjectValue<?> o)
-                return o.get(methodName.getString(), lv.subList(2, lv.size()).toArray(Value[]::new));
-            if (obj instanceof ByteBufferValue o) // TODO: merge em
-                return o.get(methodName.getString(), lv.subList(2, lv.size()).toArray(Value[]::new));
+            if (obj instanceof FeatureMethodsValue o)
+                return o.lanitium$feature(t, c, methodName.getString(), lv.subList(2, lv.size()).toArray(Value[]::new));
 
-            if (obj instanceof EntityValue entity) {
-                String method = methodName.getString();
-                List<Value> sub = lv.subList(2, lv.size());
-                return t == Context.LVALUE
-                    ? new LContainerValue(new ContainerValueInterface() {
-                        @Override
-                        public boolean put(Value where, Value value) {
-                            List<Value> arg = new ArrayList<>(sub);
-                            if (value instanceof ListValue list) arg.addAll(list.getItems());
-                            else arg.add(value);
-                            entity.set(method, switch (arg.size()) {
-                                case 0 -> null;
-                                case 1 -> arg.getFirst();
-                                default -> ListValue.wrap(arg);
-                            });
-                            return true;
-                        }
-
-                        @Override
-                        public Value get(Value where) {
-                            return entity.get(method, switch (sub.size()) {
-                                case 0 -> null;
-                                case 1 -> sub.getFirst();
-                                default -> ListValue.wrap(sub);
-                            });
-                        }
-
-                        @Override
-                        public boolean has(Value where) {
-                            return ((EntityValueInterface)entity).lanitium$featureModifiers().containsKey(method);
-                        }
-
-                        @Override
-                        public boolean delete(Value where) {
-                            return false;
-                        }
-                    }, null)
-                    : entity.get(method, switch (sub.size()) {
-                        case 0 -> null;
-                        case 1 -> sub.getFirst();
-                        default -> ListValue.wrap(sub);
-                    });
-            }
-            
             if (!(obj instanceof MapValue self)) return Value.NULL;
-            
+
             Map<Value, Value> meta = ((MapValueInterface)self).lanitium$meta();
             Value method;
             if (meta == null || (method = meta.get(methodName)) == null)
                 method = MapValueInterface.defaultMetaMethods.get(methodName);
             if (!(method instanceof FunctionValue fun))
                 throw new InternalExpressionException("Method " + methodName.getString() + " not found for type " + self.getTypeString());
-            
+
             List<Value> args = new ArrayList<>(lv.size() - 1);
             args.add(self);
             args.addAll(lv.subList(2, lv.size()));

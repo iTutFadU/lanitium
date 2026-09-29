@@ -1,5 +1,6 @@
 package me.itut.lanitium.value;
 
+import carpet.script.Context;
 import carpet.script.exception.InternalExpressionException;
 import carpet.script.value.NBTSerializableValue;
 import carpet.script.value.Value;
@@ -10,7 +11,7 @@ import net.minecraft.nbt.Tag;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class ObjectValue<T> extends Value {
+public abstract class ObjectValue<T> extends Value implements FeatureMethodsValue {
     public final T value;
 
     protected ObjectValue(T value) {
@@ -28,6 +29,11 @@ public abstract class ObjectValue<T> extends Value {
 
     protected Value unknownFeature(String what) throws InternalExpressionException {
         throw new InternalExpressionException("Unknown " + getTypeString() + " feature: " + what);
+    }
+
+    @Override
+    public Value lanitium$feature(Context.Type type, Context ctx, String what, Value... more) {
+        return get(what, more);
     }
 
     @Override
@@ -85,6 +91,6 @@ public abstract class ObjectValue<T> extends Value {
     }
 
     protected void checkArguments(String what, Value[] more, int amount) throws InternalExpressionException {
-        checkArguments(what, more, amount, amount);
+        checkArguments(getTypeString() + "~'" + what + "'", more, amount, amount);
     }
 }
