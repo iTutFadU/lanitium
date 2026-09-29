@@ -147,45 +147,49 @@ public class Apply {
         expr.addCustomFunction("call", call = new Fluff.AbstractLazyFunction(-1, "call") {
             @Override
             public LazyValue lazyEval(Context c, Context.Type t, Expression expr, Token tok, List<LazyValue> lv) {
-                if (lv.isEmpty()) {
-                    throw new InternalExpressionException("'call' expects at least function name to call");
-                } else if (t != Context.SIGNATURE) {
-                    Fluff.ILazyFunction fun = findIn(c, expr, lv.getFirst().evalValue(c));
-                    return fun.lazyEval(c, t, expr, tok, lv.subList(1, lv.size()));
-                } else {
-                    String name = lv.getFirst().evalValue(c, Context.NONE).getString();
-                    List<String> args = new ArrayList<>();
-                    List<String> globals = "fn".equals(name)
-                        ? new ArrayList<>(c.variables.keySet().stream().toList())
-                        : new ArrayList<>();
-                    String varArgs = null;
+                if (t != Context.SIGNATURE) {
+                    List<Value> args = unpackLazy(lv, c, Context.NONE);
+                    if (args.isEmpty())
+                        throw new InternalExpressionException("'call' expects at least function name to call");
+                    Fluff.ILazyFunction fun = findIn(c, expr, args.getFirst());
+                    args = args.subList(1, args.size());
+                    return fun instanceof FunctionValue fv
+                        ? fv.callInContext(c, t, args)
+                        : fun.lazyEval(c, t, expr, tok, lazify(args));
+                }
 
-                    for (int i = 1; i < lv.size(); ++i) {
-                        Value v = lv.get(i).evalValue(c, Context.LOCALIZATION);
-                        if (!v.isBound()) {
-                            throw new InternalExpressionException("Only variables can be used in function signature, not " + v.getString());
-                        }
+                String name = lv.getFirst().evalValue(c, Context.NONE).getString();
+                List<String> args = new ArrayList<>();
+                List<String> globals = "fn".equals(name)
+                    ? new ArrayList<>(c.variables.keySet().stream().toList())
+                    : new ArrayList<>();
+                String varArgs = null;
 
-                        if (v instanceof FunctionAnnotationValue fav) {
-                            if (fav.type == FunctionAnnotationValue.Type.GLOBAL) {
-                                globals.add(v.boundVariable);
-                            } else {
-                                if (varArgs != null) {
-                                    throw new InternalExpressionException("Variable argument identifier is already defined as " + varArgs + ", trying to overwrite with " + v.boundVariable);
-                                }
-
-                                varArgs = v.boundVariable;
-                            }
-                        } else {
-                            args.add(v.boundVariable);
-                        }
+                for (int i = 1; i < lv.size(); ++i) {
+                    Value v = lv.get(i).evalValue(c, Context.LOCALIZATION);
+                    if (!v.isBound()) {
+                        throw new InternalExpressionException("Only variables can be used in function signature, not " + v.getString());
                     }
 
-                    globals.remove(varArgs);
-                    globals.removeAll(args);
-                    Value output = new FunctionSignatureValue("fn".equals(name) ? "_" : name, args, varArgs, globals);
-                    return (cc, tt) -> output;
+                    if (v instanceof FunctionAnnotationValue fav) {
+                        if (fav.type == FunctionAnnotationValue.Type.GLOBAL) {
+                            globals.add(v.boundVariable);
+                        } else {
+                            if (varArgs != null) {
+                                throw new InternalExpressionException("Variable argument identifier is already defined as " + varArgs + ", trying to overwrite with " + v.boundVariable);
+                            }
+
+                            varArgs = v.boundVariable;
+                        }
+                    } else {
+                        args.add(v.boundVariable);
+                    }
                 }
+
+                globals.remove(varArgs);
+                globals.removeAll(args);
+                Value output = new FunctionSignatureValue("fn".equals(name) ? "_" : name, args, varArgs, globals);
+                return (_, _) -> output;
             }
 
             @Override
