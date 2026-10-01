@@ -83,7 +83,6 @@ public class Lanitium implements ModInitializer, CarpetExtension {
     @Override
     public void scarpetApi(CarpetExpression expr) {
         Apply.apply(expr.getExpr());
-        Patterns.apply(expr.getExpr());
     }
 
     @Override
