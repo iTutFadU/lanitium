@@ -18,17 +18,7 @@ public class Lexer {
     public final Expression expression;
     public final Context context;
     public LanitiumConfig.Structured config;
-    public ArrayDeque<TokenTree.StackFrame> stack = new ArrayDeque<>();
-
-    public static final Set<String> OPS = new HashSet<>(Set.of(
-        "+", "-", "*", "/", "%", "^",
-        "&&", "||", "==", "!=", "<", "<=", ">", ">=",
-        "=", "+=", ":", ":=", "::", "->", "&", "|", "..", "..="
-    ));
-
-    public static final Set<String> UOPS = new HashSet<>(Set.of(
-        "!", "-", "+", ":", "..."
-    ));
+    public final ArrayDeque<TokenTree.StackFrame> stack = new ArrayDeque<>();
 
     public static final boolean[] ALLOWED_IN_OPS = new boolean['~' + 1];
 
@@ -185,11 +175,8 @@ public class Lexer {
                         return new LanitiumConfig.Str(builder.toString());
                     }
 
-                    if (Character.isISOControl(c)) {
-                        sacrifice.pos = pos;
-                        sacrifice.linepos = linepos;
-                        throw new ExpressionException(context, expression, sacrifice, "Control characters are not allowed in '@lanitium' strings");
-                    }
+                    if (Character.isISOControl(c))
+                        throw new ExpressionException(context, expression, TokenInterface.relocate(sacrifice, this), "Control characters are not allowed in '@lanitium' strings");
                     linepos++;
                     pos++;
                 }
@@ -463,8 +450,6 @@ public class Lexer {
                 }
                 case '\'', '#' -> {
                     TokenInterface.setType(token, TokenTypeInterface.STRINGPARAM);
-                    if (prevValue() && !(lastTree() instanceof TokenTree.Single(Token lastToken) && TokenInterface.type(lastToken) == TokenTypeInterface.VARIABLE))
-                        throw new ExpressionException(context, expression, token, "Unexpected token");
                     checkDot(token);
 
                     int hashes = 0;
@@ -828,8 +813,14 @@ public class Lexer {
             if (c > '~' || !ALLOWED_IN_OPS[c])
                 throw new ExpressionException(context, expression, token, "Unexpected character");
 
-            Set<String> ops = prevValue() ? OPS : UOPS;
-            TokenInterface.setType(token, ops == OPS ? TokenTypeInterface.OPERATOR : TokenTypeInterface.UNARY_OPERATOR);
+            Set<String> ops;
+            if (prevValue()) {
+                TokenInterface.setType(token, TokenTypeInterface.OPERATOR);
+                ops = Parser.OPS.keySet();
+            } else {
+                TokenInterface.setType(token, TokenTypeInterface.UNARY_OPERATOR);
+                ops = Parser.UOPS.keySet();
+            }
             StringBuilder builder = new StringBuilder();
             int lastPos = pos, lastLinepos = linepos;
 
