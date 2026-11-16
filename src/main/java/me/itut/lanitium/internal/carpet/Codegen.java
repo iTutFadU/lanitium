@@ -214,11 +214,11 @@ public class Codegen {
         record Lambda(Var[] capture, FnValue template, Var to) implements Instruction {}
         record Forget(Var slot) implements Instruction {}
 
-        record GlobalRead(Global global, Var to) implements Instruction {}
+        record GlobalRead(Token token, Global global, Var to) implements Instruction {}
         record InvokeRead(Token token, InvokeTarget target, InvokeArgs args, Optional<Var> to) implements Instruction {}
         record MemberRead(Var on, StringValue name, Var to) implements Instruction {}
 
-        record GlobalStore(Var from, Global global) implements Instruction {}
+        record GlobalStore(Var from, Token token, Global global) implements Instruction {}
         record InvokeStore(Var from, Token token, InvokeTarget target, InvokeArgs args) implements Instruction {}
         record MemberStore(Var from, Var on, StringValue name) implements Instruction {}
 
@@ -832,7 +832,7 @@ public class Codegen {
         if ("=".equals(op.surface)) {
             context.current().code.add(switch (to) {
                 case LocalBinding(Var slot, _) -> new Instruction.Move(from, slot);
-                case GlobalBinding(Global global, _) -> new Instruction.GlobalStore(from, global);
+                case GlobalBinding(Global global, _) -> new Instruction.GlobalStore(from, op, global);
                 case LValue.Invoke(Token token, InvokeTarget target, InvokeArgs args) ->
                     new Instruction.InvokeStore(from, token, target, args);
                 case LValue.Member(Var on, StringValue name) -> new Instruction.MemberStore(from, on, name);
@@ -844,7 +844,7 @@ public class Codegen {
         switch (to) {
             case LocalBinding(Var slot, _) -> {}
             case GlobalBinding(Global global, _) ->
-                context.current().code.add(new Instruction.GlobalRead(global, temp));
+                context.current().code.add(new Instruction.GlobalRead(op, global, temp));
             case LValue.Invoke(Token token, InvokeTarget target, InvokeArgs args) ->
                 context.current().code.add(new Instruction.InvokeRead(token, target, args, Optional.of(temp)));
             case LValue.Member(Var on, StringValue name) ->
@@ -873,7 +873,7 @@ public class Codegen {
         switch (to) {
             case LocalBinding _ -> {}
             case GlobalBinding(Global global, _) ->
-                context.current().code.add(new Instruction.GlobalStore(result, global));
+                context.current().code.add(new Instruction.GlobalStore(result, op, global));
             case LValue.Invoke(Token token, InvokeTarget target, InvokeArgs args) ->
                 context.current().code.add(new Instruction.InvokeStore(result, token, target, args));
             case LValue.Member(Var on, StringValue name) ->
@@ -966,7 +966,7 @@ public class Codegen {
                         case LocalBinding(Var from, boolean _) -> from;
                         case GlobalBinding(Global global, GlobalBinding.Mutability _) -> {
                             Var to = Var.at(nextAssignment(context.indices));
-                            context.current().code.add(new Instruction.GlobalRead(global, to));
+                            context.current().code.add(new Instruction.GlobalRead(token, global, to));
                             yield to;
                         }
                     };
