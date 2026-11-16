@@ -1,4 +1,4 @@
-package me.itut.lanitium.internal.carpet;
+package me.itut.lanitium.lana;
 
 /*
     value := bool | int | str | list | map

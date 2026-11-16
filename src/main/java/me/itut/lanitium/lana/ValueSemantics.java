@@ -1,4 +1,4 @@
-package me.itut.lanitium.internal.carpet;
+package me.itut.lanitium.lana;
 
 import carpet.script.*;
 import carpet.script.value.*;
@@ -6,6 +6,7 @@ import carpet.script.exception.InternalExpressionException;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.Hash;
+import me.itut.lanitium.internal.carpet.MapValueInterface;
 import me.itut.lanitium.value.Constants;
 import me.itut.lanitium.value.ObjectFunctionValue;
 import me.itut.lanitium.value.ObjectValue;

@@ -6,9 +6,6 @@ import carpet.script.Token;
 import carpet.script.Tokenizer;
 import carpet.script.exception.ExpressionException;
 import me.itut.lanitium.internal.carpet.InterpolatedString;
-import me.itut.lanitium.internal.carpet.LanitiumConfig;
-import me.itut.lanitium.internal.carpet.Lexer;
-import me.itut.lanitium.internal.carpet.TokenizerInterface;
 import me.itut.lanitium.internal.carpet.TokenInterface;
 import me.itut.lanitium.internal.carpet.TokenTypeInterface;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +25,7 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 
 @Mixin(value = Tokenizer.class, remap = false)
-public abstract class TokenizerMixin implements TokenizerInterface {
+public abstract class TokenizerMixin {
     @Shadow private int pos;
     @Shadow @Final private String input;
     @Shadow private Token previousToken;
@@ -47,13 +44,6 @@ public abstract class TokenizerMixin implements TokenizerInterface {
     @Unique private int state;
     @Unique private int brackets;
     @Unique private final Stack<Token> tokenQueue = new Stack<>();
-
-    @Unique private @Nullable Lexer lexer;
-
-    @Override
-    public @Nullable Lexer lanitium$lexer() {
-        return lexer;
-    }
 
     @Shadow
     private static boolean isSemicolon(Token tok) {
@@ -291,17 +281,6 @@ public abstract class TokenizerMixin implements TokenizerInterface {
 
             pos++;
             linepos++;
-        } else if (ch == '@') {
-            TokenInterface.morph(token, TokenTypeInterface.MARKER, "@");
-            if (newLinesMarkers)
-                throw new ExpressionException(context, expression, token, "'@lanitium' is only allowed in files");
-            if (previousToken != null)
-                throw new ExpressionException(context, expression, token, "Only whitespace and comments are allowed before '@lanitium'");
-            pos++;
-            linepos++;
-            lexer = new Lexer(pos, lineno, linepos, input, expression, context);
-            lexer.lex();
-            pos = input.length();
         } else {
             StringBuilder greedyMatch = new StringBuilder();
             int initialPos = pos;

@@ -1,4 +1,4 @@
-package me.itut.lanitium.internal.carpet;
+package me.itut.lanitium.lana;
 
 import carpet.script.Token;
 import org.jetbrains.annotations.Nullable;

@@ -1,6 +1,7 @@
 package me.itut.lanitium.internal.carpet;
 
 import carpet.script.Token;
+import me.itut.lanitium.lana.Lexer;
 
 public interface TokenInterface {
     TokenInterface NONE = (TokenInterface)Token.NONE;

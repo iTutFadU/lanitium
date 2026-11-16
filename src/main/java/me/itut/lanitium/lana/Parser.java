@@ -1,7 +1,10 @@
-package me.itut.lanitium.internal.carpet;
+package me.itut.lanitium.lana;
 
 import carpet.script.*;
 import carpet.script.exception.ExpressionException;
+import me.itut.lanitium.internal.carpet.TokenInterface;
+import me.itut.lanitium.internal.carpet.TokenTypeInterface;
+import me.itut.lanitium.internal.carpet.TokenTypeName;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;

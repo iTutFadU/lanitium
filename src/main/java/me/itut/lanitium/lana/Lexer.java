@@ -1,7 +1,9 @@
-package me.itut.lanitium.internal.carpet;
+package me.itut.lanitium.lana;
 
 import carpet.script.*;
 import carpet.script.exception.ExpressionException;
+import me.itut.lanitium.internal.carpet.TokenInterface;
+import me.itut.lanitium.internal.carpet.TokenTypeInterface;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -38,9 +40,13 @@ public class Lexer {
     public void lex() {
         skipWhitespace();
         Token token = TokenInterface.at(this);
+        if (peek() != '@')
+            throw new ExpressionException(context, expression, token, "Expected '@lanitium'");
+
+        skipWhitespace();
         String ident = parseIdent();
         if (!"lanitium".equals(ident))
-            throw new ExpressionException(context, expression, TokenInterface.morph(token, TokenTypeInterface.VARIABLE, ident), "Expected 'lanitium' after '@'");
+            throw new ExpressionException(context, expression, token, "Expected 'lanitium' after '@'");
 
         skipWhitespace();
         LanitiumConfig cfg = parseConfig(TokenInterface.relocate(token, this));

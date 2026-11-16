@@ -3,7 +3,7 @@
 [<img alt="wiki" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/documentation/ghpages_vector.svg">](https://github.com/iTutFadU/lanitium/wiki)
 [<img alt="discord" height="56" src="https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/social/discord-singular_vector.svg">](https://discord.gg/sy78EJ5hXE)
 
-<img alt="Lanitium" src="/title.png">
+![Lanitium](/title.png)
 
 # Lanitium
 
