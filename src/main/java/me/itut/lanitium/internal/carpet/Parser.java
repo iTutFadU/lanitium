@@ -12,65 +12,107 @@ import java.util.Map;
 import java.util.Objects;
 
 public class Parser {
-    public record Op(int leftPrecedence, int rightPrecedence, @Nullable Object group) {
-        public static final int SEMICOLON                   =   5;
-        public static final int                  ARR_RIGHT  =  10;
-        public static final int MOVE_LEFT =  25, MOVE_RIGHT =  20; // <-
-        public static final int OR_LEFT   =  30, OR_RIGHT   =  35; // ->
-        public static final int AND_LEFT  =  40, AND_RIGHT  =  45; // ->
-        public static final int COMPARE                     =  50;
-        public static final int ADD_LEFT  =  60, ADD_RIGHT  =  65; // ->
-        public static final int MULT_LEFT =  70, MULT_RIGHT =  75; // ->
-        public static final int POW_LEFT  =  85, POW_RIGHT  =  80; // <-
-        public static final int ARR_LEFT  =  90                  ;
-        public static final int UN_LEFT   = 105, UN_RIGHT   = 100; // <-
-        public static final int DOT_LEFT  = 120, DOT_RIGHT  = 125; // ->
+    public enum Precedence {
+        /*    */         COMMA,
+        /*    */       SEMICOLON,
+        /*    */             ARR_RIGHT,
+        /* <- */ MOVE_RIGHT, MOVE_LEFT,
+        /* -> */ FISH_LEFT,  FISH_RIGHT,
+        /* -> */ OR2_LEFT,   OR2_RIGHT,
+        /* -> */ AND2_LEFT,  AND2_RIGHT,
+        /* -> */ OR1_LEFT,   OR1_RIGHT,
+        /* -> */ AND1_LEFT,  AND1_RIGHT,
+        /*    */        COMPARE,
+        /* -> */ ADD_LEFT,   ADD_RIGHT,
+        /* -> */ MULT_LEFT,  MULT_RIGHT,
+        /* <- */ POW_RIGHT,  POW_LEFT,
+        /*    */ ARR_LEFT,
+        /* <- */ UN_RIGHT,   UN_LEFT,
+        /*    */         INDEX,
+        /* -> */ DOT_LEFT,   DOT_RIGHT,
+    }
 
-        public static final Op RESET     = new Op(  0,   0, null);
-        public static final Op INDEX     = new Op(110, 110);
-        public static final Op CALL      = new Op(DOT_LEFT, DOT_RIGHT);
+    public record Op(Precedence leftPrecedence, Precedence rightPrecedence, @Nullable Object group) {
+        public static final Op RESET = new Op(Precedence.COMMA,    Precedence.COMMA, null);
+        public static final Op INDEX = new Op(Precedence.INDEX,    Precedence.INDEX);
+        public static final Op CALL  = new Op(Precedence.DOT_LEFT, Precedence.DOT_RIGHT);
 
         public static final Object COMPARE_GROUP = new Object();
+        public static final Object ASSIGN_GROUP = new Object();
+        public static final Object BIND_GROUP = new Object();
 
-        public Op(int leftPrecedence, int rightPrecedence) {
+        public Op(Precedence leftPrecedence, Precedence rightPrecedence) {
             this(leftPrecedence, rightPrecedence, new Object());
         }
     }
 
-    public static final Map<String, Op> OPS = new HashMap<>() {{
-        put("+", new Op(Op.ADD_LEFT, Op.ADD_RIGHT));
-        put("-", new Op(Op.ADD_LEFT, Op.ADD_RIGHT));
-        put("*", new Op(Op.MULT_LEFT, Op.MULT_RIGHT));
-        put("/", new Op(Op.MULT_LEFT, Op.MULT_RIGHT));
-        put("%", new Op(Op.MULT_LEFT, Op.MULT_RIGHT));
-        put("^", new Op(Op.POW_LEFT, Op.POW_RIGHT));
-        put("&&", new Op(Op.AND_LEFT, Op.AND_RIGHT));
-        put("||", new Op(Op.OR_LEFT, Op.OR_RIGHT));
-        put("??", new Op(Op.OR_LEFT, Op.OR_RIGHT));
-        put("==", new Op(Op.COMPARE, Op.COMPARE, Op.COMPARE_GROUP));
-        put("<", new Op(Op.COMPARE, Op.COMPARE, Op.COMPARE_GROUP));
-        put("<=", new Op(Op.COMPARE, Op.COMPARE, Op.COMPARE_GROUP));
-        put(">", new Op(Op.COMPARE, Op.COMPARE, Op.COMPARE_GROUP));
-        put(">=", new Op(Op.COMPARE, Op.COMPARE, Op.COMPARE_GROUP));
-        put("!=", new Op(Op.COMPARE, Op.COMPARE));
-        put("=", new Op(Op.MOVE_LEFT, Op.MOVE_RIGHT));
-        put("+=", new Op(Op.MOVE_LEFT, Op.MOVE_RIGHT));
-        put(":=", new Op(Op.MOVE_LEFT, Op.MOVE_RIGHT));
-        put("::", new Op(Op.MOVE_LEFT, Op.MOVE_RIGHT));
-        put("->", new Op(Op.ARR_LEFT, Op.ARR_RIGHT));
-        put(".", new Op(Op.DOT_LEFT, Op.DOT_RIGHT));
-        put(";", new Op(Op.SEMICOLON, Op.SEMICOLON));
-    }};
+    public static final Map<String, Op> OPS = Map.ofEntries(
+        Map.entry("+", new Op(Precedence.ADD_LEFT, Precedence.ADD_RIGHT)),
+        Map.entry("-", new Op(Precedence.ADD_LEFT, Precedence.ADD_RIGHT)),
+        Map.entry("*", new Op(Precedence.MULT_LEFT, Precedence.MULT_RIGHT)),
+        Map.entry("/", new Op(Precedence.MULT_LEFT, Precedence.MULT_RIGHT)),
+        Map.entry("%", new Op(Precedence.MULT_LEFT, Precedence.MULT_RIGHT)),
+        Map.entry("^", new Op(Precedence.POW_LEFT, Precedence.POW_RIGHT)),
 
-    public static final Map<String, Op> UOPS = new HashMap<>() {{
-        put("!", new Op(Op.UN_LEFT, Op.UN_RIGHT));
-        put("-", new Op(Op.UN_LEFT, Op.UN_RIGHT));
-        put("+", new Op(Op.UN_LEFT, Op.UN_RIGHT));
-        put("...", new Op(Op.UN_LEFT, Op.UN_RIGHT));
-        put(".", new Op(Op.UN_LEFT, Op.UN_RIGHT));
-    }};
+        Map.entry("&", new Op(Precedence.AND1_LEFT, Precedence.AND1_RIGHT)),
+        Map.entry("|", new Op(Precedence.OR1_LEFT, Precedence.OR1_RIGHT)),
+        Map.entry("?", new Op(Precedence.OR1_LEFT, Precedence.OR1_RIGHT)),
+        Map.entry("&&", new Op(Precedence.AND2_LEFT, Precedence.AND2_RIGHT)),
+        Map.entry("||", new Op(Precedence.OR2_LEFT, Precedence.OR2_RIGHT)),
+        Map.entry("??", new Op(Precedence.OR2_LEFT, Precedence.OR2_RIGHT)),
 
-    public record Node(Token token, @Nullable List<Node> children) {}
+        Map.entry("==", new Op(Precedence.COMPARE, Precedence.COMPARE, Op.COMPARE_GROUP)),
+        Map.entry("<", new Op(Precedence.COMPARE, Precedence.COMPARE, Op.COMPARE_GROUP)),
+        Map.entry("<=", new Op(Precedence.COMPARE, Precedence.COMPARE, Op.COMPARE_GROUP)),
+        Map.entry(">", new Op(Precedence.COMPARE, Precedence.COMPARE, Op.COMPARE_GROUP)),
+        Map.entry(">=", new Op(Precedence.COMPARE, Precedence.COMPARE, Op.COMPARE_GROUP)),
+        Map.entry("!=", new Op(Precedence.COMPARE, Precedence.COMPARE)),
+
+        Map.entry("=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("+=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("-=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("*=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("/=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("%=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("^=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("&=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("|=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        Map.entry("?=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        // Map.entry("&&=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        // Map.entry("||=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        // Map.entry("??=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.ASSIGN_GROUP)),
+        // TODO: .= or similar
+
+        Map.entry("<><", new Op(Precedence.FISH_LEFT, Precedence.FISH_RIGHT)),
+        Map.entry(":=", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.BIND_GROUP)),
+        Map.entry("::", new Op(Precedence.MOVE_LEFT, Precedence.MOVE_RIGHT, Op.BIND_GROUP)),
+        Map.entry("->", new Op(Precedence.ARR_LEFT, Precedence.ARR_RIGHT)),
+        Map.entry(".", new Op(Precedence.DOT_LEFT, Precedence.DOT_RIGHT)),
+        Map.entry(";", new Op(Precedence.SEMICOLON, Precedence.SEMICOLON))
+    );
+
+    public static final Map<String, Op> UOPS = Map.ofEntries(
+        Map.entry("!", new Op(Precedence.UN_LEFT, Precedence.UN_RIGHT)),
+        Map.entry("-", new Op(Precedence.UN_LEFT, Precedence.UN_RIGHT)),
+        Map.entry("+", new Op(Precedence.UN_LEFT, Precedence.UN_RIGHT)),
+        Map.entry("...", new Op(Precedence.UN_LEFT, Precedence.UN_RIGHT)),
+        Map.entry("?", new Op(Precedence.UN_LEFT, Precedence.UN_RIGHT)),
+        Map.entry(".", new Op(Precedence.UN_LEFT, Precedence.UN_RIGHT))
+    );
+
+    public record Node(Token token, @Nullable List<Node> children) {
+        public Node opLhs() {
+            return children.size() == 3
+                ? children.getFirst()
+                : new Node(token, children.subList(0, children.size() - 2));
+        }
+
+        public Node opRhs() {
+            return children.size() == 3
+                ? children.getLast()
+                : new Node(children.get(3).token(), children.subList(2, children.size()));
+        }
+    }
 
     public record ASTResult(@Nullable Node node, int commaIndex) {
         public ASTResult {
@@ -79,13 +121,11 @@ public class Parser {
         }
     }
 
-    public final String input;
     public final Expression expression;
     public final Context context;
     public final LanitiumConfig.Structured config;
 
     public Parser(Lexer lexer) {
-        input = lexer.input;
         expression = lexer.expression;
         context = lexer.context;
         config = Objects.requireNonNull(lexer.config);
@@ -99,8 +139,8 @@ public class Parser {
             Op topOp = (unary ? UOPS : OPS).get(top.surface);
 
             if (op.group == topOp.group) return true;
-            if (topOp.rightPrecedence <= op.leftPrecedence)
-                return topOp.rightPrecedence < op.leftPrecedence;
+            if (topOp.rightPrecedence.compareTo(op.leftPrecedence) <= 0)
+                return topOp.rightPrecedence.compareTo(op.leftPrecedence) < 0;
 
             if (unary) {
                 nodes.push(new Node(ops.pop(), List.of(nodes.pop())));
@@ -123,12 +163,13 @@ public class Parser {
     private static boolean prevValue(List<TokenTree> trees, int i) {
         if (i == 0) return false;
         if (!(trees.get(i - 1) instanceof TokenTree.Single(Token token))) return true;
-        TokenTypeInterface tokenType = TokenInterface.type(token);
-        if (tokenType == TokenTypeInterface.OPERATOR
-         || tokenType == TokenTypeInterface.UNARY_OPERATOR
-         || tokenType == TokenTypeInterface.COMMA
-         || tokenType == TokenTypeInterface.MARKER) return false;
-        return true;
+        return switch (TokenInterface.type(token).name()) {
+            case TokenTypeName.OPERATOR,
+                 TokenTypeName.UNARY_OPERATOR,
+                 TokenTypeName.COMMA,
+                 TokenTypeName.MARKER -> false;
+            default -> true;
+        };
     }
 
     private static boolean afterSemicolon(List<TokenTree> trees, int i) {
@@ -159,25 +200,11 @@ public class Parser {
         ArrayDeque<Node> nodes = new ArrayDeque<>();
         ArrayDeque<Token> ops = new ArrayDeque<>();
 
-        for (;i < trees.size(); i++) switch (trees.get(i)) {
-            case TokenTree.Single(Token token) -> {
-                TokenTypeInterface tokenType = TokenInterface.type(token);
-                if (tokenType == TokenTypeInterface.COMMA) break;
-
-                if (tokenType == TokenTypeInterface.MARKER) {
-                    if (afterSemicolon(trees, i)) continue;
-                    commitOperators(nodes, ops, OPS.get(token.surface));
-                    ops.push(token);
-                    continue;
-                }
-
-                if (tokenType == TokenTypeInterface.VARIABLE
-                 || tokenType == TokenTypeInterface.LITERAL) {
-                    nodes.push(new Node(token, null));
-                    continue;
-                }
-
-                if (tokenType == TokenTypeInterface.STRINGPARAM) {
+        loop: for (;i < trees.size(); i++) switch (trees.get(i)) {
+            case TokenTree.Single(Token token) -> { switch (TokenInterface.type(token).name()) {
+                case TokenTypeName.COMMA -> { break loop; }
+                case TokenTypeName.VARIABLE, TokenTypeName.LITERAL -> nodes.push(new Node(token, null));
+                case TokenTypeName.STRINGPARAM -> {
                     List<Node> children = new ArrayList<>();
                     boolean call = prevValue(trees, i);
                     if (call) {
@@ -200,23 +227,23 @@ public class Parser {
                         ));
                         commitOperators(nodes, ops, Op.CALL);
                     } else nodes.push(new Node(token, List.copyOf(children)));
-                    continue;
                 }
-
-                if (tokenType == TokenTypeInterface.OPERATOR) {
+                case TokenTypeName.MARKER -> {
+                    if (!afterSemicolon(trees, i)) {
+                        commitOperators(nodes, ops, OPS.get(token.surface));
+                        ops.push(token);
+                    }
+                }
+                case TokenTypeName.OPERATOR -> {
                     commitOperators(nodes, ops, OPS.get(token.surface));
                     ops.push(token);
-                    continue;
                 }
-
-                if (tokenType == TokenTypeInterface.UNARY_OPERATOR) {
+                case TokenTypeName.UNARY_OPERATOR -> {
                     commitOperators(nodes, ops, UOPS.get(token.surface));
                     ops.push(token);
-                    continue;
                 }
-
-                throw new IllegalArgumentException("Unexpected token type: " + tokenType);
-            }
+                case String tokenType -> throw new IllegalArgumentException("Unexpected token type: " + tokenType);
+            } }
             case TokenTree.Brackets br -> { switch (br.type()) {
                 case TokenTree.BracketType.ROUND -> {
                     if (prevValue(trees, i)) {
@@ -256,6 +283,13 @@ public class Parser {
                 case TokenTree.BracketType.INTERPOLATION -> throw new IllegalStateException("You can't type this");
             } }
         }
+
+        if (i > 0
+         && trees.get(i - 1) instanceof TokenTree.Single(Token token)
+         && TokenInterface.type(token) == TokenTypeInterface.MARKER
+         && !ops.isEmpty()
+         && TokenInterface.type(ops.peek()) == TokenTypeInterface.MARKER
+        ) nodes.push(new Node(TokenInterface.morphedInto(token, TokenTypeInterface.CONSTANT, "null"), null));
 
         commitOperators(nodes, ops, Op.RESET);
         if (i >= trees.size()) i = -1;

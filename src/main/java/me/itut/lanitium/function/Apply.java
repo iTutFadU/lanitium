@@ -343,8 +343,6 @@ public class Apply {
             return (cc, tt) -> ret;
         });
 
-//        expr.addLazyBinaryOperator("::", Operators.precedence.get("attribute~:") + 20, false, true, type -> type, (c, t, l, r) -> l); // TODO: Add types to syntax
-
         expr.addLazyBinaryOperatorWithDelegation("\\", "with", Operators.precedence.get("attribute~:"), true, false, (c, t, e, tok, l, r) -> {
             Value left = l.evalValue(c, t);
             if (left instanceof WithValue with)
